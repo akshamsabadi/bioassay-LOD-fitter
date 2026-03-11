@@ -151,7 +151,7 @@ function App() {
     return points;
   }, [results, blankSignals]);
 
-  const yDomain = useMemo(() => {
+  const yDomain = useMemo((): [number | 'auto', number | 'auto'] => {
     if (!results) return [0, 'auto'];
     const maxData = Math.max(...results.fit.actualY, results.ld);
     const minData = Math.min(...results.fit.actualY, 0);
@@ -268,9 +268,9 @@ function App() {
                       <Line dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} isAnimationActive={false} name="Model Fit" />
                       <Scatter data={scatterData} fill="#f38ba8" name="Measured Data" dataKey="y" isAnimationActive={false} />
                       
-                      <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" isAnimationActive={false} label={<CustomLcLabel />} />
-                      <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" isAnimationActive={false} label={<CustomLdLabel />} />
-                      <ReferenceLine x={results.lodConc} stroke="#f9e2af" strokeWidth={2} isAnimationActive={false} label={{ position: 'top', value: 'LOD', fill: '#f9e2af', fontSize: 10 }} />
+                      <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={<CustomLcLabel />} />
+                      <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={<CustomLdLabel />} />
+                      <ReferenceLine x={results.lodConc} stroke="#f9e2af" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: '#f9e2af', fontSize: 10 }} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
