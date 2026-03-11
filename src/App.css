@@ -133,6 +133,34 @@ header {
   cursor: pointer;
 }
 
+.text-input {
+  width: 100%;
+  padding: 8px;
+  background: var(--surface0);
+  color: var(--text);
+  border: 1px solid var(--surface1);
+  border-radius: 6px;
+  outline: none;
+  font-size: 0.85rem;
+}
+
+.text-input:focus {
+  border-color: var(--blue);
+}
+
+.toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--subtext1);
+  margin-top: 5px;
+}
+
+.toggle-group input {
+  cursor: pointer;
+}
+
 /* Data Table UI */
 .data-table-header {
   display: flex;
