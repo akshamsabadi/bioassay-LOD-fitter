@@ -119,7 +119,7 @@ export const fitData = (x: number[], y: number[], method: 'linear' | '4pl' | '5p
     getCI: (val: number) => {
       const g = new Matrix([model.grad(val, params)]);
       const variance = g.mmul(cov).mmul(g.transpose()).get(0, 0);
-      const se = Math.sqrt(variance);
+      const se = Math.sqrt(Math.max(0, variance)); // Ensure variance is non-negative
       const crit = 1.96; // 95% CI approx
       const pred = model.func(val, params);
       return { low: pred - crit * se, high: pred + crit * se };

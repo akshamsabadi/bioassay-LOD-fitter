@@ -69,18 +69,13 @@ function App() {
     const data = [];
     const logMin = Math.log10(zeroX);
     const logMax = Math.log10(maxX * 1.5);
-    const steps = 100;
-    for (let i = 0; i <= steps; i++) {
-      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
+    for (let i = 0; i <= 100; i++) {
+      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / 100);
       const fitX = xVal < minX * 0.5 ? 0 : xVal;
       const pred = results.fit.predict(fitX);
       const { low, high } = results.fit.getCI(fitX);
-      data.push({ 
-        x: xVal, 
-        trend: pred, 
-        ciLow: low, 
-        ciHigh: high 
-      });
+      // ci is a range array [low, high]
+      data.push({ x: xVal, trend: pred, ci: [low, high] });
     }
     return data;
   }, [results]);
@@ -100,7 +95,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v9.1</h1>
+          <h1>Bioassay Analytics Pro v9.2</h1>
           <p className="header-description">Miller-style clinical LoD fitting with 95% Confidence Interval Ribbon.</p>
         </div>
       </header>
@@ -151,8 +146,7 @@ function App() {
                       <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: '#313244' }} />
                       <Legend verticalAlign="top" height={36} />
                       
-                      <Area dataKey="ciHigh" stroke="none" fill="#89b4fa" fillOpacity={0.15} name="95% CI Ribbon" isAnimationActive={false} />
-                      <Area dataKey="ciLow" stroke="none" fill="#1e1e2e" fillOpacity={1} name="CI Base" isAnimationActive={false} />
+                      <Area dataKey="ci" stroke="none" fill="#89b4fa" fillOpacity={0.2} name="95% CI Ribbon" isAnimationActive={false} />
                       
                       <Line dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} isAnimationActive={false} />
                       <Scatter data={scatterData} fill="#f38ba8" name="Measured Data" />
