@@ -12,8 +12,8 @@ export interface FitResult {
   };
   predict: (x: number) => number;
   getCI: (x: number) => { low: number; high: number };
-  getDerivative: (x: number) => number; // dy/dx
-  getParamGrad: (x: number) => number[]; // dy/dp
+  getDerivative: (x: number) => number;
+  getParamGrad: (x: number) => number[];
   actualX: number[];
   actualY: number[];
   k: number;
@@ -37,13 +37,14 @@ const models = {
     },
     grad: (x: number, [a, b, c, d]: number[]) => {
       if (x <= 0) return [1, 0, 0, 0];
-      const x_c_b = Math.pow(x / c, b);
+      const ratio = x / c;
+      const x_c_b = Math.pow(ratio, b);
       const denom = 1 + x_c_b;
       return [
-        1 / denom, // dy/da
-        -(a - d) * (x_c_b * Math.log(x / c)) / (denom * denom), // dy/db
-        (a - d) * (b * x_c_b / c) / (denom * denom), // dy/dc
-        x_c_b / denom // dy/dd
+        1 / denom,
+        -(a - d) * x_c_b * Math.log(ratio) / (denom * denom),
+        (a - d) * b * (x_c_b / c) / (denom * denom),
+        x_c_b / denom
       ];
     },
     deriv: (x: number, [a, b, c, d]: number[]) => {
@@ -54,12 +55,7 @@ const models = {
     },
     k: 4,
     paramNames: ['Bottom (a)', 'Hill Slope (b)', 'EC50 (c)', 'Top (d)'],
-    initialValues: (x: number[], y: number[]) => {
-      const sorted = x.map((v, i) => [v, y[i]]).sort((a, b) => a[0] - b[0]);
-      const minVal = Math.min(...y);
-      const maxVal = Math.max(...y);
-      return [minVal, 1, sorted[Math.floor(sorted.length / 2)][0], maxVal];
-    }
+    initialValues: (x: number[], y: number[]) => [Math.min(...y), 1, x[Math.floor(x.length/2)], Math.max(...y)]
   },
   '5pl': {
     func: (x: number, [a, b, c, d, g]: number[]) => {
@@ -68,15 +64,16 @@ const models = {
     },
     grad: (x: number, [a, b, c, d, g]: number[]) => {
       if (x <= 0) return [1, 0, 0, 0, 0];
-      const x_c_b = Math.pow(x / c, b);
+      const ratio = x / c;
+      const x_c_b = Math.pow(ratio, b);
       const db = 1 + x_c_b;
       const denom = Math.pow(db, g);
       return [
-        1 / denom, // dy/da
-        -(a - d) * g * x_c_b * Math.log(x / c) * Math.pow(db, -g - 1), // dy/db
-        (a - d) * g * b * (x_c_b / c) * Math.pow(db, -g - 1), // dy/dc
-        1 - (1 / denom), // dy/dd
-        -(a - d) * Math.log(db) / denom // dy/dg
+        1 / denom,
+        -(a - d) * g * x_c_b * Math.log(ratio) * Math.pow(db, -g - 1),
+        (a - d) * g * b * (x_c_b / c) * Math.pow(db, -g - 1),
+        1 - (1 / denom),
+        -(a - d) * Math.log(db) / denom
       ];
     },
     deriv: (x: number, [a, b, c, d, g]: number[]) => {
@@ -87,10 +84,7 @@ const models = {
     },
     k: 5,
     paramNames: ['Bottom (a)', 'Hill Slope (b)', 'EC50 (c)', 'Top (d)', 'Asymmetry (g)'],
-    initialValues: (x: number[], y: number[]) => {
-      const sorted = x.map((v, i) => [v, y[i]]).sort((a, b) => a[0] - b[0]);
-      return [Math.min(...y), 1, sorted[Math.floor(sorted.length / 2)][0], Math.max(...y), 1];
-    }
+    initialValues: (x: number[], y: number[]) => [Math.min(...y), 1, x[Math.floor(x.length/2)], Math.max(...y), 1]
   }
 };
 
@@ -146,10 +140,9 @@ export const fitData = (x: number[], y: number[], method: 'linear' | '4pl' | '5p
     getCI: (val: number) => {
       const g = new Matrix([model.grad(val, params)]);
       const variance = g.mmul(cov).mmul(g.transpose()).get(0, 0);
-      const se = Math.sqrt(variance);
-      const crit = 1.96; 
+      const se = Math.sqrt(Math.abs(variance));
       const pred = model.func(val, params);
-      return { low: pred - crit * se, high: pred + crit * se };
+      return { low: pred - 1.96 * se, high: pred + 1.96 * se };
     },
     getDerivative: (val: number) => model.deriv(val, params),
     getParamGrad: (val: number) => model.grad(val, params),

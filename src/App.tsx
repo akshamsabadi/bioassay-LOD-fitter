@@ -57,7 +57,10 @@ function App() {
       });
       if (blanks.length < 2 || standards.length < 3) return null;
       return calculateAdvancedLoD(blanks, standards, fitMethod);
-    } catch (e) { return null; }
+    } catch (e) { 
+      console.error('LOD Calculation Error:', e);
+      return null; 
+    }
   }, [blankSignals, standardRows, fitMethod]);
 
   const coordInfo = useMemo(() => {
@@ -80,8 +83,12 @@ function App() {
       const fitX = xCoord < minX * 0.8 ? 0 : xCoord;
       const pred = results.fit.predict(fitX);
       const { low, high } = results.fit.getCI(fitX);
-      // Recharts range area data format: [low, high]
-      data.push({ x: xCoord, trend: pred, ciRange: [low, high] });
+      data.push({ 
+        x: xCoord, 
+        trend: pred, 
+        ciHigh: high,
+        ciLow: low
+      });
     }
     return data;
   }, [results, coordInfo]);
@@ -94,6 +101,7 @@ function App() {
 
   const Superscript10 = (props: any) => {
     const { x, y, payload } = props;
+    if (!payload || payload.value === undefined) return null;
     if (payload.value <= coordInfo.zeroX * 1.1) {
       return <text x={x} y={y + 14} fill="#9399b2" textAnchor="middle" fontSize={11} fontWeight="bold">0</text>;
     }
@@ -116,7 +124,7 @@ function App() {
       <header>
         <div className="header-content">
           <h1>Bioassay Analytics Pro v10.2</h1>
-          <p className="header-description">Authentic Miller-style visuals with rigorous 95% Confidence Ribbons.</p>
+          <p className="header-description">Miller-style precision fitting with 95% CI bands and broken X-axis.</p>
         </div>
       </header>
       <main className="main-container">
@@ -141,14 +149,14 @@ function App() {
                 </div>
               ))}
             </div>
-            <button className="add-row-btn" onClick={() => setStandardRows([...standardRows, { id: Math.random().toString(36), conc: '', signals: '' }])}>+ Add Concentration</button>
+            <button className="add-row-btn" onClick={() => setStandardRows([...standardRows, { id: Math.random().toString(36), conc: '', signals: '' }])}>+ Add Point</button>
           </section>
         </aside>
         <section className="content-area">
           {results ? (
             <div className="dashboard-grid">
               <div className="chart-card">
-                <div className="chart-header"><h2>{plotTitle}</h2><span className="method-badge">{results.fit.method.toUpperCase()}</span></div>
+                <div className="chart-header"><h2>{plotTitle}</h2><span className="method-badge">{results.fit.method.toUpperCase()} FIT</span></div>
                 <div className="chart-frame">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 20, right: 60, left: 20, bottom: 50 }}>
@@ -163,12 +171,12 @@ function App() {
                       <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: '#313244' }} />
                       <Legend verticalAlign="top" height={40} />
                       
-                      <Area type="monotone" dataKey="ciRange" stroke="none" fill="#89b4fa" fillOpacity={0.2} name="95% CI Ribbon" isAnimationActive={false} />
+                      <Area type="monotone" dataKey={(d: any) => [d.ciLow, d.ciHigh]} stroke="none" fill="#89b4fa" fillOpacity={0.15} name="95% CI Ribbon" isAnimationActive={false} />
                       <Line type="monotone" dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} name="Model Fit" isAnimationActive={false} />
                       <Scatter data={scatterData} fill="#f38ba8" name="Measured Data" />
                       
-                      <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={{ position: 'right', value: 'Lc', fill: '#fab387', fontSize: 11 }} />
-                      <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={{ position: 'right', value: 'Ld', fill: '#a6e3a1', fontSize: 11 }} />
+                      <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={{ position: 'right', value: 'Lc', fill: '#fab387', fontSize: 10 }} />
+                      <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={{ position: 'right', value: 'Ld', fill: '#a6e3a1', fontSize: 10 }} />
                       
                       <ReferenceLine x={results.lodConc} stroke="#f9e2af" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: '#f9e2af', fontSize: 12, fontWeight: 'bold' }} />
                       <ReferenceLine x={results.lodCI.low} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.6} />
