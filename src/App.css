@@ -343,15 +343,15 @@ header {
 .stat-value { color: var(--text); font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
 
 .lod-hero-card {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--green) 12%, transparent), color-mix(in srgb, var(--teal) 6%, transparent));
-  border: 1px solid var(--green);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--yellow) 12%, transparent), color-mix(in srgb, var(--peach) 6%, transparent));
+  border: 1px solid var(--yellow);
   border-radius: 12px;
   padding: 20px 16px;
   text-align: center;
 }
 
 .lod-hero-card label {
-  color: var(--green);
+  color: var(--yellow);
   font-weight: 900;
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -363,7 +363,7 @@ header {
 .lod-hero-value {
   font-size: 2.2rem;
   font-weight: 900;
-  color: var(--green);
+  color: var(--yellow);
   letter-spacing: -1px;
 }
 

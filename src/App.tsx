@@ -23,21 +23,21 @@ interface StandardRow {
 }
 
 const DEFAULT_STANDARDS: StandardRow[] = [
-  { id: '1', conc: '0.001', signals: '0.10, 0.13, 0.08' },
-  { id: '2', conc: '0.003', signals: '0.12, 0.15, 0.09' },
-  { id: '3', conc: '0.01', signals: '0.16, 0.13, 0.18' },
-  { id: '4', conc: '0.03', signals: '0.22, 0.28, 0.24' },
-  { id: '5', conc: '0.1', signals: '0.50, 0.58, 0.54' },
-  { id: '6', conc: '0.3', signals: '1.18, 1.30, 1.25' },
-  { id: '7', conc: '1', signals: '2.45, 2.65, 2.52' },
-  { id: '8', conc: '3', signals: '3.65, 3.85, 3.75' },
-  { id: '9', conc: '10', signals: '4.45, 4.60, 4.52' },
-  { id: '10', conc: '30', signals: '4.78, 4.90, 4.85' },
-  { id: '11', conc: '100', signals: '4.90, 5.01, 4.95' },
-  { id: '12', conc: '300', signals: '4.92, 5.05, 4.98' },
+  { id: '1', conc: '0.001', signals: '0.08, 0.15, 0.09' },
+  { id: '2', conc: '0.003', signals: '0.10, 0.18, 0.11' },
+  { id: '3', conc: '0.01', signals: '0.14, 0.10, 0.19' },
+  { id: '4', conc: '0.03', signals: '0.20, 0.32, 0.23' },
+  { id: '5', conc: '0.1', signals: '0.45, 0.65, 0.52' },
+  { id: '6', conc: '0.3', signals: '1.05, 1.45, 1.20' },
+  { id: '7', conc: '1', signals: '2.30, 2.80, 2.45' },
+  { id: '8', conc: '3', signals: '3.50, 4.00, 3.65' },
+  { id: '9', conc: '10', signals: '4.30, 4.75, 4.45' },
+  { id: '10', conc: '30', signals: '4.65, 5.05, 4.75' },
+  { id: '11', conc: '100', signals: '4.80, 5.20, 4.85' },
+  { id: '12', conc: '300', signals: '4.85, 5.25, 4.90' },
 ];
 
-const DEFAULT_BLANKS = '0.08, 0.11, 0.09';
+const DEFAULT_BLANKS = '0.07, 0.13, 0.08';
 
 const formatSuperscript = (val: number): ReactNode => {
   if (val === 0 || isNaN(val)) return '0';
@@ -80,6 +80,20 @@ const CustomLdLabel = ({ viewBox }: any) => {
     <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 4} fill="var(--green)" fontSize={10}>
       L<tspan baselineShift="sub" fontSize={8}>D</tspan>
     </text>
+  );
+};
+
+const CustomLegend = () => {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', fontSize: '11px', flexWrap: 'wrap', paddingBottom: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ color: 'var(--red)', fontSize: '14px', lineHeight: '10px' }}>●</span> Measured Data</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--blue)' }}></span> Model Fit</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--blue) 25%, transparent)' }}></span> 95% CI Fit</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span> L_C</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--green)' }}></span> L_D</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--yellow)' }}></span> LOD</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--yellow) 25%, transparent)' }}></span> 95% CI LOD</div>
+    </div>
   );
 };
 
@@ -203,7 +217,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v10.3.1</h1>
+          <h1>Bioassay Analytics Pro v10.4</h1>
           <p className="header-description">Professional sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -284,13 +298,13 @@ function App() {
                         label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: 'var(--overlay2)', fontSize: 11, offset: -5 }} 
                       />
                       <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: 'var(--surface0)', borderRadius: '8px', fontSize: '12px' }} />
-                      <Legend verticalAlign="top" height={36} iconSize={10} wrapperStyle={{ fontSize: '11px' }} />
+                      <Legend verticalAlign="top" content={<CustomLegend />} />
                       
-                      <Area dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} isAnimationActive={false} name="95% CI" />
+                      <Area dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} isAnimationActive={false} legendType="none" />
                       <ReferenceArea x1={results.lodCI.low} x2={results.lodCI.high} fill="var(--yellow)" fillOpacity={0.15} strokeOpacity={0} ifOverflow="hidden" />
                       
-                      <Line dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} isAnimationActive={false} name="Model Fit" />
-                      <Scatter data={scatterData} fill="var(--red)" name="Measured Data" dataKey="y" isAnimationActive={false} />
+                      <Line dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} isAnimationActive={false} legendType="none" />
+                      <Scatter data={scatterData} fill="var(--red)" dataKey="y" isAnimationActive={false} legendType="none" />
                       
                       <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={<CustomLcLabel />} />
                       <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={<CustomLdLabel />} />
