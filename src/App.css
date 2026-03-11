@@ -312,7 +312,19 @@ header {
 }
 
 .method-badge { background: var(--surface0); color: var(--blue); }
+.warning-badge { background: rgba(250, 179, 135, 0.1); color: var(--peach); border: 1px solid var(--peach); padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
 .quality-badge { background: rgba(166, 227, 161, 0.1); color: var(--green); border-color: var(--green); }
+
+.highlight-stat {
+  background: rgba(137, 180, 250, 0.05);
+  border-radius: 4px;
+  padding: 8px !important;
+  margin: 4px 0;
+}
+
+.highlight-stat .stat-value {
+  color: var(--mauve);
+}
 
 .chart-frame {
   flex: 1;
