@@ -36,7 +36,7 @@ const DEFAULT_STANDARDS: StandardRow[] = [
 ];
 
 function App() {
-  const [blankSignals, setBlankSignals] = useState('0.05, 0.06, 0.04, 0.05, 0.05');
+  const [blankSignals, setBlankSignals] = useState('0.15, 0.16, 0.14, 0.15, 0.15');
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
   const [fitMethod] = useState<'linear' | '4pl' | '5pl' | 'auto'>('auto');
   const [plotTitle, setPlotTitle] = useState('Miller-Style Assay Analysis');
@@ -82,8 +82,16 @@ function App() {
     if (!results) return [];
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
     const zeroX = minX / 10;
-    return results.fit.actualX.map((x, i) => ({ x: x === 0 ? zeroX : x, y: results.fit.actualY[i] }));
-  }, [results]);
+    
+    // Include standards
+    const points = results.fit.actualX.map((x, i) => ({ x: x === 0 ? zeroX : x, y: results.fit.actualY[i] }));
+    
+    // Include blanks at zeroX position
+    const blanks = blankSignals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+    blanks.forEach(y => points.push({ x: zeroX, y }));
+    
+    return points;
+  }, [results, blankSignals]);
 
   const updateRow = (id: string, field: 'conc' | 'signals', value: string) => {
     setStandardRows(standardRows.map(r => r.id === id ? { ...r, [field]: value } : r));
@@ -93,7 +101,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v9.0</h1>
+          <h1>Bioassay Analytics Pro v9.1</h1>
           <p className="header-description">Miller-style clinical LoD fitting with 95% Confidence Intervals.</p>
         </div>
       </header>
