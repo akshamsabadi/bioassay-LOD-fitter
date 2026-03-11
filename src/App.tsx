@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { calculateAdvancedLoD, type StandardData } from './utils/calculations';
+import { useState, useMemo, type ReactNode } from 'react';
+import { calculateAdvancedLoD, type StandardData, type AdvancedLoDResult } from './utils/calculations';
 import {
   Scatter,
   XAxis,
@@ -10,7 +10,8 @@ import {
   Line,
   ComposedChart,
   ReferenceLine,
-  Area
+  Area,
+  Legend
 } from 'recharts';
 import './App.css';
 
@@ -35,15 +36,40 @@ const DEFAULT_STANDARDS: StandardRow[] = [
   { id: '12', conc: '300', signals: '4.92, 5.02, 4.88, 4.95, 4.94' },
 ];
 
+const formatSuperscript = (val: number): ReactNode => {
+  if (val === 0 || isNaN(val)) return '0';
+  const exponent = Math.floor(Math.log10(Math.abs(val)));
+  const base = (val / Math.pow(10, exponent)).toFixed(2);
+  if (parseFloat(base) === 1) {
+    return <span>10<sup>{exponent}</sup></span>;
+  }
+  return <span>{base} × 10<sup>{exponent}</sup></span>;
+};
+
+const CustomXAxisTick = ({ x, y, payload }: any) => {
+  if (payload.value === 0) return <text x={x} y={y + 12} fill="#9399b2" textAnchor="middle" fontSize={10}>0</text>;
+  const exponent = Math.round(Math.log10(payload.value));
+  return (
+    <g transform={`translate(${x},${y + 12})`}>
+      <text x={0} y={0} fill="#9399b2" textAnchor="middle" fontSize={10}>
+        10
+      </text>
+      <text x={8} y={-4} fill="#9399b2" textAnchor="start" fontSize={8}>
+        {exponent}
+      </text>
+    </g>
+  );
+};
+
 function App() {
   const [blankSignals, setBlankSignals] = useState('0.15, 0.16, 0.14, 0.15, 0.15');
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
-  const [fitMethod] = useState<'linear' | '4pl' | '5pl' | 'auto'>('auto');
-  const [plotTitle, setPlotTitle] = useState('Miller-Style Assay Analysis');
+  const [fitMethod, setFitMethod] = useState<'4pl' | '5pl' | 'auto'>('auto');
+  const [plotTitle, setPlotTitle] = useState('Dose-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (M)');
   const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
 
-  const results = useMemo(() => {
+  const results = useMemo((): AdvancedLoDResult | null => {
     try {
       const blanks = blankSignals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
       const standards: StandardData[] = [];
@@ -68,12 +94,13 @@ function App() {
     const data = [];
     const logMin = Math.log10(zeroX);
     const logMax = Math.log10(maxX * 1.5);
-    for (let i = 0; i <= 100; i++) {
-      const x = Math.pow(10, logMin + i * (logMax - logMin) / 100);
-      const fitX = x < minX * 0.5 ? 0 : x;
+    const steps = 100;
+    for (let i = 0; i <= steps; i++) {
+      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
+      const fitX = xVal < minX * 0.5 ? 0 : xVal;
       const pred = results.fit.predict(fitX);
       const { low, high } = results.fit.getCI(fitX);
-      data.push({ x, trend: pred, ciLow: low, ciHigh: high });
+      data.push({ x: xVal, trend: pred, ciRange: [low, high] });
     }
     return data;
   }, [results]);
@@ -84,7 +111,10 @@ function App() {
     const zeroX = minX / 10;
     
     // Include standards
-    const points = results.fit.actualX.map((x, i) => ({ x: x === 0 ? zeroX : x, y: results.fit.actualY[i] }));
+    const points: {x: number, y: number}[] = results.fit.actualX.map((x, i) => ({ 
+      x: x === 0 ? zeroX : x, 
+      y: results.fit.actualY[i] 
+    }));
     
     // Include blanks at zeroX position
     const blanks = blankSignals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
@@ -101,12 +131,23 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v9.1</h1>
-          <p className="header-description">Miller-style clinical LoD fitting with 95% Confidence Intervals.</p>
+          <h1>Bioassay Analytics Pro v9.4</h1>
+          <p className="header-description">Professional sigmoidal fitting with Clinical LoD validation.</p>
         </div>
       </header>
       <main className="main-container">
         <aside className="sidebar">
+          <section className="sidebar-section">
+            <span className="section-title">Model Options</span>
+            <div className="input-group">
+              <label className="input-label">Curve Method</label>
+              <select value={fitMethod} onChange={e => setFitMethod(e.target.value as any)} className="method-select" style={{ padding: '8px', borderRadius: '4px', background: '#1e1e2e', color: '#cdd6f4', border: '1px solid #313244', width: '100%' }}>
+                <option value="auto">Automatic (AICc Optimized)</option>
+                <option value="4pl">4-Parameter Logistic (4PL)</option>
+                <option value="5pl">5-Parameter Logistic (5PL)</option>
+              </select>
+            </div>
+          </section>
           <section className="sidebar-section">
             <span className="section-title">Plot Settings</span>
             <div className="input-group"><label className="input-label">Title</label><input type="text" className="text-input" value={plotTitle} onChange={e => setPlotTitle(e.target.value)} /></div>
@@ -135,46 +176,71 @@ function App() {
           {results ? (
             <div className="dashboard-grid">
               <div className="chart-card">
-                <div className="chart-header"><h2>{plotTitle}</h2><span className="method-badge">{results.fit.method.toUpperCase()}</span></div>
+                <div className="chart-header">
+                  <h2>{plotTitle}</h2>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span className="method-badge">{results.fit.method.toUpperCase()} FIT</span>
+                    {results.comparison.betterMethod !== results.fit.method && results.fit.method !== 'auto' && (
+                      <span style={{ background: 'rgba(250, 179, 135, 0.1)', color: '#fab387', border: '1px solid #fab387', padding: '4px 12px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                        Better fit available ({results.comparison.betterMethod.toUpperCase()})
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <div className="chart-frame">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 20, right: 40, left: 10, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#313244" vertical={false} />
                       <XAxis 
                         dataKey="x" type="number" scale="log" domain={['auto', 'auto']} stroke="#cdd6f4" 
-                        tickFormatter={(val) => {
-                          const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
-                          return val < minX * 0.2 ? '0' : val.toExponential(1);
-                        }}
+                        tick={<CustomXAxisTick />}
                         label={{ value: xAxisLabel, position: 'bottom', fill: '#9399b2', fontSize: 12, offset: 25 }}
                       />
                       <YAxis stroke="#cdd6f4" label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: '#9399b2', fontSize: 12 }} />
                       <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: '#313244' }} />
-                      <Area dataKey="ciHigh" data={chartData} stroke="none" fill="#89b4fa" fillOpacity={0.15} isAnimationActive={false} />
-                      <Area dataKey="ciLow" data={chartData} stroke="none" fill="transparent" isAnimationActive={false} />
-                      <Line dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} isAnimationActive={false} />
-                      <Scatter data={scatterData} fill="#f38ba8" />
+                      <Legend verticalAlign="top" height={36} />
+                      
+                      <Area dataKey="ciRange" stroke="none" fill="#89b4fa" fillOpacity={0.15} isAnimationActive={false} name="95% CI" />
+                      <Line dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} isAnimationActive={false} name="Model Fit" />
+                      <Scatter data={scatterData} fill="#f38ba8" name="Measured Data" dataKey="y" />
+                      
                       <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={{ position: 'right', value: 'Lc', fill: '#fab387', fontSize: 10 }} />
                       <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={{ position: 'right', value: 'Ld', fill: '#a6e3a1', fontSize: 10 }} />
                       <ReferenceLine x={results.lodConc} stroke="#f9e2af" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: '#f9e2af', fontSize: 11 }} />
-                      <ReferenceLine x={results.lodCI.low} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.5} />
-                      <ReferenceLine x={results.lodCI.high} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.5} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </div>
               <div className="results-side-panel">
-                <div className="lod-hero-card"><label>Validated LOD</label><div className="lod-hero-value">{results.lodConc.toExponential(3)}</div><span className="lod-hero-unit">{xAxisLabel.split(' ')[0]}</span></div>
+                <div className="lod-hero-card">
+                  <label>Validated LOD</label>
+                  <div className="lod-hero-value">{formatSuperscript(results.lodConc)}</div>
+                  <span className="lod-hero-unit">{xAxisLabel.split('(')[0].trim()}</span>
+                </div>
                 <div className="stats-card">
-                  <h3>Thresholds</h3>
-                  <div className="stat-row"><span className="stat-label">Lc (Blank)</span><span className="stat-value">{results.lc.toFixed(4)}</span></div>
-                  <div className="stat-row"><span className="stat-label">Ld (Signal)</span><span className="stat-value">{results.ld.toFixed(4)}</span></div>
-                  <div className="stat-row"><span className="stat-label">R-Squared</span><span className="stat-value">{results.fit.metrics.r2.toFixed(5)}</span></div>
+                  <h3>Curve Fitting Metrics</h3>
+                  <div className="stat-row"><span className="stat-label">AICc Score</span><span className="stat-value">{results.fit.metrics.aicc.toFixed(2)}</span></div>
+                  <div className="stat-row"><span className="stat-label">R² (Fit)</span><span className="stat-value">{results.fit.metrics.r2.toFixed(5)}</span></div>
+                  <div className="stat-row"><span className="stat-label">Bottom (a)</span><span className="stat-value">{results.fit.parameters['Bottom (a)']?.toFixed(4) || 'N/A'}</span></div>
+                  <div className="stat-row"><span className="stat-label">Hill Slope (b)</span><span className="stat-value">{results.fit.parameters['Hill Slope (b)']?.toFixed(4) || 'N/A'}</span></div>
+                  <div className="stat-row"><span className="stat-label">EC50 (c)</span><span className="stat-value">{results.fit.parameters['EC50 (c)']?.toFixed(4) || 'N/A'}</span></div>
+                  <div className="stat-row"><span className="stat-label">Top (d)</span><span className="stat-value">{results.fit.parameters['Top (d)']?.toFixed(4) || 'N/A'}</span></div>
+                  {results.fit.parameters['Asymmetry (g)'] !== undefined && (
+                    <div className="stat-row"><span className="stat-label">Asymmetry (g)</span><span className="stat-value">{results.fit.parameters['Asymmetry (g)'].toFixed(4)}</span></div>
+                  )}
+                </div>
+                <div className="stats-card">
+                  <h3>Clinical Validation</h3>
+                  <div className="stat-row"><span className="stat-label">Blank Mean</span><span className="stat-value">{results.meanBlank.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label">Blank SD</span><span className="stat-value">{results.sdBlank.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label">Pooled SD</span><span className="stat-value">{results.sdPooled.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label">L_Blank (Lc)</span><span className="stat-value" style={{color: '#fab387'}}>{results.lc.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label">L_Detection (Ld)</span><span className="stat-value" style={{color: '#a6e3a1'}}>{results.ld.toFixed(4)}</span></div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading analytics dashboard...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay Analytics Pro v9.4...</p></div>
           )}
         </section>
       </main>
