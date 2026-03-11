@@ -1,4 +1,4 @@
-import { fitData, autoFit, FitResult } from './fitting';
+import { fitData, type FitResult } from './fitting';
 
 export const tinv = (p: number, df: number): number => {
   if (df <= 0) return 0;
