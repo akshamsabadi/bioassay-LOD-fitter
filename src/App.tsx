@@ -10,7 +10,8 @@ import {
   Line,
   ComposedChart,
   ReferenceLine,
-  Area
+  Area,
+  Legend
 } from 'recharts';
 import './App.css';
 
@@ -39,7 +40,7 @@ function App() {
   const [blankSignals, setBlankSignals] = useState('0.05, 0.06, 0.04, 0.05, 0.05');
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
   const [fitMethod] = useState<'linear' | '4pl' | '5pl' | 'auto'>('auto');
-  const [plotTitle, setPlotTitle] = useState('Clinical LoD Intercept Analysis');
+  const [plotTitle, setPlotTitle] = useState('Bioassay Dose-Response Analysis');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (M)');
 
   const results = useMemo(() => {
@@ -56,49 +57,49 @@ function App() {
       });
       if (blanks.length < 2 || standards.length < 3) return null;
       return calculateAdvancedLoD(blanks, standards, fitMethod);
-    } catch (e) { 
-      console.error(e);
-      return null; 
-    }
+    } catch (e) { return null; }
   }, [blankSignals, standardRows, fitMethod]);
 
-  const zeroCoordInfo = useMemo(() => {
-    if (!results) return { zeroX: 1e-4, minNonZero: 1e-3 };
-    const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
-    return { zeroX: minX / 10, minNonZero: minX };
+  const coordInfo = useMemo(() => {
+    if (!results) return { zeroX: 1e-4, minX: 1e-3, maxX: 1000 };
+    const nonZeroX = results.fit.actualX.filter(x => x > 0);
+    const minX = nonZeroX.length > 0 ? Math.min(...nonZeroX) : 1e-3;
+    const maxX = Math.max(...results.fit.actualX);
+    return { zeroX: minX / 5, minX, maxX: maxX * 1.5 };
   }, [results]);
 
   const chartData = useMemo(() => {
     if (!results) return [];
-    const { zeroX, minNonZero } = zeroCoordInfo;
-    const maxX = Math.max(...results.fit.actualX);
+    const { zeroX, minX, maxX } = coordInfo;
     const data = [];
     const logMin = Math.log10(zeroX);
-    const logMax = Math.log10(maxX * 1.5);
-    for (let i = 0; i <= 100; i++) {
-      const xCoord = Math.pow(10, logMin + i * (logMax - logMin) / 100);
-      const fitX = xCoord < minNonZero * 0.5 ? 0 : xCoord;
+    const logMax = Math.log10(maxX);
+    const steps = 100;
+    for (let i = 0; i <= steps; i++) {
+      const xCoord = Math.pow(10, logMin + i * (logMax - logMin) / steps);
+      const fitX = xCoord < minX * 0.8 ? 0 : xCoord;
       const pred = results.fit.predict(fitX);
       const { low, high } = results.fit.getCI(fitX);
-      data.push({ x: xCoord, trend: pred, ciLow: low, ciHigh: high });
+      // Recharts range area data format: [low, high]
+      data.push({ x: xCoord, trend: pred, ciRange: [low, high] });
     }
     return data;
-  }, [results, zeroCoordInfo]);
+  }, [results, coordInfo]);
 
   const scatterData = useMemo(() => {
     if (!results) return [];
-    const { zeroX } = zeroCoordInfo;
+    const { zeroX } = coordInfo;
     return results.fit.actualX.map((x, i) => ({ x: x === 0 ? zeroX : x, y: results.fit.actualY[i] }));
-  }, [results, zeroCoordInfo]);
+  }, [results, coordInfo]);
 
   const Superscript10 = (props: any) => {
     const { x, y, payload } = props;
-    if (payload.value < zeroCoordInfo.zeroX * 1.5) {
-      return <text x={x} y={y + 12} fill="#9399b2" textAnchor="middle" fontSize={11} fontWeight="bold">0</text>;
+    if (payload.value <= coordInfo.zeroX * 1.1) {
+      return <text x={x} y={y + 14} fill="#9399b2" textAnchor="middle" fontSize={11} fontWeight="bold">0</text>;
     }
     const exponent = Math.round(Math.log10(payload.value));
     return (
-      <g transform={`translate(${x},${y+12})`}>
+      <g transform={`translate(${x},${y+14})`}>
         <text fill="#9399b2" textAnchor="middle" fontSize={11}>
           10<tspan dy={-5} fontSize={8}>{exponent}</tspan>
         </text>
@@ -114,8 +115,8 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v10.0</h1>
-          <p className="header-description">Miller-style precision fitting with 95% CI bands and broken X-axis.</p>
+          <h1>Bioassay Analytics Pro v10.2</h1>
+          <p className="header-description">Authentic Miller-style visuals with rigorous 95% Confidence Ribbons.</p>
         </div>
       </header>
       <main className="main-container">
@@ -123,7 +124,7 @@ function App() {
           <section className="sidebar-section">
             <span className="section-title">Plot Settings</span>
             <div className="input-group"><label className="input-label">Title</label><input type="text" className="text-input" value={plotTitle} onChange={e => setPlotTitle(e.target.value)} /></div>
-            <div className="input-group"><label className="input-label">X Axis</label><input type="text" className="text-input" value={xAxisLabel} onChange={e => setXAxisLabel(e.target.value)} /></div>
+            <div className="input-group"><label className="input-label">X Label</label><input type="text" className="text-input" value={xAxisLabel} onChange={e => setXAxisLabel(e.target.value)} /></div>
           </section>
           <section className="sidebar-section">
             <span className="section-title">1. Blanks</span>
@@ -140,42 +141,40 @@ function App() {
                 </div>
               ))}
             </div>
-            <button className="add-row-btn" onClick={() => setStandardRows([...standardRows, { id: Math.random().toString(36), conc: '', signals: '' }])}>+ Add Point</button>
+            <button className="add-row-btn" onClick={() => setStandardRows([...standardRows, { id: Math.random().toString(36), conc: '', signals: '' }])}>+ Add Concentration</button>
           </section>
         </aside>
         <section className="content-area">
           {results ? (
             <div className="dashboard-grid">
               <div className="chart-card">
-                <div className="chart-header"><h2>{plotTitle}</h2><span className="method-badge">{results.fit.method.toUpperCase()} FIT</span></div>
+                <div className="chart-header"><h2>{plotTitle}</h2><span className="method-badge">{results.fit.method.toUpperCase()}</span></div>
                 <div className="chart-frame">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 20, right: 60, left: 10, bottom: 40 }}>
+                    <ComposedChart data={chartData} margin={{ top: 20, right: 60, left: 20, bottom: 50 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#313244" vertical={false} />
                       <XAxis 
                         dataKey="x" type="number" scale="log" domain={['auto', 'auto']} stroke="#cdd6f4" 
-                        ticks={[zeroCoordInfo.zeroX, 1e-3, 1e-2, 1e-1, 1, 10, 100]}
+                        ticks={[coordInfo.zeroX, 1e-3, 1e-2, 1e-1, 1, 10, 100]}
                         tick={<Superscript10 />}
-                        label={{ value: xAxisLabel, position: 'bottom', fill: '#9399b2', fontSize: 12, offset: 25 }}
+                        label={{ value: xAxisLabel, position: 'bottom', fill: '#9399b2', fontSize: 13, offset: 30 }}
                       />
-                      <YAxis stroke="#cdd6f4" label={{ value: 'Signal Intensity', angle: -90, position: 'insideLeft', fill: '#9399b2', fontSize: 12 }} />
+                      <YAxis stroke="#cdd6f4" label={{ value: 'Signal Intensity', angle: -90, position: 'insideLeft', fill: '#9399b2', fontSize: 13 }} />
                       <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: '#313244' }} />
+                      <Legend verticalAlign="top" height={40} />
                       
-                      <Area dataKey="ciHigh" stroke="none" fill="#89b4fa" fillOpacity={0.15} baseLine={results.fit.metrics.rmse * -5} isAnimationActive={false} />
-                      <Area dataKey="ciLow" stroke="none" fill="transparent" isAnimationActive={false} />
-                      <Line dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} isAnimationActive={false} />
-                      <Scatter data={scatterData} fill="#f38ba8" />
+                      <Area type="monotone" dataKey="ciRange" stroke="none" fill="#89b4fa" fillOpacity={0.2} name="95% CI Ribbon" isAnimationActive={false} />
+                      <Line type="monotone" dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} name="Model Fit" isAnimationActive={false} />
+                      <Scatter data={scatterData} fill="#f38ba8" name="Measured Data" />
                       
-                      <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={{ position: 'right', value: 'Lc', fill: '#fab387', fontSize: 10 }} />
-                      <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={{ position: 'right', value: 'Ld', fill: '#a6e3a1', fontSize: 10 }} />
+                      <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={{ position: 'right', value: 'Lc', fill: '#fab387', fontSize: 11 }} />
+                      <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={{ position: 'right', value: 'Ld', fill: '#a6e3a1', fontSize: 11 }} />
                       
-                      {/* LOD Intercept & CI Brackets */}
-                      <ReferenceLine x={results.lodConc} stroke="#f9e2af" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: '#f9e2af', fontSize: 11 }} />
+                      <ReferenceLine x={results.lodConc} stroke="#f9e2af" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: '#f9e2af', fontSize: 12, fontWeight: 'bold' }} />
                       <ReferenceLine x={results.lodCI.low} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.6} />
                       <ReferenceLine x={results.lodCI.high} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.6} />
                       
-                      {/* X-axis Break Visualizer (Simple) */}
-                      <ReferenceLine x={zeroCoordInfo.zeroX * 1.5} stroke="#313244" strokeWidth={1} />
+                      <ReferenceLine x={coordInfo.zeroX * 1.5} stroke="#313244" strokeWidth={2} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -195,7 +194,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Rendering Miller-style dashboard...</p></div>
+            <div className="empty-prompt"><p>Analyzing assay kinetics...</p></div>
           )}
         </section>
       </main>

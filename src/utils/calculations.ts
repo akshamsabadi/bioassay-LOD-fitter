@@ -86,13 +86,19 @@ export const calculateAdvancedLoD = (
   }
 
   // Miller-style LOD CI using Delta Method
-  // SE(x) = SE(fit_y) / |dy/dx|
-  const dy_dx = fit.getDerivative(lodConc);
-  const g = new Matrix([fit.getParamGrad(lodConc)]);
+  // Check for valid lodConc to avoid division by zero in derivative
+  const safeX = Math.max(lodConc, 1e-12);
+  const dy_dx = fit.getDerivative(safeX);
+  const g = new Matrix([fit.getParamGrad(safeX)]);
   const cov = new Matrix(fit.cov);
   const var_y = g.mmul(cov).mmul(g.transpose()).get(0, 0);
-  const se_x = Math.sqrt(var_y) / Math.abs(dy_dx || 1);
-  const lodCI = { low: Math.max(0, lodConc - 1.96 * se_x), high: lodConc + 1.96 * se_x };
+  
+  // se(x) = sqrt(var_y) / |dy/dx|
+  const se_x = Math.sqrt(var_y) / Math.max(Math.abs(dy_dx), 1e-15);
+  const lodCI = { 
+    low: Math.max(0, lodConc - 1.96 * se_x), 
+    high: lodConc + 1.96 * se_x 
+  };
 
   return { lc, ld, lodConc, lodCI, meanBlank, sdBlank, sdPooled, fit };
 };
