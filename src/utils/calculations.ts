@@ -1,4 +1,4 @@
-import { fitData, type FitResult } from './fitting';
+import { fitData, autoFit } from './fitting';
 
 export const tinv = (p: number, df: number): number => {
   if (df <= 0) return 0;
@@ -52,29 +52,13 @@ const calculatePooledSD = (standards: StandardData[]) => {
   return { sd: df > 0 ? Math.sqrt(ss / df) : 0, df };
 };
 
-export interface AdvancedLoDResult {
-  lc: number;
-  ld: number;
-  lodConc: number;
-  lodCI: { low: number; high: number };
-  meanBlank: number;
-  sdBlank: number;
-  sdPooled: number;
-  fit: FitResult;
-  comparison: {
-    fit4: FitResult;
-    fit5: FitResult;
-    betterMethod: '4pl' | '5pl';
-  };
-}
-
 export const calculateAdvancedLoD = (
   blanks: number[],
   standards: StandardData[],
   method: 'linear' | '4pl' | '5pl' | 'auto' = '4pl',
   alpha = 0.05,
   beta = 0.05
-): AdvancedLoDResult => {
+) => {
   const meanBlank = blanks.reduce((a,b)=>a+b,0)/blanks.length;
   const sdBlank = Math.sqrt(blanks.reduce((a,b)=>a+Math.pow(b-meanBlank,2),0)/(blanks.length-1));
   const lc = meanBlank + tinv(1 - alpha, blanks.length - 1) * sdBlank;
@@ -83,20 +67,7 @@ export const calculateAdvancedLoD = (
 
   const x = standards.map(s => s.concentration);
   const y = standards.map(s => s.readout);
-  
-  // Calculate both for comparison
-  const fit4 = fitData(x, y, '4pl');
-  const fit5 = fitData(x, y, '5pl');
-  const betterMethod = fit5.metrics.aicc < fit4.metrics.aicc - 2 ? '5pl' : '4pl';
-
-  let fit: FitResult;
-  if (method === 'auto') {
-    fit = betterMethod === '5pl' ? fit5 : fit4;
-  } else if (method === 'linear') {
-    fit = fitData(x, y, 'linear');
-  } else {
-    fit = method === '4pl' ? fit4 : fit5;
-  }
+  const fit = method === 'auto' ? autoFit(x, y) : fitData(x, y, method);
 
   let lodConc = 0;
   const p = fit.parameters;
@@ -116,8 +87,5 @@ export const calculateAdvancedLoD = (
   // Miller-style LOD CI (Placeholder for full delta method)
   const lodCI = { low: lodConc * 0.85, high: lodConc * 1.15 };
 
-  return { 
-    lc, ld, lodConc, lodCI, meanBlank, sdBlank, sdPooled, fit,
-    comparison: { fit4, fit5, betterMethod }
-  };
+  return { lc, ld, lodConc, lodCI, meanBlank, sdBlank, sdPooled, fit };
 };
