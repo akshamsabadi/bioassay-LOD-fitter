@@ -58,36 +58,47 @@ function App() {
       if (blanks.length < 2 || standards.length < 3) return null;
       return calculateAdvancedLoD(blanks, standards, fitMethod);
     } catch (e) { 
-      console.error('LOD Calculation Error:', e);
+      console.error('Calculation Error:', e);
       return null; 
     }
   }, [blankSignals, standardRows, fitMethod]);
 
   const coordInfo = useMemo(() => {
-    if (!results) return { zeroX: 1e-4, minX: 1e-3, maxX: 1000 };
+    if (!results) return { zeroX: 1e-4, minX: 1e-3, maxX: 1000, breakX: 5e-4 };
     const nonZeroX = results.fit.actualX.filter(x => x > 0);
     const minX = nonZeroX.length > 0 ? Math.min(...nonZeroX) : 1e-3;
     const maxX = Math.max(...results.fit.actualX);
-    return { zeroX: minX / 5, minX, maxX: maxX * 1.5 };
+    return { 
+      zeroX: minX / 10, 
+      minX, 
+      breakX: minX / 4,
+      maxX: maxX * 1.5 
+    };
   }, [results]);
 
   const chartData = useMemo(() => {
     if (!results) return [];
-    const { zeroX, minX, maxX } = coordInfo;
+    const { zeroX, minX, maxX, breakX } = coordInfo;
     const data = [];
-    const logMin = Math.log10(zeroX);
+    
+    // 1. Plot the zero point
+    const { low: l0, high: h0 } = results.fit.getCI(0);
+    data.push({ x: zeroX, trend: results.fit.predict(0), ciRange: [l0, h0] });
+    
+    // 2. Add the break (null values to stop drawing)
+    data.push({ x: breakX, trend: null, ciRange: null });
+
+    // 3. Plot the log curve
+    const logMin = Math.log10(minX * 0.9);
     const logMax = Math.log10(maxX);
     const steps = 100;
     for (let i = 0; i <= steps; i++) {
-      const xCoord = Math.pow(10, logMin + i * (logMax - logMin) / steps);
-      const fitX = xCoord < minX * 0.8 ? 0 : xCoord;
-      const pred = results.fit.predict(fitX);
-      const { low, high } = results.fit.getCI(fitX);
+      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
+      const { low, high } = results.fit.getCI(xVal);
       data.push({ 
-        x: xCoord, 
-        trend: pred, 
-        ciHigh: high,
-        ciLow: low
+        x: xVal, 
+        trend: results.fit.predict(xVal), 
+        ciRange: [low, high]
       });
     }
     return data;
@@ -96,13 +107,17 @@ function App() {
   const scatterData = useMemo(() => {
     if (!results) return [];
     const { zeroX } = coordInfo;
-    return results.fit.actualX.map((x, i) => ({ x: x === 0 ? zeroX : x, y: results.fit.actualY[i] }));
+    return results.fit.actualX.map((x, i) => ({ 
+      x: x === 0 ? zeroX : x, 
+      y: results.fit.actualY[i] 
+    }));
   }, [results, coordInfo]);
 
   const Superscript10 = (props: any) => {
     const { x, y, payload } = props;
     if (!payload || payload.value === undefined) return null;
-    if (payload.value <= coordInfo.zeroX * 1.1) {
+    // If it's the zero coordinate
+    if (payload.value < coordInfo.minX * 0.5) {
       return <text x={x} y={y + 14} fill="#9399b2" textAnchor="middle" fontSize={11} fontWeight="bold">0</text>;
     }
     const exponent = Math.round(Math.log10(payload.value));
@@ -123,16 +138,16 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v10.2</h1>
-          <p className="header-description">Miller-style precision fitting with 95% CI bands and broken X-axis.</p>
+          <h1>Bioassay Analytics Pro v10.4</h1>
+          <p className="header-description">Authentic Miller-style visuals with rigorous 95% Confidence Ribbons.</p>
         </div>
       </header>
       <main className="main-container">
         <aside className="sidebar">
           <section className="sidebar-section">
-            <span className="section-title">Plot Settings</span>
+            <span className="section-title">Plot Config</span>
             <div className="input-group"><label className="input-label">Title</label><input type="text" className="text-input" value={plotTitle} onChange={e => setPlotTitle(e.target.value)} /></div>
-            <div className="input-group"><label className="input-label">X Label</label><input type="text" className="text-input" value={xAxisLabel} onChange={e => setXAxisLabel(e.target.value)} /></div>
+            <div className="input-group"><label className="input-label">X Axis</label><input type="text" className="text-input" value={xAxisLabel} onChange={e => setXAxisLabel(e.target.value)} /></div>
           </section>
           <section className="sidebar-section">
             <span className="section-title">1. Blanks</span>
@@ -149,7 +164,7 @@ function App() {
                 </div>
               ))}
             </div>
-            <button className="add-row-btn" onClick={() => setStandardRows([...standardRows, { id: Math.random().toString(36), conc: '', signals: '' }])}>+ Add Point</button>
+            <button className="add-row-btn" onClick={() => setStandardRows([...standardRows, { id: Math.random().toString(36), conc: '', signals: '' }])}>+ Add Concentration</button>
           </section>
         </aside>
         <section className="content-area">
@@ -171,18 +186,19 @@ function App() {
                       <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: '#313244' }} />
                       <Legend verticalAlign="top" height={40} />
                       
-                      <Area type="monotone" dataKey={(d: any) => [d.ciLow, d.ciHigh]} stroke="none" fill="#89b4fa" fillOpacity={0.15} name="95% CI Ribbon" isAnimationActive={false} />
-                      <Line type="monotone" dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} name="Model Fit" isAnimationActive={false} />
-                      <Scatter data={scatterData} fill="#f38ba8" name="Measured Data" />
+                      <Area dataKey="ciRange" stroke="none" fill="#89b4fa" fillOpacity={0.15} name="95% CI Fit Ribbon" isAnimationActive={false} connectNulls={false} />
+                      <Line dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} name="Model Fit" isAnimationActive={false} connectNulls={false} />
+                      <Scatter data={scatterData} fill="#f38ba8" name="Measured Data" isAnimationActive={false} />
                       
                       <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={{ position: 'right', value: 'Lc', fill: '#fab387', fontSize: 10 }} />
                       <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={{ position: 'right', value: 'Ld', fill: '#a6e3a1', fontSize: 10 }} />
                       
                       <ReferenceLine x={results.lodConc} stroke="#f9e2af" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: '#f9e2af', fontSize: 12, fontWeight: 'bold' }} />
-                      <ReferenceLine x={results.lodCI.low} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.6} />
-                      <ReferenceLine x={results.lodCI.high} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.6} />
+                      <ReferenceLine x={Math.max(coordInfo.zeroX, results.lodCI.low)} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.6} />
+                      <ReferenceLine x={Math.max(coordInfo.zeroX, results.lodCI.high)} stroke="#f9e2af" strokeDasharray="2 2" strokeOpacity={0.6} />
                       
-                      <ReferenceLine x={coordInfo.zeroX * 1.5} stroke="#313244" strokeWidth={2} />
+                      {/* X-axis Gap Marker (Vertical line separating 0 from rest) */}
+                      <ReferenceLine x={coordInfo.breakX} stroke="#313244" strokeWidth={2} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -202,7 +218,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Analyzing assay kinetics...</p></div>
+            <div className="empty-prompt"><p>Rendering SOTA analytics v10.4...</p></div>
           )}
         </section>
       </main>
