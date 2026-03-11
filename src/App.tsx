@@ -83,18 +83,8 @@ const CustomXAxisTick = ({ x, y, payload }: any) => {
   );
 };
 
-const CustomYAxisTick = ({ x, y, payload, yMajorTicks }: any) => {
+const CustomYAxisTick = ({ x, y, payload }: any) => {
   const val = payload.value;
-  const isMajor = yMajorTicks && yMajorTicks.includes(val);
-  
-  if (!isMajor) {
-    return (
-      <g>
-        <line x1={x} y1={y} x2={x - 4} y2={y} stroke="var(--text)" opacity={0.5} />
-      </g>
-    );
-  }
-
   return (
     <g>
       <line x1={x} y1={y} x2={x - 6} y2={y} stroke="var(--text)" />
@@ -126,8 +116,8 @@ const CustomLegend = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', position: 'absolute', top: '16px', left: '80px', backgroundColor: 'var(--mantle)', padding: '12px', borderRadius: '8px', border: '1px solid var(--surface0)', zIndex: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--yellow)' }}></span></span> LOD</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--yellow) 25%, transparent)', border: '1px solid var(--yellow)' }}></span></span> 95% CI LOD</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span></span> L<sub>C</sub></div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--green)' }}></span></span> L<sub>D</sub></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span></span> <span>L<span style={{ fontSize: '9px', position: 'relative', top: '2px' }}>C</span></span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--green)' }}></span></span> <span>L<span style={{ fontSize: '9px', position: 'relative', top: '2px' }}>D</span></span></div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--blue)' }}></span></span> Model Fit</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--blue) 25%, transparent)', border: '1px solid var(--blue)' }}></span></span> 95% CI Fit</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center', color: 'var(--red)', fontSize: '14px', lineHeight: '10px' }}>●</span> Measured Data</div>
@@ -334,7 +324,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v10.8.3</h1>
+          <h1>Bioassay LOD Fitter v10.8.4</h1>
           <p className="header-description">Professional sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -404,6 +394,8 @@ function App() {
                       <XAxis 
                         dataKey="x" type="number" scale="log" domain={['auto', 'auto']} stroke="var(--text)" 
                         ticks={xTicks}
+                        interval={0}
+                        tickMargin={0}
                         tickLine={false}
                         tick={<CustomXAxisTick />}
                         label={{ value: xAxisLabel, position: 'bottom', fill: 'var(--overlay2)', fontSize: 11, offset: 25 }}
@@ -411,15 +403,29 @@ function App() {
                       <YAxis 
                         stroke="var(--text)" 
                         domain={yDomain} 
-                        ticks={yTicks}
+                        ticks={yMajorTicks}
+                        interval={0}
+                        tickMargin={0}
                         allowDataOverflow={true}
                         tickLine={false}
-                        tick={<CustomYAxisTick yMajorTicks={yMajorTicks} />}
+                        tick={<CustomYAxisTick />}
                         label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: 'var(--overlay2)', fontSize: 11, offset: -5 }} 
                       />
                       <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: 'var(--surface0)', borderRadius: '8px', fontSize: '12px' }} />
                       <Legend verticalAlign="top" content={<CustomLegend />} />
                       
+                      {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => (
+                        <ReferenceLine 
+                          key={`minor-y-${tick}`} 
+                          y={tick} 
+                          stroke="none" 
+                          label={({ viewBox }: any) => {
+                            if (!viewBox) return null;
+                            return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--text)" opacity={0.5} />;
+                          }} 
+                        />
+                      ))}
+
                       <Area dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} isAnimationActive={false} legendType="none" />
                       <ReferenceArea x1={results.lodCI.low} x2={results.lodCI.high} fill="var(--yellow)" fillOpacity={0.15} strokeOpacity={0} ifOverflow="hidden" />
                       
@@ -465,7 +471,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v10.8.3...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v10.8.4...</p></div>
           )}
         </section>
       </main>
