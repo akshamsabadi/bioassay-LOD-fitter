@@ -114,13 +114,13 @@ const CustomLdLabel = ({ viewBox }: any) => {
 const CustomLegend = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', position: 'absolute', top: '16px', left: '80px', backgroundColor: 'var(--mantle)', padding: '12px', borderRadius: '8px', border: '1px solid var(--surface0)', zIndex: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--yellow)' }}></span></span> LOD</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--yellow) 25%, transparent)', border: '1px solid var(--yellow)' }}></span></span> 95% CI LOD</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span></span> <span>L<span style={{ fontSize: '9px', position: 'relative', top: '2px' }}>C</span></span></div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--green)' }}></span></span> <span>L<span style={{ fontSize: '9px', position: 'relative', top: '2px' }}>D</span></span></div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--blue)' }}></span></span> Model Fit</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--blue) 25%, transparent)', border: '1px solid var(--blue)' }}></span></span> 95% CI Fit</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center', color: 'var(--red)', fontSize: '14px', lineHeight: '10px' }}>●</span> Measured Data</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--yellow)' }}></span></span> <span>LOD</span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--yellow) 25%, transparent)', border: '1px solid var(--yellow)' }}></span></span> <span>95% CI LOD</span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span></span> <span>L<sub>C</sub></span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--green)' }}></span></span> <span>L<sub>D</sub></span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--blue)' }}></span></span> <span>Model Fit</span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--blue) 25%, transparent)', border: '1px solid var(--blue)' }}></span></span> <span>95% CI Fit</span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center', color: 'var(--red)', fontSize: '14px', lineHeight: '10px' }}>●</span> <span>Measured Data</span></div>
     </div>
   );
 };
@@ -224,8 +224,8 @@ function App() {
     } catch (e) { return null; }
   }, [blankSignals, standardRows, fitMethod]);
 
-  const xTicks = useMemo(() => {
-    if (!results) return [];
+  const { xTicks, xDomain } = useMemo((): { xTicks: number[], xDomain: [number | 'auto', number | 'auto'] } => {
+    if (!results) return { xTicks: [], xDomain: ['auto', 'auto'] };
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
     const maxX = Math.max(...results.fit.actualX);
     const zeroX = minX / 10;
@@ -235,15 +235,15 @@ function App() {
     const ticks = [];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
-      if (majorVal <= maxAxisValue) ticks.push(majorVal);
+      if (majorVal <= maxAxisValue && majorVal >= zeroX) ticks.push(majorVal);
       if (i < logMax) {
         for (let j = 2; j <= 9; j++) {
           const minorVal = j * Math.pow(10, i);
-          if (minorVal <= maxAxisValue) ticks.push(minorVal);
+          if (minorVal <= maxAxisValue && minorVal >= zeroX) ticks.push(minorVal);
         }
       }
     }
-    return ticks;
+    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] };
   }, [results]);
 
   const chartData = useMemo(() => {
@@ -327,7 +327,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v10.8.5</h1>
+          <h1>Bioassay LOD Fitter v10.8.6</h1>
           <p className="header-description">Professional sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -395,7 +395,7 @@ function App() {
                     <ComposedChart data={chartData} margin={{ top: 25, right: 30, left: 20, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
                       <XAxis 
-                        dataKey="x" type="number" scale="log" domain={['auto', 'auto']} stroke="var(--text)" 
+                        dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--text)" 
                         ticks={xTicks}
                         interval={0}
                         tickMargin={0}
@@ -474,7 +474,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v10.8.5...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v10.8.6...</p></div>
           )}
         </section>
       </main>
