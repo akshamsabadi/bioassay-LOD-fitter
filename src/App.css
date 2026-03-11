@@ -165,7 +165,7 @@ header {
 .data-row {
   display: flex;
   gap: 6px;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .conc-input {

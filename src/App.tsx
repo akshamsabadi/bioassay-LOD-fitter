@@ -1,4 +1,4 @@
-import { useState, useMemo, type ReactNode } from 'react';
+import { useState, useMemo, useRef, type ReactNode } from 'react';
 import { calculateAdvancedLoD, type StandardData, type AdvancedLoDResult } from './utils/calculations';
 import {
   Scatter,
@@ -85,25 +85,99 @@ const CustomLdLabel = ({ viewBox }: any) => {
 
 const CustomLegend = () => {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', fontSize: '11px', flexWrap: 'wrap', paddingBottom: '10px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ color: 'var(--red)', fontSize: '14px', lineHeight: '10px' }}>●</span> Measured Data</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--blue)' }}></span> Model Fit</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--blue) 25%, transparent)' }}></span> 95% CI Fit</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span> L_C</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--green)' }}></span> L_D</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--yellow)' }}></span> LOD</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--yellow) 25%, transparent)' }}></span> 95% CI LOD</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', position: 'absolute', top: '16px', left: '80px', backgroundColor: 'var(--mantle)', padding: '12px', borderRadius: '8px', border: '1px solid var(--surface0)', zIndex: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--yellow)' }}></span> LOD</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--yellow) 25%, transparent)', border: '1px solid var(--yellow)' }}></span> 95% CI LOD</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span> L_C</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--green)' }}></span> L_D</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--blue)' }}></span> Model Fit</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--blue) 25%, transparent)', border: '1px solid var(--blue)' }}></span> 95% CI Fit</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: 'var(--red)', fontSize: '14px', lineHeight: '10px', marginLeft: '2px' }}>●</span> Measured Data</div>
     </div>
   );
 };
 
 function App() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [blankSignals, setBlankSignals] = useState(DEFAULT_BLANKS);
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
   const [fitMethod, setFitMethod] = useState<'4pl' | '5pl' | 'auto'>('auto');
   const [plotTitle, setPlotTitle] = useState('Dose-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (M)');
   const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
+
+  const handleDownloadPlot = () => {
+    if (!chartRef.current) return;
+    const svgElement = chartRef.current.querySelector('svg');
+    if (!svgElement) return;
+
+    const clone = svgElement.cloneNode(true) as SVGSVGElement;
+    clone.style.backgroundColor = 'transparent';
+
+    const serializer = new XMLSerializer();
+    let svgString = serializer.serializeToString(clone);
+
+    const colors = {
+      'var(--rosewater)': '#f5e0dc',
+      'var(--flamingo)': '#f2cdcd',
+      'var(--pink)': '#f5c2e7',
+      'var(--mauve)': '#cba6f7',
+      'var(--red)': '#f38ba8',
+      'var(--maroon)': '#eba0ac',
+      'var(--peach)': '#fab387',
+      'var(--yellow)': '#f9e2af',
+      'var(--green)': '#a6e3a1',
+      'var(--teal)': '#94e2d5',
+      'var(--sky)': '#89dceb',
+      'var(--sapphire)': '#74c7ec',
+      'var(--blue)': '#89b4fa',
+      'var(--lavender)': '#b4befe',
+      'var(--text)': '#cdd6f4',
+      'var(--subtext1)': '#bac2de',
+      'var(--subtext0)': '#a6adc8',
+      'var(--overlay2)': '#9399b2',
+      'var(--overlay1)': '#7f849c',
+      'var(--overlay0)': '#6c7086',
+      'var(--surface2)': '#585b70',
+      'var(--surface1)': '#45475a',
+      'var(--surface0)': '#313244',
+      'var(--base)': '#1e1e2e',
+      'var(--mantle)': '#181825',
+      'var(--crust)': '#11111b'
+    };
+    
+    for (const [v, c] of Object.entries(colors)) {
+      svgString = svgString.split(v).join(c);
+    }
+
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const DOMURL = window.URL || window.webkitURL || window;
+    const url = DOMURL.createObjectURL(svgBlob);
+    
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const scale = 300 / 96;
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+        
+        const pngUrl = canvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = pngUrl;
+        downloadLink.download = 'bioassay_plot.png';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      }
+      DOMURL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
 
   const results = useMemo((): AdvancedLoDResult | null => {
     try {
@@ -217,7 +291,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v10.4</h1>
+          <h1>Bioassay Analytics Pro v10.5</h1>
           <p className="header-description">Professional sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -277,9 +351,10 @@ function App() {
                     {results.comparison.betterMethod !== results.fit.method && results.fit.method !== 'auto' && (
                       <span className="warning-badge">Better fit available ({results.comparison.betterMethod.toUpperCase()})</span>
                     )}
+                    <button className="action-btn" onClick={handleDownloadPlot} title="Download Plot (300 DPI, PNG)">Export PNG</button>
                   </div>
                 </div>
-                <div className="chart-frame">
+                <div className="chart-frame" ref={chartRef} style={{ position: 'relative' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} />
