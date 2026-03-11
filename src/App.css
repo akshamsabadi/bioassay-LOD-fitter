@@ -27,7 +27,7 @@
   --mantle: #181825;
   --crust: #11111b;
 
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 13px;
 }
 
@@ -175,7 +175,7 @@ header {
   border-radius: 4px;
   padding: 6px;
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Google Sans Mono', monospace;
   font-size: 0.8rem;
   text-align: center;
 }
@@ -193,7 +193,7 @@ header {
   border-radius: 4px;
   padding: 6px 8px;
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Google Sans Mono', monospace;
   font-size: 0.8rem;
   min-height: 28px;
   resize: none;
@@ -227,6 +227,19 @@ header {
   cursor: pointer;
 }
 .add-row-btn:hover { background: rgba(137, 180, 250, 0.15); }
+
+.remove-last-btn {
+  background: rgba(243, 139, 168, 0.05);
+  color: var(--red);
+  border: 1px dashed var(--red);
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.remove-last-btn:hover { background: rgba(243, 139, 168, 0.15); }
 
 /* Content Area */
 .content-area {

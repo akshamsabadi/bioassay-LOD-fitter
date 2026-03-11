@@ -144,7 +144,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v9.5</h1>
+          <h1>Bioassay Analytics Pro v9.6</h1>
           <p className="header-description">Professional sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -185,7 +185,12 @@ function App() {
                 </div>
               ))}
             </div>
-            <button className="add-row-btn" onClick={() => setStandardRows([...standardRows, { id: Math.random().toString(36), conc: '', signals: '' }])}>+ Add Point</button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="add-row-btn" style={{ flex: 1 }} onClick={() => setStandardRows([...standardRows, { id: Math.random().toString(36), conc: '', signals: '' }])}>+ Add Point</button>
+              {standardRows.length > 1 && (
+                <button className="remove-last-btn" style={{ flex: 1 }} onClick={() => setStandardRows(standardRows.slice(0, -1))}>- Remove Last</button>
+              )}
+            </div>
           </section>
         </aside>
         <section className="content-area">
@@ -257,7 +262,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay Analytics Pro v9.5...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay Analytics Pro v9.6...</p></div>
           )}
         </section>
       </main>
