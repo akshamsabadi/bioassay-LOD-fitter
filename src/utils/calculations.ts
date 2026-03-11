@@ -1,4 +1,5 @@
 import { fitData, autoFit } from './fitting';
+import { Matrix } from 'ml-matrix';
 
 export const tinv = (p: number, df: number): number => {
   if (df <= 0) return 0;
@@ -84,8 +85,14 @@ export const calculateAdvancedLoD = (
     }
   }
 
-  // Miller-style LOD CI (Placeholder for full delta method)
-  const lodCI = { low: lodConc * 0.85, high: lodConc * 1.15 };
+  // Miller-style LOD CI using Delta Method
+  // SE(x) = SE(fit_y) / |dy/dx|
+  const dy_dx = fit.getDerivative(lodConc);
+  const g = new Matrix([fit.getParamGrad(lodConc)]);
+  const cov = new Matrix(fit.cov);
+  const var_y = g.mmul(cov).mmul(g.transpose()).get(0, 0);
+  const se_x = Math.sqrt(var_y) / Math.abs(dy_dx || 1);
+  const lodCI = { low: Math.max(0, lodConc - 1.96 * se_x), high: lodConc + 1.96 * se_x };
 
   return { lc, ld, lodConc, lodCI, meanBlank, sdBlank, sdPooled, fit };
 };
