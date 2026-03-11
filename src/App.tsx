@@ -10,8 +10,7 @@ import {
   Line,
   ComposedChart,
   ReferenceLine,
-  Area,
-  Legend
+  Area
 } from 'recharts';
 import './App.css';
 
@@ -40,7 +39,7 @@ function App() {
   const [blankSignals, setBlankSignals] = useState('0.05, 0.06, 0.04, 0.05, 0.05');
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
   const [fitMethod] = useState<'linear' | '4pl' | '5pl' | 'auto'>('auto');
-  const [plotTitle, setPlotTitle] = useState('Bioassay Analytics Pro');
+  const [plotTitle, setPlotTitle] = useState('Miller-Style Assay Analysis');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (M)');
   const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
 
@@ -70,12 +69,11 @@ function App() {
     const logMin = Math.log10(zeroX);
     const logMax = Math.log10(maxX * 1.5);
     for (let i = 0; i <= 100; i++) {
-      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / 100);
-      const fitX = xVal < minX * 0.5 ? 0 : xVal;
+      const x = Math.pow(10, logMin + i * (logMax - logMin) / 100);
+      const fitX = x < minX * 0.5 ? 0 : x;
       const pred = results.fit.predict(fitX);
       const { low, high } = results.fit.getCI(fitX);
-      // ci is a range array [low, high]
-      data.push({ x: xVal, trend: pred, ci: [low, high] });
+      data.push({ x, trend: pred, ciLow: low, ciHigh: high });
     }
     return data;
   }, [results]);
@@ -95,8 +93,8 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay Analytics Pro v9.2</h1>
-          <p className="header-description">Miller-style clinical LoD fitting with 95% Confidence Interval Ribbon.</p>
+          <h1>Bioassay Analytics Pro v9.0</h1>
+          <p className="header-description">Miller-style clinical LoD fitting with 95% Confidence Intervals.</p>
         </div>
       </header>
       <main className="main-container">
@@ -144,13 +142,10 @@ function App() {
                       />
                       <YAxis stroke="#cdd6f4" label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: '#9399b2', fontSize: 12 }} />
                       <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: '#313244' }} />
-                      <Legend verticalAlign="top" height={36} />
-                      
-                      <Area dataKey="ci" stroke="none" fill="#89b4fa" fillOpacity={0.2} name="95% CI Ribbon" isAnimationActive={false} />
-                      
+                      <Area dataKey="ciHigh" data={chartData} stroke="none" fill="#89b4fa" fillOpacity={0.15} isAnimationActive={false} />
+                      <Area dataKey="ciLow" data={chartData} stroke="none" fill="transparent" isAnimationActive={false} />
                       <Line dataKey="trend" stroke="#89b4fa" strokeWidth={3} dot={false} isAnimationActive={false} />
-                      <Scatter data={scatterData} fill="#f38ba8" name="Measured Data" />
-                      
+                      <Scatter data={scatterData} fill="#f38ba8" />
                       <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={{ position: 'right', value: 'Lc', fill: '#fab387', fontSize: 10 }} />
                       <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={{ position: 'right', value: 'Ld', fill: '#a6e3a1', fontSize: 10 }} />
                       <ReferenceLine x={results.lodConc} stroke="#f9e2af" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: '#f9e2af', fontSize: 11 }} />
