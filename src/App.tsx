@@ -356,7 +356,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.3.8</h1>
+          <h1>Bioassay LOD Fitter v0.3.9</h1>
           <p className="header-description">Robust sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -409,7 +409,7 @@ function App() {
               {standardRows.map((r) => (
                 <div key={r.id} className="data-row">
                   <div style={{ position: 'relative' }}>
-                    <input type="text" className="conc-input" placeholder="Conc" value={r.conc} onChange={e => updateRow(r.id, 'conc', e.target.value)} style={{ color: hoveredPoint?.id === r.id ? 'var(--pink)' : 'var(--text)', fontWeight: hoveredPoint?.id === r.id ? 'bold' : 'normal' }} />
+                    <input type="text" className="conc-input" placeholder="Conc" value={r.conc} onChange={e => updateRow(r.id, 'conc', e.target.value)} style={{ color: hoveredPoint?.id === r.id ? 'var(--pink)' : 'var(--text)' }} />
                   </div>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <input type="text" className="signals-input" placeholder="Signals..." value={r.signals} onChange={e => updateRow(r.id, 'signals', e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === r.id ? 'transparent' : 'var(--text)' }} />
@@ -557,6 +557,16 @@ function App() {
             </div>
           ) : (
             <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.5...</p></div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default App;
+
+<p>Loading Bioassay LOD Fitter v0.3.5...</p></div>
           )}
         </section>
       </main>
