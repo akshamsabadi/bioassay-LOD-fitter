@@ -5,7 +5,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   Line,
   ComposedChart,
@@ -111,33 +110,8 @@ const CustomLdLabel = ({ viewBox }: any) => {
   );
 };
 
-const CustomPlotTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    if (data.isScatterData) {
-      return (
-        <div style={{ backgroundColor: '#181825', borderColor: 'var(--surface0)', borderRadius: '8px', padding: '10px', fontSize: '12px', border: '1px solid var(--surface0)', color: 'var(--text)' }}>
-          <p style={{ margin: '0 0 5px 0', color: 'var(--pink)', fontWeight: 'bold' }}>Measured Data Point</p>
-          <p style={{ margin: '0' }}>Concentration: {data.actualX}</p>
-          <p style={{ margin: '0' }}>Signal: {data.y.toFixed(4)}</p>
-        </div>
-      );
-    } else if (data.trend !== undefined) {
-      return (
-        <div style={{ backgroundColor: '#181825', borderColor: 'var(--surface0)', borderRadius: '8px', padding: '10px', fontSize: '12px', border: '1px solid var(--surface0)', color: 'var(--text)' }}>
-          <p style={{ margin: '0 0 5px 0', color: 'var(--blue)', fontWeight: 'bold' }}>Model Fit</p>
-          <p style={{ margin: '0' }}>Concentration: {data.x.toExponential(2)}</p>
-          <p style={{ margin: '0' }}>Signal: {data.trend.toFixed(4)}</p>
-          <p style={{ margin: '0' }}>95% CI: [{data.ciRange[0].toFixed(4)}, {data.ciRange[1].toFixed(4)}]</p>
-        </div>
-      );
-    }
-  }
-  return null;
-};
-
 const CustomScatterDot = (props: any) => {
-  const { cx, cy, payload, setHoveredRowId } = props;
+  const { cx, cy, payload, setHoveredPoint } = props;
   return (
     <circle
       cx={cx}
@@ -145,10 +119,10 @@ const CustomScatterDot = (props: any) => {
       r={4}
       fill="var(--red)"
       onMouseEnter={() => {
-        if (setHoveredRowId) setHoveredRowId(payload.id);
+        if (setHoveredPoint) setHoveredPoint({ id: payload.id, y: payload.y, cx, cy, conc: payload.actualX });
       }}
       onMouseLeave={() => {
-        if (setHoveredRowId) setHoveredRowId(null);
+        if (setHoveredPoint) setHoveredPoint(null);
       }}
       style={{ cursor: 'pointer', transition: 'all 0.2s', pointerEvents: 'all' }}
     />
@@ -180,7 +154,7 @@ function App() {
   const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
   const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
-  const [hoveredPoint, setHoveredPoint] = useState<{ id: string, y: number } | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{ id: string, y: number, cx: number, cy: number, conc: number | string } | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -373,7 +347,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.3.4</h1>
+          <h1>Bioassay LOD Fitter v0.3.5</h1>
           <p className="header-description">Robust sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -490,7 +464,6 @@ function App() {
                         tick={<CustomYAxisTick />}
                         label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: 'var(--overlay2)', fontSize: 11, offset: -5 }} 
                       />
-                      <Tooltip content={<CustomPlotTooltip />} cursor={false} shared={false} wrapperStyle={{ pointerEvents: 'none' }} />
                       <Legend verticalAlign="top" content={<CustomLegend />} />
                       
                       {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => (
@@ -522,6 +495,27 @@ function App() {
                       <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} />
                     </ComposedChart>
                   </ResponsiveContainer>
+                  {hoveredPoint && hoveredPoint.cx && hoveredPoint.cy && (
+                    <div style={{
+                      position: 'absolute',
+                      left: hoveredPoint.cx + 15,
+                      top: hoveredPoint.cy - 15,
+                      backgroundColor: '#181825',
+                      borderColor: 'var(--surface0)',
+                      borderRadius: '8px',
+                      padding: '10px',
+                      fontSize: '12px',
+                      border: '1px solid var(--surface0)',
+                      color: 'var(--text)',
+                      pointerEvents: 'none',
+                      zIndex: 100,
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+                    }}>
+                      <p style={{ margin: '0 0 5px 0', color: 'var(--pink)', fontWeight: 'bold' }}>Measured Data Point</p>
+                      <p style={{ margin: '0' }}>Concentration: {hoveredPoint.conc}</p>
+                      <p style={{ margin: '0' }}>Signal: {hoveredPoint.y.toFixed(4)}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="results-side-panel">
@@ -556,7 +550,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.4...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.5...</p></div>
           )}
         </section>
       </main>
