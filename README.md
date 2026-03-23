@@ -15,7 +15,7 @@ This tool provides an intuitive interface for inputting experimental data (blank
 * **High-Resolution Export:** Download your generated plot as a publication-ready, 300 DPI transparent PNG with a single click.
 * **Modern Aesthetic:** Built with the Catppuccin colour palette for a clean, accessible, and beautiful user interface.
 
-## The LOD Calculation Methodology: Why We Built This
+## LOD Calculation Methodology
 
 Historically, the Limit of Detection in bioassays has often been calculated using a simple arithmetic rule: **Mean of the Blanks + 3 × Standard Deviation of the Blanks**. 
 
@@ -56,29 +56,3 @@ The statistical mathematics powering this application are based on the following
 1. **Holstein, C. A., Griffin, M., Hong, J., & Sampson, P. D. (2015).** A Statistical Method for Determining and Comparing Limits of Detection of Bioassays. *Analytical Chemistry*, 87(19), 9795–9801.[DOI: 10.1021/acs.analchem.5b02082](https://doi.org/10.1021/acs.analchem.5b02082)
 2. **Currie, L. A. (1968).** Limits for qualitative detection and quantitative determination. Application to radiochemistry. *Analytical Chemistry*, 40(3), 586-593.[DOI: 10.1021/ac60259a007](https://doi.org/10.1021/ac60259a007)
 3. **Miller, B. S., et al. (2022).** Sub-picomolar lateral flow antigen detection with two-wavelength imaging of composite nanoparticles. *Biosensors and Bioelectronics*, 207, 114133.[DOI: 10.1016/j.bios.2022.114133](https://doi.org/10.1016/j.bios.2022.114133)
-
-## Development
-
-This project is built with:
-*[React](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
-*[Vite](https://vitejs.dev/)
-* [Recharts](https://recharts.org/) for interactive data visualisation
-* [ml-levenberg-marquardt](https://github.com/mljs/levenberg-marquardt) for non-linear regression
-
-### Running Locally
-```bash
-npm install
-npm run dev
-```ation. Application to radiochemistry. *Analytical Chemistry*, 40(3), 586-593.[DOI: 10.1021/ac60259a007](https://doi.org/10.1021/ac60259a007)
-3. **Miller, B. S., et al. (2022).** Sub-picomolar lateral flow antigen detection with two-wavelength imaging of composite nanoparticles. *Biosensors and Bioelectronics*, 207, 114133.[DOI: 10.1016/j.bios.2022.114133](https://doi.org/10.1016/j.bios.2022.114133)
-roject is built with:
-*[React](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
-*[Vite](https://vitejs.dev/)
-* [Recharts](https://recharts.org/) for interactive data visualisation
-* [ml-levenberg-marquardt](https://github.com/mljs/levenberg-marquardt) for non-linear regression
-
-### Running Locally
-```bash
-npm install
-npm run dev
-```
