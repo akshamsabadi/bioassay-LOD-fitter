@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { calculateAdvancedLoD, type StandardData, type AdvancedLoDResult } from './utils/calculations';
 import {
   Scatter,
