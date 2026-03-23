@@ -111,6 +111,22 @@ const CustomLdLabel = ({ viewBox }: any) => {
   );
 };
 
+const CustomPlotTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    if (data.isScatterData) {
+      return (
+        <div style={{ backgroundColor: '#181825', borderColor: 'var(--surface0)', borderRadius: '8px', padding: '10px', fontSize: '12px', border: '1px solid var(--surface0)', color: 'var(--text)' }}>
+          <p style={{ margin: '0 0 5px 0', color: 'var(--pink)', fontWeight: 'bold' }}>Measured Data Point</p>
+          <p style={{ margin: '0' }}>Concentration: {data.actualX}</p>
+          <p style={{ margin: '0' }}>Signal: {data.y.toFixed(4)}</p>
+        </div>
+      );
+    }
+  }
+  return null;
+};
+
 const CustomLegend = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', position: 'absolute', top: '16px', left: '80px', backgroundColor: 'var(--mantle)', padding: '12px', borderRadius: '8px', border: '1px solid var(--surface0)', zIndex: 10 }}>
@@ -133,9 +149,10 @@ function App() {
   const [blankSignals, setBlankSignals] = useState(DEFAULT_BLANKS);
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
   const [fitMethod, setFitMethod] = useState<'4pl' | '5pl' | 'auto'>('auto');
-  const [plotTitle, setPlotTitle] = useState('Dose-Response Fitting');
+  const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
   const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -353,13 +370,13 @@ function App() {
           </section>
           <section className="sidebar-section">
             <span className="section-title" style={{ color: 'var(--peach)' }}>Blanks</span>
-            <div className="data-row"><div className="conc-input disabled" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>0</div><input type="text" className="signals-input" placeholder="Comma separated..." value={blankSignals} onChange={e => setBlankSignals(e.target.value)} /></div>
+            <div className={`data-row ${hoveredRowId === 'blank' ? 'highlighted' : ''}`}><div className="conc-input disabled" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>0</div><input type="text" className="signals-input" placeholder="Comma separated..." value={blankSignals} onChange={e => setBlankSignals(e.target.value)} /></div>
           </section>
           <section className="sidebar-section">
             <span className="section-title" style={{ color: 'var(--green)' }}>Standards</span>
             <div className="rows-container">
               {standardRows.map((r) => (
-                <div key={r.id} className="data-row">
+                <div key={r.id} className={`data-row ${hoveredRowId === r.id ? 'highlighted' : ''}`}>
                   <input type="text" className="conc-input" placeholder="Conc" value={r.conc} onChange={e => updateRow(r.id, 'conc', e.target.value)} />
                   <input type="text" className="signals-input" placeholder="Signals..." value={r.signals} onChange={e => updateRow(r.id, 'signals', e.target.value)} />
                   <button className="remove-row-btn" onClick={() => setStandardRows(standardRows.filter(sr => sr.id !== r.id))}>×</button>
@@ -412,7 +429,7 @@ function App() {
                         tick={<CustomYAxisTick />}
                         label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: 'var(--overlay2)', fontSize: 11, offset: -5 }} 
                       />
-                      <Tooltip contentStyle={{ backgroundColor: '#181825', borderColor: 'var(--surface0)', borderRadius: '8px', fontSize: '12px' }} />
+                      <Tooltip content={<CustomPlotTooltip />} cursor={false} />
                       <Legend verticalAlign="top" content={<CustomLegend />} />
                       
                       {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => (
@@ -431,7 +448,15 @@ function App() {
                       <ReferenceArea x1={results.lodCI.low} x2={results.lodCI.high} fill="var(--yellow)" fillOpacity={0.15} strokeOpacity={0} ifOverflow="hidden" />
                       
                       <Line dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} isAnimationActive={false} legendType="none" />
-                      <Scatter data={scatterData} fill="var(--red)" dataKey="y" isAnimationActive={false} legendType="none" />
+                      <Scatter 
+                        data={scatterData} 
+                        fill="var(--red)" 
+                        dataKey="y" 
+                        isAnimationActive={false} 
+                        legendType="none"
+                        onMouseEnter={(data: any) => setHoveredRowId(data?.payload?.id || null)}
+                        onMouseLeave={() => setHoveredRowId(null)}
+                      />
                       
                       <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={<CustomLcLabel />} />
                       <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={<CustomLdLabel />} />
@@ -472,7 +497,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.2.13...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.1...</p></div>
           )}
         </section>
       </main>
