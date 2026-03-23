@@ -45,6 +45,10 @@ To ensure we can reliably detect the analyte, we must move higher up the curve t
 #### 3. Limit of Detection (LOD) - "The Concentration"
 The final LOD is not a signal; it is a concentration. **Bioassay LOD Fitter** utilises inverse regression to map the $L_D$ signal back through the rigorously fitted 4PL or 5PL sigmoidal equation. This yields the lowest actual *concentration* of analyte that can be reliably detected with a 95% probability.
 
+> **Original code developed by Carly Holstein, Department of Bioengineering, and Maryclare Griffin, Department of Statistics**
+> **Copyright Carly Holstein, University of Washington, 2014-2015**
+> **Originally published:** Carly A. Holstein, Maryclare Griffin et al. Statistical Method for Determining and Comparing Limits of Detection of Bioassays. Analytical Chemistry 2015 87 (19), 9795-9801. https://doi.org/10.1021/acs.analchem.5b02082.
+
 ## Understanding the Plot
 
 The generated chart provides a comprehensive overview of your assay's performance:
