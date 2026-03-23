@@ -1,19 +1,18 @@
 # Bioassay LOD Fitter
 
-**Bioassay LOD Fitter** is a web application built to analyse dose-response data, perform advanced sigmoidal curve fitting, and rigorously calculate the Limit of Detection (LOD) for biological and chemical assays using validated statistical frameworks.
+Bioassay LOD Fitter is a web application built to analyse concentration-response data, perform advanced sigmoidal curve fitting, and rigorously calculate the Limit of Detection (LOD) for diagnostic assays using validated statistical frameworks.
 
 **[Bioassay LOD Fitter](https://akshamsabadi.github.io/lod-calculator/)**
 
 ## Overview & Functionality
 
-This tool provides an intuitive interface for inputting experimental data (blanks and standard concentrations with their corresponding signal readouts) and instantly visualising the fitted dose-response curve.
+This tool provides an interface for inputting experimental data (blanks and standard concentrations with their corresponding signal readouts) and visualising the fitted concentration-response curve.
 
 ### Key Features
-* **Interactive Data Entry:** Easily add, edit, or remove calibration standards and blank measurements.
+* **Interactive Data Entry:** Add, edit, or remove calibration standards and blank measurements.
 * **Advanced Curve Fitting:** Automatically selects between 4-Parameter Logistic (4PL) and 5-Parameter Logistic (5PL) curve models using the Akaike Information Criterion (AICc) to ensure the most statistically sound fit, while still allowing the user to manually force a specific model.
 * **Rich Visualisation:** A responsive, interactive logarithmic plot displays the data points, the modelled curve, the 95% confidence interval (CI) for the fit, and visually highlights the critical limits ($L_C$, $L_D$, and LOD).
-* **High-Resolution Export:** Download your generated plot as a publication-ready, 300 DPI transparent PNG with a single click.
-* **Modern Aesthetic:** Built with the Catppuccin colour palette for a clean, accessible, and beautiful user interface.
+* **High-Resolution Export:** Download the generated plot as a publication-ready, 300 DPI transparent PNG.
 
 ## LOD Calculation Methodology
 
@@ -33,21 +32,29 @@ This method distinctly separates the concepts of the **Critical Level ($L_C$)**,
 
 $$ L_C = \text{Mean}_{\text{Blanks}} + (t_{\text{value}} \times \text{SD}_{\text{Blanks}}) $$
 
-The Critical Level is the signal threshold above which an observed response is statistically considered to be distinct from background noise. It is designed to guard against **false positives** (typically set at a 95% confidence level, $\alpha = 0.05$). If your assay yields a signal below $L_C$, it is considered "not detected."
+The Critical Level is the signal threshold above which an observed response is statistically considered to be distinct from background noise. It is designed to guard against **false positives** (typically set at a 95% confidence level, $\alpha = 0.05$). If the assay yields a signal below $L_C$, it is considered "not detected."
 
 #### 2. The Detection Limit Signal ($L_D$) - "The True Signal"
 
 $$ L_D = L_C + (t_{\text{value}} \times \text{SD}_{\text{Low Standards}}) $$
 
 If a sample's true signal was exactly at $L_C$, normal experimental noise means it would read *below* $L_C$ 50% of the time (yielding a 50% false negative rate). 
-To ensure we can reliably detect the analyte, we must move higher up the curve to $L_D$. $L_D$ is the true signal level at which there is a 95% probability that the *measured* signal will fall above $L_C$, thereby guarding against **false negatives** ($\beta = 0.05$). Notice that $L_D$ incorporates the variance of low-concentration standards, acknowledging that noise changes as concentration increases.
+To ensure reliable detection of the analyte, we must evaluate higher up the curve to $L_D$. $L_D$ is the true signal level at which there is a 95% probability that the *measured* signal will fall above $L_C$, thereby guarding against **false negatives** ($\beta = 0.05$). Notice that $L_D$ incorporates the variance of low-concentration standards, acknowledging that noise changes as concentration increases.
 
 #### 3. Limit of Detection (LOD) - "The Concentration"
-The final LOD is not a signal; it is a concentration. **Bioassay LOD Fitter** utilises inverse regression to map the $L_D$ signal back through the rigorously fitted 4PL or 5PL sigmoidal equation. This yields the lowest actual *concentration* of analyte that can be reliably detected with a 95% probability.
 
-> **Original code developed by Carly Holstein, Department of Bioengineering, and Maryclare Griffin, Department of Statistics**
-> **Copyright Carly Holstein, University of Washington, 2014-2015**
-> **Originally published:** Carly A. Holstein, Maryclare Griffin et al. Statistical Method for Determining and Comparing Limits of Detection of Bioassays. Analytical Chemistry 2015 87 (19), 9795-9801. https://doi.org/10.1021/acs.analchem.5b02082.
+The final LOD represents a concentration rather than a signal. **Bioassay LOD Fitter** utilises inverse regression to map the $L_D$ signal back through the rigorously fitted 4PL or 5PL sigmoidal equation. This yields the lowest actual *concentration* of analyte that can be reliably detected with a 95% probability.
+
+<hr>
+
+> **Acknowledgements**
+> 
+> *Original code developed by Carly Holstein, Department of Bioengineering, and Maryclare Griffin, Department of Statistics.*
+> *Copyright Carly Holstein, University of Washington, 2014-2015.*
+> 
+> *Originally published in:* Carly A. Holstein, Maryclare Griffin et al. Statistical Method for Determining and Comparing Limits of Detection of Bioassays. *Analytical Chemistry* 2015 87 (19), 9795-9801. [DOI: 10.1021/acs.analchem.5b02082](https://doi.org/10.1021/acs.analchem.5b02082)
+
+<hr>
 
 ## References & Citations
 
