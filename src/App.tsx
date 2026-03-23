@@ -322,8 +322,8 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.2.9</h1>
-          <p className="header-description">Professional sigmoidal fitting with Clinical LoD validation.</p>
+          <h1>Bioassay LOD Fitter v0.2.10</h1>
+          <p className="header-description">Robust sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button className="action-btn" onClick={toggleTheme}>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</button>
@@ -448,7 +448,7 @@ function App() {
                 </div>
                 <div className="stats-card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h3 style={{ margin: 0 }}>Curve Fitting</h3>
+                    <h3 style={{ margin: 0, color: 'var(--blue)' }}>Curve Fitting</h3>
                     <button className="action-btn" onClick={handleCopyMetrics} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>Copy</button>
                   </div>
                   <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Akaike Information Criterion (corrected). Lower is better."><span className="stat-label">AICc Score</span></span><span className="stat-value">{results.fit.metrics.aicc.toFixed(2)}</span></div>
@@ -462,7 +462,7 @@ function App() {
                   )}
                 </div>
                 <div className="stats-card">
-                  <h3>Clinical Validation</h3>
+                  <h3 style={{ color: 'var(--red)' }}>Assay Parameters</h3>
                   <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Average signal of the blank replicates"><span className="stat-label">Blank Mean</span></span><span className="stat-value">{results.meanBlank.toFixed(4)}</span></div>
                   <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Standard deviation of the blank replicates"><span className="stat-label">Blank SD</span></span><span className="stat-value">{results.sdBlank.toFixed(4)}</span></div>
                   <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Pooled standard deviation of the low concentration standards"><span className="stat-label">Pooled SD</span></span><span className="stat-value">{results.sdPooled.toFixed(4)}</span></div>
@@ -472,7 +472,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.2.9...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.2.10...</p></div>
           )}
         </section>
       </main>
