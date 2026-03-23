@@ -71,7 +71,7 @@ export interface AdvancedLoDResult {
 export const calculateAdvancedLoD = (
   blanks: number[],
   standards: StandardData[],
-  method: 'linear' | '4pl' | '5pl' | 'auto' = '4pl',
+  method: 'linear' | 'langmuir' | '4pl' | '5pl' | 'auto' = 'auto',
   alpha = 0.05,
   beta = 0.05
 ): AdvancedLoDResult => {
@@ -84,23 +84,37 @@ export const calculateAdvancedLoD = (
   const x = standards.map(s => s.concentration);
   const y = standards.map(s => s.readout);
   
-  const fit4 = fitData(x, y, '4pl');
-  const fit5 = fitData(x, y, '5pl');
-  const betterMethod = fit5.metrics.aicc < fit4.metrics.aicc - 2 ? '5pl' : '4pl';
+  const fits = {
+    linear: fitData(x, y, 'linear'),
+    langmuir: fitData(x, y, 'langmuir'),
+    '4pl': fitData(x, y, '4pl'),
+    '5pl': fitData(x, y, '5pl')
+  };
+
+  let betterMethod: 'linear' | 'langmuir' | '4pl' | '5pl' = '4pl';
+  let bestAicc = Infinity;
+  (Object.keys(fits) as Array<keyof typeof fits>).forEach(m => {
+    if (fits[m].metrics.aicc < bestAicc) {
+      bestAicc = fits[m].metrics.aicc;
+      betterMethod = m;
+    }
+  });
 
   let fit: FitResult;
   if (method === 'auto') {
-    fit = betterMethod === '5pl' ? fit5 : fit4;
-  } else if (method === 'linear') {
-    fit = fitData(x, y, 'linear');
+    fit = fits[betterMethod];
   } else {
-    fit = method === '4pl' ? fit4 : fit5;
+    fit = fits[method];
   }
 
   let lodConc = 0;
   const p = fit.parameters;
   if (fit.method === 'linear') {
     lodConc = (ld - p['Intercept (b)']) / p['Slope (m)'];
+  } else if (fit.method === 'langmuir') {
+    const bmax = p['Bmax'];
+    const kd = p['Kd'];
+    if (bmax - ld > 0) lodConc = (ld * kd) / (bmax - ld);
   } else if (fit.method === '4pl') {
     const ratio = (p['Bottom (a)'] - ld) / (ld - p['Top (d)']);
     if (ratio > 0) lodConc = p['EC50 (c)'] * Math.pow(ratio, 1 / p['Hill Slope (b)']);
@@ -117,6 +131,6 @@ export const calculateAdvancedLoD = (
 
   return { 
     lc, ld, lodConc, lodCI, meanBlank, sdBlank, sdPooled, fit,
-    comparison: { fit4, fit5, betterMethod }
+    comparison: { fits, betterMethod }
   };
 };

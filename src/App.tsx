@@ -336,7 +336,9 @@ function App() {
           <section className="sidebar-section">
             <span className="section-title" style={{ color: 'var(--mauve)' }}>Model Options</span>
             <select value={fitMethod} onChange={e => setFitMethod(e.target.value as any)} className="method-select">
-              <option value="auto">Automatic (AICc Optimized)</option>
+              <option value="auto">Automatic (AICc Optimised)</option>
+              <option value="linear">Linear</option>
+              <option value="langmuir">Langmuir</option>
               <option value="4pl">4-Parameter Logistic (4PL)</option>
               <option value="5pl">5-Parameter Logistic (5PL)</option>
             </select>

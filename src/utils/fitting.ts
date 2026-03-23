@@ -68,7 +68,7 @@ const models = {
   }
 };
 
-export const fitData = (x: number[], y: number[], method: 'linear' | '4pl' | '5pl'): FitResult => {
+export const fitData = (x: number[], y: number[], method: 'linear' | 'langmuir' | '4pl' | '5pl'): FitResult => {
   const n = x.length;
   const model = models[method];
   const options = { initialValues: model.initialValues(x, y), maxIterations: 1000 };
@@ -123,6 +123,23 @@ export const fitData = (x: number[], y: number[], method: 'linear' | '4pl' | '5p
       const crit = 1.96; // 95% CI approx
       const pred = model.func(val, params);
       return { low: pred - crit * se, high: pred + crit * se };
+    },
+    actualX: x,
+    actualY: y,
+    k: model.k,
+    cov: cov.to2DArray(),
+    mse
+  };
+};
+
+export const autoFit = (x: number[], y: number[]): FitResult => {
+  const f4 = fitData(x, y, '4pl');
+  const f5 = fitData(x, y, '5pl');
+  return f5.metrics.aicc < f4.metrics.aicc - 2 ? f5 : f4;
+};
+ts.reduce((prev, curr) => curr.metrics.aicc < prev.metrics.aicc ? curr : prev);
+};
+ return { low: pred - crit * se, high: pred + crit * se };
     },
     actualX: x,
     actualY: y,
