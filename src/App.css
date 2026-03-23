@@ -253,7 +253,7 @@ header {
 .add-row-btn {
   background: color-mix(in srgb, var(--blue) 5%, transparent);
   color: var(--blue);
-  border: 1px dashed var(--blue);
+  border: 1px solid var(--blue);
   padding: 8px;
   border-radius: 6px;
   font-size: 0.75rem;
