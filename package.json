@@ -1,9 +1,9 @@
 {
-  "name": "lod-calculator",
+  "name": "bioassay-lod-fitter",
   "private": true,
-  "version": "0.2.5",
+  "version": "0.2.6",
   "type": "module",
-  "homepage": "https://akshamsabadi.github.io/lod-calculator/",
+  "homepage": "https://akshamsabadi.github.io/bioassay-LOD-fitter/",
   "scripts": {
     "dev": "vite",
     "predeploy": "npm run build",
