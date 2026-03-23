@@ -566,13 +566,3 @@ function App() {
 
 export default App;
 
-<p>Loading Bioassay LOD Fitter v0.3.5...</p></div>
-          )}
-        </section>
-      </main>
-    </div>
-  );
-}
-
-export default App;
-
