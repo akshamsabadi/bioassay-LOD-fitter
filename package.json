@@ -1,7 +1,7 @@
 {
   "name": "bioassay-lod-fitter",
   "private": true,
-  "version": "0.3.5",
+  "version": "0.3.6",
   "type": "module",
   "homepage": "https://akshamsabadi.github.io/bioassay-LOD-fitter/",
   "scripts": {

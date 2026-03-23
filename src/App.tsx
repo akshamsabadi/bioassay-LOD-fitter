@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { calculateAdvancedLoD, type StandardData, type AdvancedLoDResult } from './utils/calculations';
 import {
   Scatter,
@@ -108,6 +108,11 @@ const CustomLdLabel = ({ viewBox }: any) => {
       L<tspan dy="0.3em" fontSize={7.5}>D</tspan>
     </text>
   );
+};
+
+const CustomMinorYAxisTickLabel = ({ viewBox }: any) => {
+  if (!viewBox) return null;
+  return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--text)" opacity={0.5} />;
 };
 
 const CustomScatterDot = (props: any) => {
@@ -343,11 +348,15 @@ function App() {
     alert('Metrics copied to clipboard!');
   };
 
+  const renderScatterDot = useCallback((props: any) => {
+    return <CustomScatterDot {...props} setHoveredPoint={setHoveredPoint} />;
+  }, [setHoveredPoint]);
+
   return (
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.3.5</h1>
+          <h1>Bioassay LOD Fitter v0.3.6</h1>
           <p className="header-description">Robust sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -471,10 +480,7 @@ function App() {
                           key={`minor-y-${tick}`} 
                           y={tick} 
                           stroke="none" 
-                          label={({ viewBox }: any) => {
-                            if (!viewBox) return null;
-                            return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--text)" opacity={0.5} />;
-                          }} 
+                          label={<CustomMinorYAxisTickLabel />} 
                         />
                       ))}
 
@@ -487,7 +493,7 @@ function App() {
                         dataKey="y" 
                         isAnimationActive={false} 
                         legendType="none"
-                        shape={(props: any) => <CustomScatterDot {...props} setHoveredPoint={setHoveredPoint} />}
+                        shape={renderScatterDot}
                       />
                       
                       <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={<CustomLcLabel />} />
