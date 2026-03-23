@@ -356,7 +356,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.3.9</h1>
+          <h1>Bioassay LOD Fitter v0.3.10</h1>
           <p className="header-description">Robust sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -392,7 +392,7 @@ function App() {
               <div style={{ position: 'relative', flex: 1 }}>
                 <input type="text" className="signals-input" placeholder="Comma separated..." value={blankSignals} onChange={e => setBlankSignals(e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === 'blank' ? 'transparent' : 'var(--text)' }} />
                 {hoveredPoint?.id === 'blank' && (
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: '6px 8px', border: '1px solid transparent', pointerEvents: 'none', fontFamily: '"Google Sans Mono", monospace', fontSize: '0.8rem', whiteSpace: 'pre', overflow: 'hidden' }}>
+                  <div className="signals-input" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'transparent', borderColor: 'transparent', pointerEvents: 'none', whiteSpace: 'pre', overflow: 'hidden' }}>
                     {blankSignals.split(/(,)/).map((part, i) => {
                       if (part === ',') return <span key={i} style={{ color: 'var(--text)' }}>,</span>;
                       const isTarget = !isNaN(parseFloat(part)) && Math.abs(parseFloat(part.trim()) - hoveredPoint.y) < 1e-8;
@@ -414,7 +414,7 @@ function App() {
                   <div style={{ position: 'relative', flex: 1 }}>
                     <input type="text" className="signals-input" placeholder="Signals..." value={r.signals} onChange={e => updateRow(r.id, 'signals', e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === r.id ? 'transparent' : 'var(--text)' }} />
                     {hoveredPoint?.id === r.id && (
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: '6px 8px', border: '1px solid transparent', pointerEvents: 'none', fontFamily: '"Google Sans Mono", monospace', fontSize: '0.8rem', whiteSpace: 'pre', overflow: 'hidden' }}>
+                      <div className="signals-input" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'transparent', borderColor: 'transparent', pointerEvents: 'none', whiteSpace: 'pre', overflow: 'hidden' }}>
                         {r.signals.split(/(,)/).map((part, i) => {
                           if (part === ',') return <span key={i} style={{ color: 'var(--text)' }}>,</span>;
                           const isTarget = !isNaN(parseFloat(part)) && Math.abs(parseFloat(part.trim()) - hoveredPoint.y) < 1e-8;
