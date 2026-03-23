@@ -213,6 +213,8 @@ header {
   font-family: 'Google Sans Mono', monospace;
   font-size: 0.8rem;
   text-align: center;
+  line-height: 18px;
+  margin: 0;
 }
 
 .conc-input.disabled {
@@ -231,6 +233,8 @@ header {
   color: var(--text);
   font-family: 'Google Sans Mono', monospace;
   font-size: 0.8rem;
+  line-height: 18px;
+  margin: 0;
 }
 
 .signals-input:focus, .conc-input:focus {
