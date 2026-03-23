@@ -49,18 +49,6 @@ The final LOD is not a signal; it is a concentration. **Bioassay LOD Fitter** ut
 > **Copyright Carly Holstein, University of Washington, 2014-2015**
 > **Originally published:** Carly A. Holstein, Maryclare Griffin et al. Statistical Method for Determining and Comparing Limits of Detection of Bioassays. Analytical Chemistry 2015 87 (19), 9795-9801. https://doi.org/10.1021/acs.analchem.5b02082.
 
-## Understanding the Plot
-
-The generated chart provides a comprehensive overview of your assay's performance:
-
-* **Measured Data (●):** Your raw, experimental data points.
-* **Model Fit (—):** The calculated 4PL or 5PL regression curve.
-* **95% CI Fit (■):** The shaded region around the curve representing the 95% confidence interval of the model's prediction.
-* **$L_C$ (Critical Level):** Indicated by a dashed peach line. 
-* **$L_D$ (Limit of Detection - Signal):** Indicated by a dashed green line.
-* **LOD (Limit of Detection - Concentration):** Indicated by a solid yellow vertical line mapping the $L_D$ signal down to the X-axis.
-* **95% CI LOD (■):** A yellow shaded area along the X-axis indicating the statistical confidence interval for your calculated LOD.
-
 ## References & Citations
 
 The statistical mathematics powering this application are based on the following seminal works:
@@ -72,6 +60,18 @@ The statistical mathematics powering this application are based on the following
 ## Development
 
 This project is built with:
+*[React](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
+*[Vite](https://vitejs.dev/)
+* [Recharts](https://recharts.org/) for interactive data visualisation
+* [ml-levenberg-marquardt](https://github.com/mljs/levenberg-marquardt) for non-linear regression
+
+### Running Locally
+```bash
+npm install
+npm run dev
+```ation. Application to radiochemistry. *Analytical Chemistry*, 40(3), 586-593.[DOI: 10.1021/ac60259a007](https://doi.org/10.1021/ac60259a007)
+3. **Miller, B. S., et al. (2022).** Sub-picomolar lateral flow antigen detection with two-wavelength imaging of composite nanoparticles. *Biosensors and Bioelectronics*, 207, 114133.[DOI: 10.1016/j.bios.2022.114133](https://doi.org/10.1016/j.bios.2022.114133)
+roject is built with:
 *[React](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
 *[Vite](https://vitejs.dev/)
 * [Recharts](https://recharts.org/) for interactive data visualisation
