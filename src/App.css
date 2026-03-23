@@ -200,21 +200,6 @@ header {
   display: flex;
   gap: 6px;
   align-items: center;
-  padding: 4px;
-  margin: -4px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  transition: all 0.2s ease-in-out;
-}
-
-.data-row.highlighted {
-  border-color: var(--pink);
-  background-color: color-mix(in srgb, var(--pink) 5%, transparent);
-}
-
-.data-row.highlighted input {
-  border-color: var(--pink);
-  background-color: var(--base);
 }
 
 .conc-input {

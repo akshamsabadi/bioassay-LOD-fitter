@@ -180,7 +180,7 @@ function App() {
   const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
   const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
-  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{ id: string, y: number } | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -373,7 +373,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.3.3</h1>
+          <h1>Bioassay LOD Fitter v0.3.4</h1>
           <p className="header-description">Robust sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -404,15 +404,42 @@ function App() {
           </section>
           <section className="sidebar-section">
             <span className="section-title" style={{ color: 'var(--peach)' }}>Blanks</span>
-            <div className={`data-row ${hoveredRowId === 'blank' ? 'highlighted' : ''}`}><div className="conc-input disabled" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>0</div><input type="text" className="signals-input" placeholder="Comma separated..." value={blankSignals} onChange={e => setBlankSignals(e.target.value)} /></div>
+            <div className="data-row">
+              <div className="conc-input disabled" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: hoveredPoint?.id === 'blank' ? 'var(--pink)' : 'var(--overlay0)', fontWeight: hoveredPoint?.id === 'blank' ? 'bold' : 'normal' }}>0</div>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input type="text" className="signals-input" placeholder="Comma separated..." value={blankSignals} onChange={e => setBlankSignals(e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === 'blank' ? 'transparent' : 'var(--text)' }} />
+                {hoveredPoint?.id === 'blank' && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: '6px 8px', pointerEvents: 'none', fontFamily: '"Google Sans Mono", monospace', fontSize: '0.8rem', whiteSpace: 'pre', overflow: 'hidden' }}>
+                    {blankSignals.split(/(,)/).map((part, i) => {
+                      if (part === ',') return <span key={i} style={{ color: 'var(--text)' }}>,</span>;
+                      const isTarget = !isNaN(parseFloat(part)) && Math.abs(parseFloat(part.trim()) - hoveredPoint.y) < 1e-8;
+                      return <span key={i} style={{ color: isTarget ? 'var(--pink)' : 'var(--text)', fontWeight: isTarget ? 'bold' : 'normal' }}>{part}</span>;
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
           <section className="sidebar-section">
             <span className="section-title" style={{ color: 'var(--green)' }}>Standards</span>
             <div className="rows-container">
               {standardRows.map((r) => (
-                <div key={r.id} className={`data-row ${hoveredRowId === r.id ? 'highlighted' : ''}`}>
-                  <input type="text" className="conc-input" placeholder="Conc" value={r.conc} onChange={e => updateRow(r.id, 'conc', e.target.value)} />
-                  <input type="text" className="signals-input" placeholder="Signals..." value={r.signals} onChange={e => updateRow(r.id, 'signals', e.target.value)} />
+                <div key={r.id} className="data-row">
+                  <div style={{ position: 'relative' }}>
+                    <input type="text" className="conc-input" placeholder="Conc" value={r.conc} onChange={e => updateRow(r.id, 'conc', e.target.value)} style={{ color: hoveredPoint?.id === r.id ? 'var(--pink)' : 'var(--text)', fontWeight: hoveredPoint?.id === r.id ? 'bold' : 'normal' }} />
+                  </div>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input type="text" className="signals-input" placeholder="Signals..." value={r.signals} onChange={e => updateRow(r.id, 'signals', e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === r.id ? 'transparent' : 'var(--text)' }} />
+                    {hoveredPoint?.id === r.id && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: '6px 8px', pointerEvents: 'none', fontFamily: '"Google Sans Mono", monospace', fontSize: '0.8rem', whiteSpace: 'pre', overflow: 'hidden' }}>
+                        {r.signals.split(/(,)/).map((part, i) => {
+                          if (part === ',') return <span key={i} style={{ color: 'var(--text)' }}>,</span>;
+                          const isTarget = !isNaN(parseFloat(part)) && Math.abs(parseFloat(part.trim()) - hoveredPoint.y) < 1e-8;
+                          return <span key={i} style={{ color: isTarget ? 'var(--pink)' : 'var(--text)', fontWeight: isTarget ? 'bold' : 'normal' }}>{part}</span>;
+                        })}
+                      </div>
+                    )}
+                  </div>
                   <button className="remove-row-btn" onClick={() => setStandardRows(standardRows.filter(sr => sr.id !== r.id))}>×</button>
                 </div>
               ))}
@@ -487,7 +514,7 @@ function App() {
                         dataKey="y" 
                         isAnimationActive={false} 
                         legendType="none"
-                        shape={(props: any) => <CustomScatterDot {...props} setHoveredRowId={setHoveredRowId} />}
+                        shape={(props: any) => <CustomScatterDot {...props} setHoveredPoint={setHoveredPoint} />}
                       />
                       
                       <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={<CustomLcLabel />} />
@@ -529,7 +556,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.3...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.4...</p></div>
           )}
         </section>
       </main>
