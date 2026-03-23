@@ -218,7 +218,7 @@ header {
 .conc-input.disabled {
   background: var(--crust);
   color: var(--overlay0);
-  border-style: dashed;
+  border-style: solid;
 }
 
 .signals-input {
