@@ -122,9 +122,37 @@ const CustomPlotTooltip = ({ active, payload }: any) => {
           <p style={{ margin: '0' }}>Signal: {data.y.toFixed(4)}</p>
         </div>
       );
+    } else if (data.trend !== undefined) {
+      return (
+        <div style={{ backgroundColor: '#181825', borderColor: 'var(--surface0)', borderRadius: '8px', padding: '10px', fontSize: '12px', border: '1px solid var(--surface0)', color: 'var(--text)' }}>
+          <p style={{ margin: '0 0 5px 0', color: 'var(--blue)', fontWeight: 'bold' }}>Model Fit</p>
+          <p style={{ margin: '0' }}>Concentration: {data.x.toExponential(2)}</p>
+          <p style={{ margin: '0' }}>Signal: {data.trend.toFixed(4)}</p>
+          <p style={{ margin: '0' }}>95% CI: [{data.ciRange[0].toFixed(4)}, {data.ciRange[1].toFixed(4)}]</p>
+        </div>
+      );
     }
   }
   return null;
+};
+
+const CustomScatterDot = (props: any) => {
+  const { cx, cy, payload, setHoveredRowId } = props;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={4}
+      fill="var(--red)"
+      onMouseEnter={() => {
+        if (setHoveredRowId) setHoveredRowId(payload.id);
+      }}
+      onMouseLeave={() => {
+        if (setHoveredRowId) setHoveredRowId(null);
+      }}
+      style={{ cursor: 'pointer', transition: 'all 0.2s', pointerEvents: 'all' }}
+    />
+  );
 };
 
 const CustomLegend = () => {
@@ -148,7 +176,7 @@ function App() {
   });
   const [blankSignals, setBlankSignals] = useState(DEFAULT_BLANKS);
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
-  const [fitMethod, setFitMethod] = useState<'4pl' | '5pl' | 'auto'>('auto');
+  const [fitMethod, setFitMethod] = useState<'linear' | 'langmuir' | '4pl' | '5pl' | 'auto'>('auto');
   const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
   const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
@@ -282,16 +310,22 @@ function App() {
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
     const zeroX = minX / 10;
     
-    const points: {x: number, y: number}[] = results.fit.actualX.map((x, i) => ({ 
-      x: x === 0 ? zeroX : x, 
-      y: results.fit.actualY[i] 
-    }));
-    
+    const points: {x: number, y: number, id: string, actualX: number | string, isScatterData: boolean}[] = [];
+
     const blanks = blankSignals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-    blanks.forEach(y => points.push({ x: zeroX, y }));
+    blanks.forEach(y => points.push({ x: zeroX, y, id: 'blank', actualX: '0', isScatterData: true }));
+
+    standardRows.forEach(row => {
+      const c = parseFloat(row.conc);
+      if (isNaN(c)) return;
+      row.signals.split(',').forEach(s => {
+        const val = parseFloat(s.trim());
+        if (!isNaN(val)) points.push({ x: c === 0 ? zeroX : c, y: val, id: row.id, actualX: c, isScatterData: true });
+      });
+    });
     
     return points;
-  }, [results, blankSignals]);
+  }, [results, blankSignals, standardRows]);
 
   const { yDomain, yTicks, yMajorTicks } = useMemo((): { yDomain: [number | 'auto', number | 'auto'], yTicks: number[] | undefined, yMajorTicks: number[] } => {
     if (!results) return { yDomain: [0, 'auto'], yTicks: undefined, yMajorTicks: [] };
@@ -339,7 +373,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.3.2</h1>
+          <h1>Bioassay LOD Fitter v0.3.3</h1>
           <p className="header-description">Robust sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -429,7 +463,7 @@ function App() {
                         tick={<CustomYAxisTick />}
                         label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: 'var(--overlay2)', fontSize: 11, offset: -5 }} 
                       />
-                      <Tooltip content={<CustomPlotTooltip />} cursor={false} shared={false} />
+                      <Tooltip content={<CustomPlotTooltip />} cursor={false} shared={false} wrapperStyle={{ pointerEvents: 'none' }} />
                       <Legend verticalAlign="top" content={<CustomLegend />} />
                       
                       {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => (
@@ -450,12 +484,10 @@ function App() {
                       <Line dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} isAnimationActive={false} legendType="none" />
                       <Scatter 
                         data={scatterData} 
-                        fill="var(--red)" 
                         dataKey="y" 
                         isAnimationActive={false} 
                         legendType="none"
-                        onMouseEnter={(data: any) => setHoveredRowId(data?.payload?.id || null)}
-                        onMouseLeave={() => setHoveredRowId(null)}
+                        shape={(props: any) => <CustomScatterDot {...props} setHoveredRowId={setHoveredRowId} />}
                       />
                       
                       <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={<CustomLcLabel />} />
@@ -476,28 +508,28 @@ function App() {
                     <h3 style={{ margin: 0, color: 'var(--blue)' }}>Curve Fitting</h3>
                     <button className="action-btn" onClick={handleCopyMetrics} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>Copy</button>
                   </div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Akaike Information Criterion (corrected). Lower is better."><span className="stat-label">AICc Score</span></span><span className="stat-value">{results.fit.metrics.aicc.toFixed(2)}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Coefficient of determination. Closer to 1 is better."><span className="stat-label">R² (Fit)</span></span><span className="stat-value">{results.fit.metrics.r2.toFixed(5)}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Lower asymptote (background signal)"><span className="stat-label">Bottom (a)</span></span><span className="stat-value">{results.fit.parameters['Bottom (a)']?.toFixed(4) || 'N/A'}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Steepness of the curve"><span className="stat-label">Hill Slope (b)</span></span><span className="stat-value">{results.fit.parameters['Hill Slope (b)']?.toFixed(4) || 'N/A'}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Concentration at half-maximal response"><span className="stat-label">EC50 (c)</span></span><span className="stat-value">{results.fit.parameters['EC50 (c)']?.toFixed(4) || 'N/A'}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Upper asymptote (maximum signal)"><span className="stat-label">Top (d)</span></span><span className="stat-value">{results.fit.parameters['Top (d)']?.toFixed(4) || 'N/A'}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Akaike Information Criterion (corrected). Evaluates the relative quality of statistical models for a given set of data, penalising for complexity to prevent overfitting. Lower scores indicate a superior balance of model fit and simplicity."><span className="stat-label">AICc Score</span></span><span className="stat-value">{results.fit.metrics.aicc.toFixed(2)}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Coefficient of determination. Represents the proportion of the variance in the dependent variable that is predictable from the independent variable. Closer to 1.0 indicates a stronger fit."><span className="stat-label">R² (Fit)</span></span><span className="stat-value">{results.fit.metrics.r2.toFixed(5)}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The lower asymptote of the sigmoidal curve, representing the theoretical background signal at an analyte concentration of zero."><span className="stat-label">Bottom (a)</span></span><span className="stat-value">{results.fit.parameters['Bottom (a)']?.toFixed(4) || 'N/A'}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Hill coefficient characterizing the steepness of the sigmoidal curve at the inflection point."><span className="stat-label">Hill Slope (b)</span></span><span className="stat-value">{results.fit.parameters['Hill Slope (b)']?.toFixed(4) || 'N/A'}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The concentration corresponding to a response halfway between the lower and upper asymptotes."><span className="stat-label">EC50 (c)</span></span><span className="stat-value">{results.fit.parameters['EC50 (c)']?.toFixed(4) || 'N/A'}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The upper asymptote of the sigmoidal curve, representing the maximum theoretical response (saturation) of the assay."><span className="stat-label">Top (d)</span></span><span className="stat-value">{results.fit.parameters['Top (d)']?.toFixed(4) || 'N/A'}</span></div>
                   {results.fit.parameters['Asymmetry (g)'] !== undefined && (
-                    <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Asymmetry factor for 5PL curves"><span className="stat-label">Asymmetry (g)</span></span><span className="stat-value">{results.fit.parameters['Asymmetry (g)'].toFixed(4)}</span></div>
+                    <div className="stat-row"><span className="stat-label-wrap" data-tooltip="An asymmetry parameter in the 5PL model that allows the curve to approach the upper and lower asymptotes at different rates."><span className="stat-label">Asymmetry (g)</span></span><span className="stat-value">{results.fit.parameters['Asymmetry (g)'].toFixed(4)}</span></div>
                   )}
                 </div>
                 <div className="stats-card">
                   <h3 style={{ color: 'var(--red)' }}>Assay Parameters</h3>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Average signal of the blank replicates"><span className="stat-label">Blank Mean</span></span><span className="stat-value">{results.meanBlank.toFixed(4)}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Standard deviation of the blank replicates"><span className="stat-label">Blank SD</span></span><span className="stat-value">{results.sdBlank.toFixed(4)}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Pooled standard deviation of the low concentration standards"><span className="stat-label">Pooled SD</span></span><span className="stat-value">{results.sdPooled.toFixed(4)}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Critical Level (Decision Limit) - Threshold for false positives"><span className="stat-label">L<sub>C</sub></span></span><span className="stat-value" style={{color: '#fab387'}}>{results.lc.toFixed(4)}</span></div>
-                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Detection Limit Signal - Threshold guarding against false negatives"><span className="stat-label">L<sub>D</sub></span></span><span className="stat-value" style={{color: '#a6e3a1'}}>{results.ld.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The arithmetic mean of the measured signal responses for the zero-concentration blank replicates."><span className="stat-label">Blank Mean</span></span><span className="stat-value">{results.meanBlank.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The sample standard deviation of the measured signal responses for the zero-concentration blank replicates."><span className="stat-label">Blank SD</span></span><span className="stat-value">{results.sdBlank.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="A weighted average of the standard deviations from the non-zero standard replicates, providing a more robust estimate of assay variance in the low-concentration regime."><span className="stat-label">Pooled SD</span></span><span className="stat-value">{results.sdPooled.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Decision Limit (LC) is the signal threshold above which an observed response is statistically considered to be distinct from background noise (guarding against false positives, α=0.05)."><span className="stat-label">L<sub>C</sub></span></span><span className="stat-value" style={{color: '#fab387'}}>{results.lc.toFixed(4)}</span></div>
+                  <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Detection Limit Signal (LD) is the true signal level at which there is a 95% probability that the measured signal will fall above LC (guarding against false negatives, β=0.05)."><span className="stat-label">L<sub>D</sub></span></span><span className="stat-value" style={{color: '#a6e3a1'}}>{results.ld.toFixed(4)}</span></div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.2...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.3...</p></div>
           )}
         </section>
       </main>
