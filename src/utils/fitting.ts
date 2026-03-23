@@ -26,6 +26,20 @@ const models = {
     paramNames: ['Slope (m)', 'Intercept (b)'],
     initialValues: (_x: number[], y: number[]) => [1, y[0]]
   },
+  langmuir: {
+    func: (x: number, [bmax, kd]: number[]) => {
+      if (x <= 0) return 0;
+      return (bmax * x) / (kd + x);
+    },
+    grad: (x: number, [bmax, kd]: number[]) => {
+      if (x <= 0) return [0, 0];
+      const denom = kd + x;
+      return [x / denom, -(bmax * x) / (denom * denom)];
+    },
+    k: 2,
+    paramNames: ['Bmax', 'Kd'],
+    initialValues: (x: number[], y: number[]) => [Math.max(...y), x[Math.floor(x.length / 2)]]
+  },
   '4pl': {
     func: (x: number, [a, b, c, d]: number[]) => {
       if (x <= 0) return a;
@@ -133,24 +147,11 @@ export const fitData = (x: number[], y: number[], method: 'linear' | 'langmuir' 
 };
 
 export const autoFit = (x: number[], y: number[]): FitResult => {
-  const f4 = fitData(x, y, '4pl');
-  const f5 = fitData(x, y, '5pl');
-  return f5.metrics.aicc < f4.metrics.aicc - 2 ? f5 : f4;
-};
-ts.reduce((prev, curr) => curr.metrics.aicc < prev.metrics.aicc ? curr : prev);
-};
- return { low: pred - crit * se, high: pred + crit * se };
-    },
-    actualX: x,
-    actualY: y,
-    k: model.k,
-    cov: cov.to2DArray(),
-    mse
-  };
-};
-
-export const autoFit = (x: number[], y: number[]): FitResult => {
-  const f4 = fitData(x, y, '4pl');
-  const f5 = fitData(x, y, '5pl');
-  return f5.metrics.aicc < f4.metrics.aicc - 2 ? f5 : f4;
+  const fits = [
+    fitData(x, y, 'linear'),
+    fitData(x, y, 'langmuir'),
+    fitData(x, y, '4pl'),
+    fitData(x, y, '5pl')
+  ];
+  return fits.reduce((prev, curr) => curr.metrics.aicc < prev.metrics.aicc ? curr : prev);
 };

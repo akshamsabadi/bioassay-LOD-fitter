@@ -62,9 +62,8 @@ export interface AdvancedLoDResult {
   sdPooled: number;
   fit: FitResult;
   comparison: {
-    fit4: FitResult;
-    fit5: FitResult;
-    betterMethod: '4pl' | '5pl';
+    fits: Record<string, FitResult>;
+    betterMethod: 'linear' | 'langmuir' | '4pl' | '5pl';
   };
 }
 
