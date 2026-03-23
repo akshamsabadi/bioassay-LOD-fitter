@@ -356,7 +356,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.3.11</h1>
+          <h1>Bioassay LOD Fitter v0.3.12</h1>
           <p className="header-description">Robust sigmoidal fitting with Clinical LoD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -506,20 +506,21 @@ function App() {
                       position: 'absolute',
                       left: hoveredPoint.cx + 15,
                       top: hoveredPoint.cy - 15,
-                      backgroundColor: '#181825',
-                      borderColor: 'var(--surface0)',
+                      backgroundColor: 'var(--mantle)',
+                      border: '1px solid var(--pink)',
                       borderRadius: '8px',
-                      padding: '10px',
-                      fontSize: '12px',
-                      border: '1px solid var(--surface0)',
+                      padding: '10px 14px',
+                      fontSize: '0.8rem',
                       color: 'var(--text)',
                       pointerEvents: 'none',
                       zIndex: 100,
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+                      boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
                     }}>
-                      <p style={{ margin: '0 0 5px 0', color: 'var(--pink)', fontWeight: 'bold' }}>Measured Data Point</p>
-                      <p style={{ margin: '0' }}>Concentration: {hoveredPoint.conc}</p>
-                      <p style={{ margin: '0' }}>Signal: {hoveredPoint.y.toFixed(4)}</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}><span style={{ color: 'var(--subtext0)' }}>Concentration</span><span style={{ fontWeight: 'bold', color: 'var(--text)', fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.conc}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}><span style={{ color: 'var(--subtext0)' }}>Signal</span><span style={{ fontWeight: 'bold', color: 'var(--pink)', fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.y.toFixed(4)}</span></div>
                     </div>
                   )}
                 </div>
