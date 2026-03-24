@@ -54,8 +54,8 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakCenter }: any) => {
     return (
       <g>
         <rect x={x - 12} y={y - 8} width={24} height={16} fill="var(--mantle)" />
-        <line x1={x - 4} y1={y + 6} x2={x + 2} y2={y - 6} stroke="var(--text)" strokeWidth={1.5} />
-        <line x1={x + 2} y1={y + 6} x2={x + 8} y2={y - 6} stroke="var(--text)" strokeWidth={1.5} />
+        <line x1={x - 7} y1={y + 6} x2={x - 1} y2={y - 6} stroke="var(--text)" strokeWidth={1.5} />
+        <line x1={x + 1} y1={y + 6} x2={x + 7} y2={y - 6} stroke="var(--text)" strokeWidth={1.5} />
       </g>
     );
   }
@@ -259,9 +259,10 @@ function App() {
     const zeroX = minX / 10;
     const maxAxisValue = maxX * 1.5;
     
-    const breakStart = zeroX * 1.5;
-    const breakEnd = minX / 1.5;
-    const breakCenter = Math.pow(10, (Math.log10(zeroX) + Math.log10(minX)) / 2);
+    const breakCenterLog = (Math.log10(zeroX) + Math.log10(minX)) / 2;
+    const breakCenter = Math.pow(10, breakCenterLog);
+    const breakStart = Math.pow(10, breakCenterLog - 0.04);
+    const breakEnd = Math.pow(10, breakCenterLog + 0.04);
 
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
@@ -398,7 +399,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.3</h1>
+          <h1>Bioassay LOD Fitter v0.4.4</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -538,8 +539,10 @@ function App() {
                         shape={renderScatterDot}
                       />
                       
-                      <Line data={lcLineData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} isAnimationActive={false} legendType="none" label={<CustomLcLabel />} />
-                      <Line data={ldLineData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} isAnimationActive={false} legendType="none" label={<CustomLdLabel />} />
+                      <Line data={lcLineData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} isAnimationActive={false} legendType="none" />
+                      <ReferenceLine y={results.lc} stroke="none" label={<CustomLcLabel />} />
+                      <Line data={ldLineData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} isAnimationActive={false} legendType="none" />
+                      <ReferenceLine y={results.ld} stroke="none" label={<CustomLdLabel />} />
                       <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} />
                       
                     </ComposedChart>
@@ -600,7 +603,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.3...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.4...</p></div>
           )}
         </section>
       </main>
