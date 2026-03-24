@@ -1,6 +1,6 @@
 # Bioassay LOD Fitter
 
-![Version](https://img.shields.io/badge/version-v0.3.14-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-v0.3.15-blue?style=for-the-badge)
 
 Bioassay LOD Fitter is a web application built to analyse concentration-response data, perform advanced sigmoidal curve fitting, and rigorously calculate the Limit of Detection (LOD) for diagnostic assays using validated statistical frameworks.
 
