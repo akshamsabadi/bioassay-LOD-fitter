@@ -53,9 +53,8 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakCenter }: any) => {
   if (breakCenter && Math.abs(val - breakCenter) < 1e-10) {
     return (
       <g>
-        <rect x={x - 12} y={y - 8} width={24} height={16} fill="var(--mantle)" />
-        <line x1={x - 7} y1={y + 6} x2={x - 1} y2={y - 6} stroke="var(--text)" strokeWidth={1.5} />
-        <line x1={x + 1} y1={y + 6} x2={x + 7} y2={y - 6} stroke="var(--text)" strokeWidth={1.5} />
+        <rect x={x - 12} y={y - 10} width={24} height={20} fill="var(--mantle)" />
+        <path d={`M ${x - 6} ${y + 8} L ${x - 2} ${y - 8} M ${x + 2} ${y + 8} L ${x + 6} ${y - 8}`} stroke="var(--text)" strokeWidth={2} fill="none" />
       </g>
     );
   }
@@ -269,11 +268,15 @@ function App() {
     const ticks = [zeroX, breakCenter];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
-      if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) ticks.push(majorVal);
+      if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) {
+        if (majorVal < breakStart || majorVal > breakEnd) ticks.push(majorVal);
+      }
       if (i < logMax) {
         for (let j = 2; j <= 9; j++) {
           const minorVal = j * Math.pow(10, i);
-          if (minorVal <= maxAxisValue && minorVal > zeroX + 1e-10) ticks.push(minorVal);
+          if (minorVal <= maxAxisValue && minorVal > zeroX + 1e-10) {
+            if (minorVal < breakStart || minorVal > breakEnd) ticks.push(minorVal);
+          }
         }
       }
     }
@@ -285,25 +288,33 @@ function App() {
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
     const maxX = Math.max(...results.fit.actualX);
     const zeroX = minX / 10;
-    const data = [];
-    const logMin = Math.log10(zeroX);
-    const logMax = Math.log10(maxX * 1.5);
+    
+    const pred0 = results.fit.predict(0);
+    const ci0 = results.fit.getCI(0);
+    
+    const leftData = [
+      { x: zeroX, trend: pred0, ciRange: [ci0.low, ci0.high] },
+      { x: breakStart, trend: pred0, ciRange: [ci0.low, ci0.high] }
+    ];
+    
+    const gapData = [
+      { x: breakCenter, trend: null, ciRange: null }
+    ];
+    
+    const rightData = [];
+    const logRMin = Math.log10(breakEnd);
+    const logRMax = Math.log10(maxX * 1.5);
     const steps = 100;
     for (let i = 0; i <= steps; i++) {
-      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
-      if (xVal > breakStart && xVal < breakEnd) {
-        if (data.length > 0 && data[data.length-1].trend !== null) {
-          data.push({ x: breakCenter, trend: null, ciRange: null });
-        }
-        continue;
-      }
+      const xVal = Math.pow(10, logRMin + i * (logRMax - logRMin) / steps);
       const fitX = xVal < minX * 0.5 ? 0 : xVal;
       const pred = results.fit.predict(fitX);
       const { low, high } = results.fit.getCI(fitX);
-      data.push({ x: xVal, trend: pred, ciRange: [low, high] });
+      rightData.push({ x: xVal, trend: pred, ciRange: [low, high] });
     }
-    return data;
-  }, [results]);
+    
+    return [...leftData, ...gapData, ...rightData];
+  }, [results, breakStart, breakEnd, breakCenter]);
 
   const scatterData = useMemo(() => {
     if (!results) return [];
@@ -399,7 +410,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.4</h1>
+          <h1>Bioassay LOD Fitter v0.4.5</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -496,6 +507,7 @@ function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 25, right: 30, left: 20, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
+                      <ReferenceArea x1={breakStart} x2={breakEnd} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} />
                       <XAxis 
                         dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--text)" 
                         ticks={xTicks}
@@ -539,9 +551,9 @@ function App() {
                         shape={renderScatterDot}
                       />
                       
-                      <Line data={lcLineData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} isAnimationActive={false} legendType="none" />
+                      <Line data={lcLineData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
                       <ReferenceLine y={results.lc} stroke="none" label={<CustomLcLabel />} />
-                      <Line data={ldLineData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} isAnimationActive={false} legendType="none" />
+                      <Line data={ldLineData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
                       <ReferenceLine y={results.ld} stroke="none" label={<CustomLdLabel />} />
                       <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} />
                       
@@ -603,7 +615,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.4...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.5...</p></div>
           )}
         </section>
       </main>
