@@ -48,16 +48,19 @@ const formatSuperscript = (val: number): ReactNode => {
   return <span>{base} × 10<sup>{exponent}</sup></span>;
 };
 
-const CustomXAxisTick = ({ x, y, payload }: any) => {
-  if (payload.value === 0 || isNaN(payload.value)) {
+const CustomXAxisTick = ({ x, y, payload, zeroX }: any) => {
+  const val = payload.value;
+  if (val === zeroX || val === 0 || isNaN(val)) {
     return (
       <g>
         <line x1={x} y1={y} x2={x} y2={y + 6} stroke="var(--text)" />
         <text x={x} y={y + 18} fill="var(--overlay2)" textAnchor="middle" fontSize={10}>0</text>
+        <rect x={x + 12} y={y - 3} width={14} height={6} fill="var(--mantle)" />
+        <line x1={x + 14} y1={y + 5} x2={x + 19} y2={y - 5} stroke="var(--text)" strokeWidth={1.5} />
+        <line x1={x + 20} y1={y + 5} x2={x + 25} y2={y - 5} stroke="var(--text)" strokeWidth={1.5} />
       </g>
     );
   }
-  const val = payload.value;
   const rawExponent = Math.log10(Math.abs(val));
   const isMajor = Math.abs(rawExponent - Math.round(rawExponent)) < 0.0001;
   
@@ -251,14 +254,14 @@ function App() {
     const maxAxisValue = maxX * 1.5;
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
-    const ticks = [];
+    const ticks = [zeroX];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
-      if (majorVal <= maxAxisValue && majorVal >= zeroX) ticks.push(majorVal);
+      if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) ticks.push(majorVal);
       if (i < logMax) {
         for (let j = 2; j <= 9; j++) {
           const minorVal = j * Math.pow(10, i);
-          if (minorVal <= maxAxisValue && minorVal >= zeroX) ticks.push(minorVal);
+          if (minorVal <= maxAxisValue && minorVal > zeroX + 1e-10) ticks.push(minorVal);
         }
       }
     }
@@ -356,7 +359,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.3.16</h1>
+          <h1>Bioassay LOD Fitter v0.4.1</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -459,7 +462,7 @@ function App() {
                         interval={0}
                         tickMargin={0}
                         tickLine={false}
-                        tick={<CustomXAxisTick />}
+                        tick={<CustomXAxisTick zeroX={xDomain[0]} />}
                         label={{ value: xAxisLabel, position: 'bottom', fill: 'var(--overlay2)', fontSize: 11, offset: 25 }}
                       />
                       <YAxis 
@@ -557,7 +560,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.3.16...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.1...</p></div>
           )}
         </section>
       </main>
