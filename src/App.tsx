@@ -290,6 +290,12 @@ function App() {
     const steps = 100;
     for (let i = 0; i <= steps; i++) {
       const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
+      if (xVal > breakStart && xVal < breakEnd) {
+        if (data.length > 0 && data[data.length-1].trend !== null) {
+          data.push({ x: breakCenter, trend: null, ciRange: null });
+        }
+        continue;
+      }
       const fitX = xVal < minX * 0.5 ? 0 : xVal;
       const pred = results.fit.predict(fitX);
       const { low, high } = results.fit.getCI(fitX);
@@ -341,6 +347,28 @@ function App() {
     return { yDomain: [niceMin, niceMax], yTicks: allTicks, yMajorTicks: majorTicks };
   }, [results]);
 
+  const lcLineData = useMemo(() => {
+    if (!results) return [];
+    return [
+      { x: xDomain[0], y: results.lc },
+      { x: breakStart, y: results.lc },
+      { x: breakCenter, y: null },
+      { x: breakEnd, y: results.lc },
+      { x: xDomain[1], y: results.lc }
+    ];
+  }, [results, xDomain, breakStart, breakEnd, breakCenter]);
+
+  const ldLineData = useMemo(() => {
+    if (!results) return [];
+    return [
+      { x: xDomain[0], y: results.ld },
+      { x: breakStart, y: results.ld },
+      { x: breakCenter, y: null },
+      { x: breakEnd, y: results.ld },
+      { x: xDomain[1], y: results.ld }
+    ];
+  }, [results, xDomain, breakStart, breakEnd, breakCenter]);
+
   const updateRow = (id: string, field: 'conc' | 'signals', value: string) => {
     setStandardRows(standardRows.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
@@ -370,7 +398,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.2</h1>
+          <h1>Bioassay LOD Fitter v0.4.3</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -510,10 +538,10 @@ function App() {
                         shape={renderScatterDot}
                       />
                       
-                      <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={<CustomLcLabel />} />
-                      <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={<CustomLdLabel />} />
+                      <Line data={lcLineData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} isAnimationActive={false} legendType="none" label={<CustomLcLabel />} />
+                      <Line data={ldLineData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} isAnimationActive={false} legendType="none" label={<CustomLdLabel />} />
                       <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} />
-                      <ReferenceArea x1={breakStart} x2={breakEnd} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} ifOverflow="hidden" />
+                      
                     </ComposedChart>
                   </ResponsiveContainer>
                   {hoveredPoint && hoveredPoint.cx && hoveredPoint.cy && (
@@ -572,7 +600,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.2...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.3...</p></div>
           )}
         </section>
       </main>
