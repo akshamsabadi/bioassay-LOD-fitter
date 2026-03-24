@@ -48,24 +48,14 @@ const formatSuperscript = (val: number): ReactNode => {
   return <span>{base} × 10<sup>{exponent}</sup></span>;
 };
 
-const CustomXAxisTick = ({ x, y, payload, zeroX, breakCenter }: any) => {
+const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) => {
   const val = payload.value;
   
-  if (breakCenter && Math.abs(val - breakCenter) < 1e-10) {
-    // The break is placed exactly on the axis line (y).
-    // The axis line itself is 1px wide.
-    // We draw a background rectangle to erase the axis line behind the slashes.
-    // Then we draw two parallel slashes that extend equally above and below the axis line.
+  if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
+    // Draw a single slash that perfectly intersects the axis line exactly at the break boundaries.
     return (
       <g>
-        <rect x={x - 8} y={y - 8} width={16} height={16} fill="var(--mantle)" />
-        <path 
-          d={`M ${x - 4} ${y + 6} L ${x} ${y - 6} M ${x} ${y + 6} L ${x + 4} ${y - 6}`} 
-          stroke="var(--text)" 
-          strokeWidth={1} 
-          strokeLinecap="round" 
-          fill="none" 
-        />
+        <line x1={x - 3} y1={y + 8} x2={x + 3} y2={y - 8} stroke="var(--text)" strokeWidth={1} />
       </g>
     );
   }
@@ -263,8 +253,8 @@ function App() {
     } catch (e) { return null; }
   }, [blankSignals, standardRows, fitMethod]);
 
-  const { xTicks, xDomain, breakStart, breakEnd, breakCenter } = useMemo(() => {
-    if (!results) return { xTicks: [], xDomain: ['auto', 'auto'] as [any, any], breakStart: 0, breakEnd: 0, breakCenter: 0 };
+  const { xTicks, xDomain, breakStart, breakEnd } = useMemo(() => {
+    if (!results) return { xTicks: [], xDomain: ['auto', 'auto'] as [any, any], breakStart: 0, breakEnd: 0 };
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
     const maxX = Math.max(...results.fit.actualX);
     const zeroX = minX / 10;
@@ -272,7 +262,6 @@ function App() {
     
     // We calculate a logarithmic center point between the blanks (zeroX) and the first standard (minX)
     const breakCenterLog = (Math.log10(zeroX) + Math.log10(minX)) / 2;
-    const breakCenter = Math.pow(10, breakCenterLog);
     
     // Define the visual gap size (+/- 0.05 log units from center)
     const breakStart = Math.pow(10, breakCenterLog - 0.05);
@@ -280,7 +269,7 @@ function App() {
 
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
-    const ticks = [zeroX, breakCenter];
+    const ticks = [zeroX, breakStart, breakEnd];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
       if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) {
@@ -297,7 +286,7 @@ function App() {
         }
       }
     }
-    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [any, any], breakStart, breakEnd, breakCenter };
+    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [any, any], breakStart, breakEnd };
   }, [results]);
 
   const leftChartData = useMemo(() => {
@@ -425,7 +414,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.11</h1>
+          <h1>Bioassay LOD Fitter v0.4.12</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -529,7 +518,7 @@ function App() {
                         interval={0}
                         tickMargin={0}
                         tickLine={false}
-                        tick={<CustomXAxisTick zeroX={xDomain[0]} breakCenter={breakCenter} />}
+                        tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} />}
                         label={{ value: xAxisLabel, position: 'bottom', fill: 'var(--overlay2)', fontSize: 11, offset: 25 }}
                       />
                       <YAxis 
@@ -636,7 +625,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.11...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.12...</p></div>
           )}
         </section>
       </main>
