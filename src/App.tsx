@@ -54,10 +54,10 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) =>
   // Therefore, the actual horizontal axis line is at y - 6.
 
   if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
-    // Draw boundary line extending 6px above and 6px below the axis line (y - 6).
+    // Draw boundary line extending 10px above and 6px below the axis line (y - 6).
     return (
       <g>
-        <line x1={x} y1={y - 12} x2={x} y2={y} stroke="var(--text)" strokeWidth={1} />
+        <line x1={x} y1={y - 16} x2={x} y2={y} stroke="var(--text)" strokeWidth={1} />
       </g>
     );
   }
@@ -424,7 +424,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.19</h1>
+          <h1>Bioassay LOD Fitter v0.4.20</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -638,7 +638,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.19...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.20...</p></div>
           )}
         </section>
       </main>
