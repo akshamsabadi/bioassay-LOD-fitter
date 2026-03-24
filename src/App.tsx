@@ -414,7 +414,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.12</h1>
+          <h1>Bioassay LOD Fitter v0.4.13</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -511,7 +511,7 @@ function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart margin={{ top: 25, right: 30, left: 20, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
-                      <ReferenceArea x1={breakStart} x2={breakEnd} y1={-10000} y2={10000} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: 'none' }} />
+                      <ReferenceArea x1={breakStart} x2={breakEnd} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: 'none' }} />
                       <XAxis 
                         dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--text)" 
                         ticks={xTicks}
@@ -625,7 +625,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.12...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.13...</p></div>
           )}
         </section>
       </main>
