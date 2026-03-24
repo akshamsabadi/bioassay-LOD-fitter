@@ -50,11 +50,14 @@ const formatSuperscript = (val: number): ReactNode => {
 
 const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) => {
   const val = payload.value;
+  // Recharts passes y as axisLineY + tickSize (default 6).
+  // Therefore, the actual horizontal axis line is at y - 6.
 
   if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
+    // Draw boundary line extending 6px above and 6px below the axis line (y - 6).
     return (
       <g>
-        <line x1={x} y1={y - 4} x2={x} y2={y + 4} stroke="var(--text)" strokeWidth={1} />
+        <line x1={x} y1={y - 12} x2={x} y2={y} stroke="var(--text)" strokeWidth={1} />
       </g>
     );
   }
@@ -62,7 +65,7 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) =>
   if (val === zeroX || val === 0 || isNaN(val)) {
     return (
       <g>
-        <line x1={x} y1={y} x2={x} y2={y + 6} stroke="var(--text)" />
+        <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--text)" />
         <text x={x} y={y + 18} fill="var(--overlay2)" textAnchor="middle" fontSize={10}>0</text>
       </g>
     );
@@ -73,7 +76,7 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) =>
   if (!isMajor) {
     return (
       <g>
-        <line x1={x} y1={y} x2={x} y2={y + 4} stroke="var(--text)" opacity={0.5} />
+        <line x1={x} y1={y - 6} x2={x} y2={y - 2} stroke="var(--text)" opacity={0.5} />
       </g>
     );
   }
@@ -82,7 +85,7 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) =>
 
   return (
     <g>
-      <line x1={x} y1={y} x2={x} y2={y + 6} stroke="var(--text)" />
+      <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--text)" />
       <text x={x} y={y + 18} fill="var(--overlay2)" textAnchor="middle" fontSize={10}>
         <tspan>1 × 10</tspan>
         <tspan baselineShift="super" fontSize={8}>{exponent}</tspan>
@@ -421,7 +424,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.18</h1>
+          <h1>Bioassay LOD Fitter v0.4.19</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -635,7 +638,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.18...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.19...</p></div>
           )}
         </section>
       </main>
