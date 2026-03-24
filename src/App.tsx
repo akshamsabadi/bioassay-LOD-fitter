@@ -48,8 +48,16 @@ const formatSuperscript = (val: number): ReactNode => {
   return <span>{base} × 10<sup>{exponent}</sup></span>;
 };
 
-const CustomXAxisTick = ({ x, y, payload, zeroX }: any) => {
+const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) => {
   const val = payload.value;
+
+  if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
+    return (
+      <g>
+        <line x1={x} y1={y - 4} x2={x} y2={y + 4} stroke="var(--text)" strokeWidth={1} />
+      </g>
+    );
+  }
 
   if (val === zeroX || val === 0 || isNaN(val)) {
     return (
@@ -258,7 +266,7 @@ function App() {
 
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
-    const ticks = [zeroX];
+    const ticks = [zeroX, breakStart, breakEnd];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
       if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) {
@@ -413,7 +421,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.17</h1>
+          <h1>Bioassay LOD Fitter v0.4.18</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -517,7 +525,7 @@ function App() {
                         interval={0}
                         tickLine={false}
                         axisLine={false}
-                        tick={<CustomXAxisTick zeroX={xDomain[0]} />}
+                        tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} />}
                         label={{ value: xAxisLabel, position: 'bottom', fill: 'var(--overlay2)', fontSize: 11, offset: 25 }}
                       />
                       <YAxis 
@@ -627,7 +635,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.17...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.18...</p></div>
           )}
         </section>
       </main>
