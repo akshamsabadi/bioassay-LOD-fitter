@@ -10,8 +10,7 @@ import {
   ComposedChart,
   ReferenceLine,
   ReferenceArea,
-  Area,
-  Legend
+  Area
 } from 'recharts';
 import './App.css';
 
@@ -48,16 +47,8 @@ const formatSuperscript = (val: number): ReactNode => {
   return <span>{base} × 10<sup>{exponent}</sup></span>;
 };
 
-const CustomXAxisTick = ({ x, y, payload, zeroX, breakCenter }: any) => {
+const CustomXAxisTick = ({ x, y, payload, zeroX }: any) => {
   const val = payload.value;
-  if (breakCenter && Math.abs(val - breakCenter) < 1e-10) {
-    return (
-      <g>
-        <rect x={x - 10} y={y - 2} width={20} height={4} fill="var(--mantle)" />
-        <path d={`M ${x - 4} ${y + 8} L ${x + 2} ${y - 8} M ${x + 4} ${y + 8} L ${x + 10} ${y - 8}`} stroke="var(--text)" strokeWidth={1.5} fill="none" />
-      </g>
-    );
-  }
   if (val === zeroX || val === 0 || isNaN(val)) {
     return (
       <g>
@@ -251,90 +242,47 @@ function App() {
     } catch (e) { return null; }
   }, [blankSignals, standardRows, fitMethod]);
 
-  const { xTicks, xDomain, breakStart, breakEnd, breakCenter } = useMemo(() => {
-    if (!results) return { xTicks: [], xDomain: ['auto', 'auto'] as [any, any], breakStart: 0, breakEnd: 0, breakCenter: 0 };
+  const { xTicks, leftDomain, rightDomain, zeroX, minX } = useMemo(() => {
+    if (!results) return { xTicks: [], leftDomain: ['auto', 'auto'], rightDomain: ['auto', 'auto'], zeroX: 0, minX: 0 };
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
     const maxX = Math.max(...results.fit.actualX);
     const zeroX = minX / 10;
     const maxAxisValue = maxX * 1.5;
     
-    const breakCenterLog = (Math.log10(zeroX) + Math.log10(minX)) / 2;
-    const breakCenter = Math.pow(10, breakCenterLog);
-    const breakStart = Math.pow(10, breakCenterLog - 0.05);
-    const breakEnd = Math.pow(10, breakCenterLog + 0.05);
-
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
-    const ticks = [zeroX, breakCenter];
+    const ticks = [];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
-      if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) {
-        if (majorVal < breakStart || majorVal > breakEnd) ticks.push(majorVal);
-      }
+      if (majorVal <= maxAxisValue && majorVal >= minX / 1.5) ticks.push(majorVal);
       if (i < logMax) {
         for (let j = 2; j <= 9; j++) {
           const minorVal = j * Math.pow(10, i);
-          if (minorVal <= maxAxisValue && minorVal > zeroX + 1e-10) {
-            if (minorVal < breakStart || minorVal > breakEnd) ticks.push(minorVal);
-          }
+          if (minorVal <= maxAxisValue && minorVal >= minX / 1.5) ticks.push(minorVal);
         }
       }
     }
-    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [any, any], breakStart, breakEnd, breakCenter };
+    return { xTicks: ticks, leftDomain: [zeroX / 2, zeroX * 2], rightDomain: [minX / 1.5, maxAxisValue], zeroX, minX };
   }, [results]);
 
-  const leftChartData = useMemo(() => {
-    if (!results || !breakStart) return [];
+  const chartData = useMemo(() => {
+    if (!results) return [];
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
+    const maxX = Math.max(...results.fit.actualX);
     const zeroX = minX / 10;
     const data = [];
-    const steps = 20;
     const logMin = Math.log10(zeroX);
-    const logMax = Math.log10(breakStart);
-    for (let i = 0; i <= steps; i++) {
-      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
-      const pred = results.fit.predict(0); // Blanks model is essentially at 0
-      const { low, high } = results.fit.getCI(0);
-      data.push({ x: xVal, trend: pred, ciRange: [low, high] });
-    }
-    return data;
-  }, [results, breakStart]);
-
-  const rightChartData = useMemo(() => {
-    if (!results || !breakEnd) return [];
-    const maxX = Math.max(...results.fit.actualX);
-    const data = [];
-    const steps = 80;
-    const logMin = Math.log10(breakEnd);
     const logMax = Math.log10(maxX * 1.5);
+    const steps = 100;
     for (let i = 0; i <= steps; i++) {
       const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
-      const pred = results.fit.predict(xVal);
-      const { low, high } = results.fit.getCI(xVal);
+      const fitX = xVal < minX * 0.5 ? 0 : xVal;
+      const pred = results.fit.predict(fitX);
+      const { low, high } = results.fit.getCI(fitX);
       data.push({ x: xVal, trend: pred, ciRange: [low, high] });
     }
     return data;
-  }, [results, breakEnd]);
-
-  const lcLeftData = useMemo(() => {
-    if (!results || !breakStart) return [];
-    return [{ x: xDomain[0], y: results.lc }, { x: breakStart, y: results.lc }];
-  }, [results, xDomain, breakStart]);
-
-  const lcRightData = useMemo(() => {
-    if (!results || !breakEnd) return [];
-    return [{ x: breakEnd, y: results.lc }, { x: xDomain[1], y: results.lc }];
-  }, [results, xDomain, breakEnd]);
-
-  const ldLeftData = useMemo(() => {
-    if (!results || !breakStart) return [];
-    return [{ x: xDomain[0], y: results.ld }, { x: breakStart, y: results.ld }];
-  }, [results, xDomain, breakStart]);
-
-  const ldRightData = useMemo(() => {
-    if (!results || !breakEnd) return [];
-    return [{ x: breakEnd, y: results.ld }, { x: xDomain[1], y: results.ld }];
-  }, [results, xDomain, breakEnd]);
+  }, [results]);
 
   const scatterData = useMemo(() => {
     if (!results) return [];
@@ -379,6 +327,11 @@ function App() {
     return { yDomain: [niceMin, niceMax], yTicks: allTicks, yMajorTicks: majorTicks };
   }, [results]);
 
+  const leftChartData = useMemo(() => chartData.filter(d => d.x <= zeroX * 2), [chartData, zeroX]);
+  const rightChartData = useMemo(() => chartData.filter(d => d.x >= minX / 1.5), [chartData, minX]);
+  const leftScatterData = useMemo(() => scatterData.filter(d => d.x <= zeroX * 2), [scatterData, zeroX]);
+  const rightScatterData = useMemo(() => scatterData.filter(d => d.x >= minX / 1.5), [scatterData, minX]);
+
   const updateRow = (id: string, field: 'conc' | 'signals', value: string) => {
     setStandardRows(standardRows.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
@@ -408,7 +361,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.8</h1>
+          <h1>Bioassay LOD Fitter v0.4.9</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -501,91 +454,66 @@ function App() {
                     <button className="action-btn" onClick={handleDownloadPlot} title="Download Plot (300 DPI, PNG)">Export PNG</button>
                   </div>
                 </div>
-                <div className="chart-frame" ref={chartRef} style={{ position: 'relative' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart margin={{ top: 25, right: 30, left: 20, bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
-                      <ReferenceArea x1={breakStart} x2={breakEnd} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: "none" }} />
-                      <XAxis 
-                        dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--text)" 
-                        ticks={xTicks}
-                        interval={0}
-                        tickMargin={0}
-                        tickLine={false}
-                        tick={<CustomXAxisTick zeroX={xDomain[0]} breakCenter={breakCenter} />}
-                        label={{ value: xAxisLabel, position: 'bottom', fill: 'var(--overlay2)', fontSize: 11, offset: 25 }}
-                      />
-                      <YAxis 
-                        stroke="var(--text)" 
-                        domain={yDomain} 
-                        ticks={yMajorTicks}
-                        interval={0}
-                        tickMargin={0}
-                        allowDataOverflow={true}
-                        tickLine={false}
-                        tick={<CustomYAxisTick />}
-                        label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: 'var(--overlay2)', fontSize: 11, offset: -5 }} 
-                      />
-                      <Legend verticalAlign="top" content={<CustomLegend />} />
-                      
-                      {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => (
-                        <ReferenceLine 
-                          key={`minor-y-${tick}`} 
-                          y={tick} 
-                          stroke="none" 
-                          label={<CustomMinorYAxisTickLabel />} 
-                        />
-                      ))}
+                
+                <div className="chart-frame" ref={chartRef} style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ flex: 1, display: 'flex', position: 'relative', paddingBottom: '20px' }}>
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center', fontSize: 11, color: 'var(--overlay2)' }}>{xAxisLabel}</div>
+                    
+                    <div style={{ width: '15%', height: '100%' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={leftChartData} margin={{ top: 25, right: 0, left: 20, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
+                          <XAxis dataKey="x" type="number" scale="log" domain={leftDomain as any} allowDataOverflow={true} stroke="var(--text)" ticks={[zeroX]} interval={0} tickMargin={0} tickLine={false} tick={<CustomXAxisTick zeroX={zeroX} />} />
+                          <YAxis stroke="var(--text)" domain={yDomain as any} ticks={yMajorTicks} interval={0} tickMargin={0} allowDataOverflow={true} tickLine={false} tick={<CustomYAxisTick />} label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: 'var(--overlay2)', fontSize: 11, offset: -5 }} />
+                          {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => <ReferenceLine key={`minor-y-${tick}`} y={tick} stroke="none" label={<CustomMinorYAxisTickLabel />} />)}
+                          
+                          <Area dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                          <Line dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                          <Scatter data={leftScatterData} dataKey="y" isAnimationActive={false} legendType="none" shape={renderScatterDot} />
+                          
+                          <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" style={{ pointerEvents: 'none' }} />
+                          <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" style={{ pointerEvents: 'none' }} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
 
-                      <Area data={leftChartData} dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
-                      <Area data={rightChartData} dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
-                      <ReferenceArea x1={results.lodCI.low} x2={results.lodCI.high} fill="var(--yellow)" fillOpacity={0.15} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: 'none' }} />
-                      
-                      <Line data={leftChartData} dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
-                      <Line data={rightChartData} dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
-                      
-                      <Scatter 
-                        data={scatterData} 
-                        dataKey="y" 
-                        isAnimationActive={false} 
-                        legendType="none"
-                        shape={renderScatterDot}
-                      />
-                      
-                      <Line data={lcLeftData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                      <Line data={lcRightData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                      <ReferenceLine y={results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: "none" }} />
-                      
-                      <Line data={ldLeftData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                      <Line data={ldRightData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                      <ReferenceLine y={results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: "none" }} />
-                      
-                      <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} style={{ pointerEvents: "none" }} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
+                    <div style={{ width: '20px', height: '100%', position: 'relative' }}>
+                      <div style={{ position: 'absolute', bottom: '10px', left: 0, width: '20px', height: '20px' }}>
+                        <svg width="20" height="20" style={{ overflow: 'visible' }}>
+                          <path d="M 4 14 L 8 6 M 12 14 L 16 6" stroke="var(--text)" strokeWidth={1} strokeLinecap="round" fill="none" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: 1, height: '100%' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={rightChartData} margin={{ top: 25, right: 30, left: 0, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
+                          <XAxis dataKey="x" type="number" scale="log" domain={rightDomain as any} allowDataOverflow={true} stroke="var(--text)" ticks={xTicks} interval={0} tickMargin={0} tickLine={false} tick={<CustomXAxisTick zeroX={zeroX} />} />
+                          <YAxis domain={yDomain as any} hide={true} />
+                          
+                          <Area dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                          <ReferenceArea x1={results.lodCI.low} x2={results.lodCI.high} fill="var(--yellow)" fillOpacity={0.15} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: 'none' }} />
+                          <Line dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                          <Scatter data={rightScatterData} dataKey="y" isAnimationActive={false} legendType="none" shape={renderScatterDot} />
+                          
+                          <ReferenceLine y={results.lc} stroke="#fab387" strokeDasharray="4 4" label={<CustomLcLabel />} style={{ pointerEvents: 'none' }} />
+                          <ReferenceLine y={results.ld} stroke="#a6e3a1" strokeDasharray="4 4" label={<CustomLdLabel />} style={{ pointerEvents: 'none' }} />
+                          <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} style={{ pointerEvents: 'none' }} />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                  
+                  <CustomLegend />
                   {hoveredPoint && hoveredPoint.cx && hoveredPoint.cy && (
-                    <div style={{
-                      position: 'absolute',
-                      left: hoveredPoint.cx + 15,
-                      top: hoveredPoint.cy - 15,
-                      backgroundColor: 'var(--mantle)',
-                      border: '1px solid var(--pink)',
-                      borderRadius: '8px',
-                      padding: '10px 14px',
-                      fontSize: '0.8rem',
-                      color: 'var(--text)',
-                      pointerEvents: 'none',
-                      zIndex: 100,
-                      boxShadow: '0 8px 16px rgba(0,0,0,0.4)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px'
-                    }}>
+                    <div style={{ position: 'absolute', left: hoveredPoint.cx + 15, top: hoveredPoint.cy - 15, backgroundColor: 'var(--mantle)', border: '1px solid var(--pink)', borderRadius: '8px', padding: '10px 14px', fontSize: '0.8rem', color: 'var(--text)', pointerEvents: 'none', zIndex: 100, boxShadow: '0 8px 16px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}><span style={{ color: 'var(--subtext0)' }}>Concentration</span><span style={{ fontWeight: 'bold', color: 'var(--text)', fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.conc}</span></div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}><span style={{ color: 'var(--subtext0)' }}>Signal</span><span style={{ fontWeight: 'bold', color: 'var(--pink)', fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.y.toFixed(4)}</span></div>
                     </div>
                   )}
                 </div>
+
               </div>
               <div className="results-side-panel">
                 <div className="lod-hero-card">
@@ -619,7 +547,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.8...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.9...</p></div>
           )}
         </section>
       </main>
@@ -628,4 +556,3 @@ function App() {
 }
 
 export default App;
-
