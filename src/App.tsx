@@ -48,16 +48,8 @@ const formatSuperscript = (val: number): ReactNode => {
   return <span>{base} × 10<sup>{exponent}</sup></span>;
 };
 
-const CustomXAxisTick = ({ x, y, payload, zeroX, breakCenter }: any) => {
+const CustomXAxisTick = ({ x, y, payload, zeroX }: any) => {
   const val = payload.value;
-  
-  if (breakCenter && Math.abs(val - breakCenter) < 1e-10) {
-    return (
-      <g>
-        <rect x={x - 14} y={y - 4} width={28} height={8} fill="var(--mantle)" />
-      </g>
-    );
-  }
 
   if (val === zeroX || val === 0 || isNaN(val)) {
     return (
@@ -252,22 +244,21 @@ function App() {
     } catch (e) { return null; }
   }, [blankSignals, standardRows, fitMethod]);
 
-  const { xTicks, xDomain, breakStart, breakEnd, breakCenter } = useMemo(() => {
-    if (!results) return { xTicks: [], xDomain: ['auto', 'auto'] as [any, any], breakStart: 0, breakEnd: 0, breakCenter: 0 };
+  const { xTicks, xDomain, breakStart, breakEnd } = useMemo(() => {
+    if (!results) return { xTicks: [], xDomain: ['auto', 'auto'] as [any, any], breakStart: 0, breakEnd: 0 };
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
     const maxX = Math.max(...results.fit.actualX);
     const zeroX = minX / 10;
     const maxAxisValue = maxX * 1.5;
     
     const breakCenterLog = (Math.log10(zeroX) + Math.log10(minX)) / 2;
-    const breakCenter = Math.pow(10, breakCenterLog);
     
     const breakStart = Math.pow(10, breakCenterLog - 0.05);
     const breakEnd = Math.pow(10, breakCenterLog + 0.05);
 
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
-    const ticks = [zeroX, breakCenter];
+    const ticks = [zeroX];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
       if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) {
@@ -284,7 +275,7 @@ function App() {
         }
       }
     }
-    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [any, any], breakStart, breakEnd, breakCenter };
+    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [any, any], breakStart, breakEnd };
   }, [results]);
 
   const leftChartData = useMemo(() => {
@@ -383,6 +374,16 @@ function App() {
     return { yDomain: [niceMin, niceMax], yTicks: allTicks, yMajorTicks: majorTicks };
   }, [results]);
 
+  const leftAxisData = useMemo(() => {
+    if (!results || !breakStart) return [];
+    return [{ x: xDomain[0], y: yDomain[0] }, { x: breakStart, y: yDomain[0] }];
+  }, [results, xDomain, breakStart, yDomain]);
+
+  const rightAxisData = useMemo(() => {
+    if (!results || !breakEnd) return [];
+    return [{ x: breakEnd, y: yDomain[0] }, { x: xDomain[1], y: yDomain[0] }];
+  }, [results, xDomain, breakEnd, yDomain]);
+
   const updateRow = (id: string, field: 'conc' | 'signals', value: string) => {
     setStandardRows(standardRows.map(r => r.id === id ? { ...r, [field]: value } : r));
   };
@@ -412,7 +413,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.16</h1>
+          <h1>Bioassay LOD Fitter v0.4.17</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -515,8 +516,8 @@ function App() {
                         ticks={xTicks}
                         interval={0}
                         tickLine={false}
-                        axisLine={true}
-                        tick={<CustomXAxisTick zeroX={xDomain[0]} breakCenter={breakCenter} />}
+                        axisLine={false}
+                        tick={<CustomXAxisTick zeroX={xDomain[0]} />}
                         label={{ value: xAxisLabel, position: 'bottom', fill: 'var(--overlay2)', fontSize: 11, offset: 25 }}
                       />
                       <YAxis 
@@ -565,6 +566,9 @@ function App() {
                       <ReferenceLine y={results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: 'none' }} />
                       
                       <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} style={{ pointerEvents: 'none' }} />
+                      
+                      <Line data={leftAxisData} dataKey="y" stroke="var(--text)" strokeWidth={1} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                      <Line data={rightAxisData} dataKey="y" stroke="var(--text)" strokeWidth={1} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
                     </ComposedChart>
                   </ResponsiveContainer>
                   {hoveredPoint && hoveredPoint.cx && hoveredPoint.cy && (
@@ -623,7 +627,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.16...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.17...</p></div>
           )}
         </section>
       </main>
