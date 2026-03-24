@@ -53,8 +53,8 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakCenter }: any) => {
   if (breakCenter && Math.abs(val - breakCenter) < 1e-10) {
     return (
       <g>
-        <rect x={x - 12} y={y - 10} width={24} height={20} fill="var(--mantle)" />
-        <path d={`M ${x - 6} ${y + 8} L ${x - 2} ${y - 8} M ${x + 2} ${y + 8} L ${x + 6} ${y - 8}`} stroke="var(--text)" strokeWidth={2} fill="none" />
+        <rect x={x - 12} y={y - 12} width={24} height={24} fill="var(--mantle)" />
+        <path d={`M ${x - 7} ${y + 10} L ${x - 1} ${y - 10} M ${x + 1} ${y + 10} L ${x + 7} ${y - 10}`} stroke="var(--text)" strokeWidth={2} strokeLinecap="round" fill="none" />
       </g>
     );
   }
@@ -410,7 +410,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.5</h1>
+          <h1>Bioassay LOD Fitter v0.4.6</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -507,7 +507,7 @@ function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 25, right: 30, left: 20, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
-                      <ReferenceArea x1={breakStart} x2={breakEnd} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} />
+                      <ReferenceArea x1={breakStart * 0.98} x2={breakEnd * 1.02} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} />
                       <XAxis 
                         dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--text)" 
                         ticks={xTicks}
@@ -542,7 +542,7 @@ function App() {
                       <Area dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} isAnimationActive={false} legendType="none" />
                       <ReferenceArea x1={results.lodCI.low} x2={results.lodCI.high} fill="var(--yellow)" fillOpacity={0.15} strokeOpacity={0} ifOverflow="hidden" />
                       
-                      <Line dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} isAnimationActive={false} legendType="none" />
+                      <Line dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
                       <Scatter 
                         data={scatterData} 
                         dataKey="y" 
@@ -551,9 +551,9 @@ function App() {
                         shape={renderScatterDot}
                       />
                       
-                      <Line data={lcLineData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
+                      <Line data={lcLineData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
                       <ReferenceLine y={results.lc} stroke="none" label={<CustomLcLabel />} />
-                      <Line data={ldLineData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" />
+                      <Line data={ldLineData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
                       <ReferenceLine y={results.ld} stroke="none" label={<CustomLdLabel />} />
                       <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} />
                       
@@ -615,7 +615,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.5...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.6...</p></div>
           )}
         </section>
       </main>
