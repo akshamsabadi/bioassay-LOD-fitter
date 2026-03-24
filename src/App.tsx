@@ -48,21 +48,13 @@ const formatSuperscript = (val: number): ReactNode => {
   return <span>{base} × 10<sup>{exponent}</sup></span>;
 };
 
-const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) => {
+const CustomXAxisTick = ({ x, y, payload, zeroX, breakCenter }: any) => {
   const val = payload.value;
   
-  if (breakStart && Math.abs(val - breakStart) < 1e-10) {
+  if (breakCenter && Math.abs(val - breakCenter) < 1e-10) {
     return (
       <g>
-        <line x1={x} y1={y} x2={x - 4000} y2={y} stroke="var(--text)" strokeWidth={1} />
-      </g>
-    );
-  }
-  
-  if (breakEnd && Math.abs(val - breakEnd) < 1e-10) {
-    return (
-      <g>
-        <line x1={x} y1={y} x2={x + 4000} y2={y} stroke="var(--text)" strokeWidth={1} />
+        <rect x={x - 14} y={y - 4} width={28} height={8} fill="var(--mantle)" />
       </g>
     );
   }
@@ -260,23 +252,22 @@ function App() {
     } catch (e) { return null; }
   }, [blankSignals, standardRows, fitMethod]);
 
-  const { xTicks, xDomain, breakStart, breakEnd } = useMemo(() => {
-    if (!results) return { xTicks: [], xDomain: ['auto', 'auto'] as [any, any], breakStart: 0, breakEnd: 0 };
+  const { xTicks, xDomain, breakStart, breakEnd, breakCenter } = useMemo(() => {
+    if (!results) return { xTicks: [], xDomain: ['auto', 'auto'] as [any, any], breakStart: 0, breakEnd: 0, breakCenter: 0 };
     const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
     const maxX = Math.max(...results.fit.actualX);
     const zeroX = minX / 10;
     const maxAxisValue = maxX * 1.5;
     
-    // We calculate a logarithmic center point between the blanks (zeroX) and the first standard (minX)
     const breakCenterLog = (Math.log10(zeroX) + Math.log10(minX)) / 2;
+    const breakCenter = Math.pow(10, breakCenterLog);
     
-    // Define the visual gap size (+/- 0.05 log units from center)
     const breakStart = Math.pow(10, breakCenterLog - 0.05);
     const breakEnd = Math.pow(10, breakCenterLog + 0.05);
 
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
-    const ticks = [zeroX, breakStart, breakEnd];
+    const ticks = [zeroX, breakCenter];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
       if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) {
@@ -293,7 +284,7 @@ function App() {
         }
       }
     }
-    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [any, any], breakStart, breakEnd };
+    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [any, any], breakStart, breakEnd, breakCenter };
   }, [results]);
 
   const leftChartData = useMemo(() => {
@@ -421,7 +412,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.15</h1>
+          <h1>Bioassay LOD Fitter v0.4.16</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -518,14 +509,14 @@ function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart margin={{ top: 25, right: 30, left: 20, bottom: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
-                      <ReferenceArea x1={breakStart} x2={breakEnd} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: 'none' }} />
+                      <ReferenceArea x1={breakStart} x2={breakEnd} y1={yDomain[0]} y2={yDomain[1]} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: 'none' }} />
                       <XAxis 
                         dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--text)" 
                         ticks={xTicks}
                         interval={0}
                         tickLine={false}
-                        axisLine={false}
-                        tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} />}
+                        axisLine={true}
+                        tick={<CustomXAxisTick zeroX={xDomain[0]} breakCenter={breakCenter} />}
                         label={{ value: xAxisLabel, position: 'bottom', fill: 'var(--overlay2)', fontSize: 11, offset: 25 }}
                       />
                       <YAxis 
@@ -632,7 +623,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.15...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.16...</p></div>
           )}
         </section>
       </main>
