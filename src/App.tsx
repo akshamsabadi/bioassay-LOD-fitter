@@ -71,13 +71,14 @@ const DEMO_PRESETS: DemoPreset[] = [
     fitMethod: "auto",
     plotTitle: "Asymmetric Sigmoidal (5PL)",
     standards: [
-      { id: '1', conc: '0.01', signals: '0.15, 0.18, 0.14' },
-      { id: '2', conc: '0.05', signals: '0.22, 0.28, 0.24' },
-      { id: '3', conc: '0.1', signals: '0.35, 0.42, 0.38' },
-      { id: '4', conc: '0.5', signals: '1.20, 1.45, 1.30' },
-      { id: '5', conc: '1.0', signals: '2.40, 2.75, 2.55' },
-      { id: '6', conc: '5.0', signals: '4.80, 5.10, 4.95' },
-      { id: '10', conc: '10.0', signals: '5.20, 5.45, 5.30' },
+      { id: '1', conc: '0.005', signals: '0.12, 0.15, 0.14' },
+      { id: '2', conc: '0.02', signals: '0.16, 0.19, 0.18' },
+      { id: '3', conc: '0.1', signals: '0.26, 0.30, 0.28' },
+      { id: '4', conc: '0.5', signals: '0.68, 0.75, 0.72' },
+      { id: '5', conc: '2', signals: '1.78, 1.92, 1.85' },
+      { id: '6', conc: '10', signals: '3.78, 4.02, 3.90' },
+      { id: '7', conc: '50', signals: '4.78, 4.92, 4.85' },
+      { id: '8', conc: '200', signals: '4.92, 5.04, 4.98' },
     ]
   },
   {
@@ -529,7 +530,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.2`);
+    csvRows.push(`App Version,v0.5.3`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -618,7 +619,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.2</h1>
+          <h1>Bioassay LOD Fitter v0.5.3</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -865,7 +866,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.2...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.3...</p></div>
           )}
         </section>
       </main>
