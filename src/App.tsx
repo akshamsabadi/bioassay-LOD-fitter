@@ -231,6 +231,12 @@ function App() {
   const [blankSignals, setBlankSignals] = useState(DEFAULT_BLANKS);
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
   const [demoIndex, setDemoIndex] = useState(1);
+  const [subtheme, setSubtheme] = useState<string>(() => {
+    const saved = localStorage.getItem('app-subtheme');
+    if (saved) return saved;
+    const currentTheme = (localStorage.getItem('app-theme') as 'dark' | 'light') || 'dark';
+    return currentTheme === 'dark' ? 'slate' : 'air';
+  });
   const [fitMethod, setFitMethod] = useState<'linear' | 'langmuir' | '4pl' | '5pl' | 'auto'>('auto');
   const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
@@ -239,11 +245,17 @@ function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-subtheme', subtheme);
     localStorage.setItem('app-theme', theme);
-  }, [theme]);
+    localStorage.setItem('app-subtheme', subtheme);
+  }, [theme, subtheme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      setSubtheme(next === 'dark' ? 'slate' : 'air');
+      return next;
+    });
   };
 
   const handleDownloadPlot = () => {
@@ -530,7 +542,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.6`);
+    csvRows.push(`App Version,v0.5.7`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -619,11 +631,43 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.6</h1>
+          <h1>Bioassay LOD Fitter v0.5.7</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button className="action-btn" onClick={toggleTheme}>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</button>
+          <select
+            value={subtheme}
+            onChange={e => setSubtheme(e.target.value)}
+            className="action-btn"
+            title="Choose your preferred Observable theme style"
+            style={{
+              backgroundColor: 'var(--surface0)',
+              border: '1px solid var(--surface2)',
+              color: 'var(--text)',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              height: '32px',
+              cursor: 'pointer'
+            }}
+          >
+            {theme === 'dark' ? (
+              <>
+                <option value="slate">🌌 Slate</option>
+                <option value="midnight">🌙 Midnight</option>
+                <option value="deep-space">🚀 Deep Space</option>
+                <option value="ink">🖋️ Ink</option>
+              </>
+            ) : (
+              <>
+                <option value="air">💨 Air</option>
+                <option value="cotton">☁️ Cotton</option>
+                <option value="glacier">❄️ Glacier</option>
+                <option value="parchment">📜 Parchment</option>
+              </>
+            )}
+          </select>
           <input
             type="file"
             ref={fileInputRef}
@@ -866,7 +910,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.6...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.7...</p></div>
           )}
         </section>
       </main>
