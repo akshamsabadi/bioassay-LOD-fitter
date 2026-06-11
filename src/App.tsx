@@ -22,22 +22,82 @@ interface StandardRow {
   signals: string;
 }
 
-const DEFAULT_STANDARDS: StandardRow[] = [
-  { id: '1', conc: '0.001', signals: '0.08, 0.15, 0.09' },
-  { id: '2', conc: '0.003', signals: '0.10, 0.18, 0.11' },
-  { id: '3', conc: '0.01', signals: '0.14, 0.10, 0.19' },
-  { id: '4', conc: '0.03', signals: '0.20, 0.32, 0.23' },
-  { id: '5', conc: '0.1', signals: '0.45, 0.65, 0.52' },
-  { id: '6', conc: '0.3', signals: '1.05, 1.45, 1.20' },
-  { id: '7', conc: '1', signals: '2.30, 2.80, 2.45' },
-  { id: '8', conc: '3', signals: '3.50, 4.00, 3.65' },
-  { id: '9', conc: '10', signals: '4.30, 4.75, 4.45' },
-  { id: '10', conc: '30', signals: '4.65, 5.05, 4.75' },
-  { id: '11', conc: '100', signals: '4.80, 5.20, 4.85' },
-  { id: '12', conc: '300', signals: '4.85, 5.25, 4.90' },
+interface DemoPreset {
+  name: string;
+  blanks: string;
+  standards: StandardRow[];
+  fitMethod: 'linear' | 'langmuir' | '4pl' | '5pl' | 'auto';
+  plotTitle: string;
+}
+
+const DEMO_PRESETS: DemoPreset[] = [
+  {
+    name: "Standard Sigmoidal (4PL)",
+    blanks: "0.07, 0.13, 0.08",
+    fitMethod: "auto",
+    plotTitle: "Dose-Response (Standard 4PL)",
+    standards: [
+      { id: '1', conc: '0.001', signals: '0.08, 0.15, 0.09' },
+      { id: '2', conc: '0.003', signals: '0.10, 0.18, 0.11' },
+      { id: '3', conc: '0.01', signals: '0.14, 0.10, 0.19' },
+      { id: '4', conc: '0.03', signals: '0.20, 0.32, 0.23' },
+      { id: '5', conc: '0.1', signals: '0.45, 0.65, 0.52' },
+      { id: '6', conc: '0.3', signals: '1.05, 1.45, 1.20' },
+      { id: '7', conc: '1', signals: '2.30, 2.80, 2.45' },
+      { id: '8', conc: '3', signals: '3.50, 4.00, 3.65' },
+      { id: '9', conc: '10', signals: '4.30, 4.75, 4.45' },
+      { id: '10', conc: '30', signals: '4.65, 5.05, 4.75' },
+      { id: '11', conc: '100', signals: '4.80, 5.20, 4.85' },
+      { id: '12', conc: '300', signals: '4.85, 5.25, 4.90' },
+    ]
+  },
+  {
+    name: "Linear Response Assay",
+    blanks: "0.05, 0.06, 0.04",
+    fitMethod: "linear",
+    plotTitle: "Linear Calibration Range",
+    standards: [
+      { id: '1', conc: '0.1', signals: '0.12, 0.14, 0.13' },
+      { id: '2', conc: '0.2', signals: '0.23, 0.25, 0.22' },
+      { id: '3', conc: '0.5', signals: '0.51, 0.55, 0.53' },
+      { id: '4', conc: '1.0', signals: '1.02, 1.08, 1.04' },
+      { id: '5', conc: '2.0', signals: '1.98, 2.05, 2.01' },
+      { id: '6', conc: '5.0', signals: '4.85, 5.12, 4.98' },
+    ]
+  },
+  {
+    name: "Asymmetric 5PL Assay",
+    blanks: "0.12, 0.15, 0.10",
+    fitMethod: "5pl",
+    plotTitle: "Asymmetric Sigmoidal (5PL)",
+    standards: [
+      { id: '1', conc: '0.01', signals: '0.15, 0.18, 0.14' },
+      { id: '2', conc: '0.05', signals: '0.22, 0.28, 0.24' },
+      { id: '3', conc: '0.1', signals: '0.35, 0.42, 0.38' },
+      { id: '4', conc: '0.5', signals: '1.20, 1.45, 1.30' },
+      { id: '5', conc: '1.0', signals: '2.40, 2.75, 2.55' },
+      { id: '6', conc: '5.0', signals: '4.80, 5.10, 4.95' },
+      { id: '10', conc: '10.0', signals: '5.20, 5.45, 5.30' },
+    ]
+  },
+  {
+    name: "High-Noise Assay",
+    blanks: "0.08, 0.14, 0.22, 0.10",
+    fitMethod: "auto",
+    plotTitle: "High Variance Assay Run",
+    standards: [
+      { id: '1', conc: '0.01', signals: '0.12, 0.28, 0.15' },
+      { id: '2', conc: '0.05', signals: '0.30, 0.15, 0.45' },
+      { id: '3', conc: '0.2', signals: '0.75, 1.25, 0.60' },
+      { id: '4', conc: '1.0', signals: '2.10, 2.95, 2.40' },
+      { id: '5', conc: '5.0', signals: '4.10, 3.20, 4.65' },
+      { id: '6', conc: '20.0', signals: '4.85, 4.20, 5.15' },
+    ]
+  }
 ];
 
-const DEFAULT_BLANKS = '0.07, 0.13, 0.08';
+const DEFAULT_STANDARDS = DEMO_PRESETS[0].standards;
+const DEFAULT_BLANKS = DEMO_PRESETS[0].blanks;
 
 const formatSuperscript = (val: number): ReactNode => {
   if (val === 0 || isNaN(val)) return '0';
@@ -169,6 +229,7 @@ function App() {
   });
   const [blankSignals, setBlankSignals] = useState(DEFAULT_BLANKS);
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
+  const [demoIndex, setDemoIndex] = useState(1);
   const [fitMethod, setFitMethod] = useState<'linear' | 'langmuir' | '4pl' | '5pl' | 'auto'>('auto');
   const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
@@ -407,8 +468,12 @@ function App() {
   };
 
   const handleLoadDemo = () => {
-    setBlankSignals(DEFAULT_BLANKS);
-    setStandardRows(DEFAULT_STANDARDS);
+    const preset = DEMO_PRESETS[demoIndex];
+    setBlankSignals(preset.blanks);
+    setStandardRows(preset.standards);
+    setFitMethod(preset.fitMethod);
+    setPlotTitle(preset.plotTitle);
+    setDemoIndex(prev => (prev + 1) % DEMO_PRESETS.length);
   };
 
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -464,7 +529,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.4.22`);
+    csvRows.push(`App Version,v0.5.1`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -553,7 +618,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.22</h1>
+          <h1>Bioassay LOD Fitter v0.5.1</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -591,7 +656,7 @@ function App() {
             <button className="action-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">📤 Export CSV</button>
           )}
           <button className="action-btn" onClick={handleClearData}>Clear Data</button>
-          <button className="action-btn" onClick={handleLoadDemo}>Load Demo</button>
+          <button className="action-btn" onClick={handleLoadDemo} title={"Load the next experimental dataset preset: " + DEMO_PRESETS[demoIndex].name}>🔄 Load Demo</button>
         </div>
       </header>
       <main className="main-container">
@@ -800,7 +865,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.22...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.1...</p></div>
           )}
         </section>
       </main>
