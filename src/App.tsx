@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { calculateAdvancedLoD, type StandardData, type AdvancedLoDResult } from './utils/calculations';
+import { parseCSVData } from './utils/csvParser';
 import {
   Scatter,
   XAxis,
@@ -162,6 +163,7 @@ const CustomLegend = () => {
 
 function App() {
   const chartRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('app-theme') as 'dark' | 'light') || 'dark';
   });
@@ -252,7 +254,7 @@ function App() {
       });
       if (blanks.length < 2 || standards.length < 3) return null;
       return calculateAdvancedLoD(blanks, standards, fitMethod);
-    } catch (e) { return null; }
+    } catch { return null; }
   }, [blankSignals, standardRows, fitMethod]);
 
   const { xTicks, xDomain, breakStart, breakEnd } = useMemo(() => {
@@ -409,6 +411,95 @@ function App() {
     setStandardRows(DEFAULT_STANDARDS);
   };
 
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      const { blankSignals: parsedBlanks, standards: parsedStandards } = parseCSVData(text);
+
+      if (parsedBlanks || parsedStandards.length > 0) {
+        if (parsedBlanks) {
+          setBlankSignals(parsedBlanks);
+        }
+        if (parsedStandards.length > 0) {
+          setStandardRows(parsedStandards);
+        }
+        alert('CSV Data imported successfully!');
+      } else {
+        alert('Could not find any valid concentration-signal data in the uploaded CSV file. Please ensure the CSV contains numeric rows.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleExportCSV = () => {
+    if (!results) return;
+
+    const csvRows: string[] = [];
+
+    csvRows.push('# ===================================================');
+    csvRows.push('# BIOASSAY LOD FITTER - INPUT DATA TEMPLATE');
+    csvRows.push('# This section can be edited and imported back into the app.');
+    csvRows.push('# ===================================================');
+    csvRows.push('Concentration,Signals');
+    
+    if (blankSignals) {
+      csvRows.push(`0,${blankSignals}`);
+    }
+    
+    standardRows.forEach(row => {
+      if (row.conc && row.signals) {
+        csvRows.push(`${row.conc},${row.signals}`);
+      }
+    });
+
+    csvRows.push('');
+    csvRows.push('# ===================================================');
+    csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
+    csvRows.push('# ===================================================');
+    csvRows.push('Parameter,Value');
+    csvRows.push(`App Version,v0.4.21`);
+    csvRows.push(`Requested Fit Method,${fitMethod}`);
+    csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
+    csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
+    csvRows.push(`LOD 95% Confidence Interval Low,${results.lodCI.low.toExponential(6)}`);
+    csvRows.push(`LOD 95% Confidence Interval High,${results.lodCI.high.toExponential(6)}`);
+    csvRows.push(`AICc Score,${results.fit.metrics.aicc.toFixed(4)}`);
+    csvRows.push(`R² (Coefficient of Determination),${results.fit.metrics.r2.toFixed(6)}`);
+    csvRows.push(`Blank Mean,${results.meanBlank.toFixed(6)}`);
+    csvRows.push(`Blank SD,${results.sdBlank.toFixed(6)}`);
+    csvRows.push(`Pooled SD (Standards),${results.sdPooled.toFixed(6)}`);
+    csvRows.push(`Critical Level (LC),${results.lc.toFixed(6)}`);
+    csvRows.push(`Detection Limit Signal (LD),${results.ld.toFixed(6)}`);
+
+    csvRows.push('');
+    csvRows.push('# ===================================================');
+    csvRows.push('# FITTED MODEL PARAMETERS');
+    csvRows.push('# ===================================================');
+    csvRows.push('Model Parameter,Value');
+    
+    Object.entries(results.fit.parameters).forEach(([param, value]) => {
+      csvRows.push(`"${param}",${value.toFixed(6)}`);
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `bioassay_lod_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleCopyMetrics = () => {
     if (!results) return;
     const text = `Bioassay Results\nLOD: ${results.lodConc.toExponential(3)}\nAICc: ${results.fit.metrics.aicc.toFixed(2)}\nR2: ${results.fit.metrics.r2.toFixed(5)}\nLC: ${results.lc.toFixed(4)}\nLD: ${results.ld.toFixed(4)}`;
@@ -424,11 +515,22 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.20</h1>
+          <h1>Bioassay LOD Fitter v0.4.21</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button className="action-btn" onClick={toggleTheme}>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportCSV}
+            style={{ display: 'none' }}
+            accept=".csv"
+          />
+          <button className="action-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file">📥 Import CSV</button>
+          {results && (
+            <button className="action-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">📤 Export CSV</button>
+          )}
           <button className="action-btn" onClick={handleClearData}>Clear Data</button>
           <button className="action-btn" onClick={handleLoadDemo}>Load Demo</button>
         </div>
@@ -514,6 +616,7 @@ function App() {
                     {results.comparison.betterMethod !== results.fit.method && results.fit.method !== 'auto' && (
                       <span className="warning-badge">Better fit available ({results.comparison.betterMethod.toUpperCase()})</span>
                     )}
+                    <button className="action-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">Export CSV</button>
                     <button className="action-btn" onClick={handleDownloadPlot} title="Download Plot (300 DPI, PNG)">Export PNG</button>
                   </div>
                 </div>
@@ -638,7 +741,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.20...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.21...</p></div>
           )}
         </section>
       </main>
