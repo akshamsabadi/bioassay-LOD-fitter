@@ -1,31 +1,31 @@
 :root {
-  /* Flexoki Mocha Palette (Dark) */
-  --rosewater: #e6e4d9;
-  --flamingo: #d0a215;
-  --pink: #ce5d97;
-  --mauve: #8b7ec8;
-  --red: #d14d41;
-  --maroon: #ce5d97;
-  --peach: #da702c;
-  --yellow: #d0a215;
-  --green: #879a39;
-  --teal: #3aa99f;
-  --sky: #3aa99f;
-  --sapphire: #4385be;
-  --blue: #4385be;
-  --lavender: #8b7ec8;
-  --text: #cecdc3;
-  --subtext1: #b7b5ac;
-  --subtext0: #878580;
-  --overlay2: #878580;
-  --overlay1: #575653;
-  --overlay0: #403f3e;
-  --surface2: #343331;
-  --surface1: #282726;
-  --surface0: #1c1917;
-  --base: #100f0f;
-  --mantle: #1c1917;
-  --crust: #100f0f;
+  /* Observable Dark Theme Palette */
+  --rosewater: #c5c8cf;
+  --flamingo: #f18428;
+  --pink: #e14f81;
+  --mauve: #ac58e5;
+  --red: #e14f81;
+  --maroon: #e14f81;
+  --peach: #f18428;
+  --yellow: #efb118;
+  --green: #529c2d;
+  --teal: #38a6a5;
+  --sky: #38a6a5;
+  --sapphire: #4269d0;
+  --blue: #4269d0;
+  --lavender: #ac58e5;
+  --text: #e8e9eb;
+  --subtext1: #c5c8cf;
+  --subtext0: #9ea2ad;
+  --overlay2: #9ea2ad;
+  --overlay1: #787d89;
+  --overlay0: #5c6270;
+  --surface2: #4d5462;
+  --surface1: #3b414c;
+  --surface0: #1e2026;
+  --base: #15161a;
+  --mantle: #1e2026;
+  --crust: #101114;
 
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 13px;
@@ -35,33 +35,33 @@
 }
 
 [data-theme='light'] {
-  /* Flexoki Latte Palette (Light) */
-  --rosewater: #ce5d97;
-  --flamingo: #da702c;
-  --pink: #a02f6f;
-  --mauve: #5e409d;
-  --red: #af3029;
-  --maroon: #a02f6f;
-  --peach: #bc5215;
-  --yellow: #ad8300;
-  --green: #66800b;
-  --teal: #248f8d;
-  --sky: #248f8d;
-  --sapphire: #205ea6;
-  --blue: #205ea6;
-  --lavender: #5e409d;
-  --text: #100f0f;
-  --subtext1: #282726;
-  --subtext0: #6f6e69;
-  --overlay2: #6f6e69;
-  --overlay1: #b7b5ac;
-  --overlay0: #b7b5ac;
-  --surface2: #cecdc3;
-  --surface1: #dad8ce;
-  --surface0: #e6e4d9;
-  --base: #fffcf0;
-  --mantle: #f2f0e5;
-  --crust: #e6e4d9;
+  /* Observable Light Theme Palette */
+  --rosewater: #e14f81;
+  --flamingo: #f18428;
+  --pink: #e14f81;
+  --mauve: #ac58e5;
+  --red: #e14f81;
+  --maroon: #e14f81;
+  --peach: #f18428;
+  --yellow: #efb118;
+  --green: #529c2d;
+  --teal: #38a6a5;
+  --sky: #38a6a5;
+  --sapphire: #4269d0;
+  --blue: #4269d0;
+  --lavender: #ac58e5;
+  --text: #1b1e23;
+  --subtext1: #484e57;
+  --subtext0: #767d86;
+  --overlay2: #767d86;
+  --overlay1: #a2a7b1;
+  --overlay0: #b0b4be;
+  --surface2: #d1d5da;
+  --surface1: #e1e4e8;
+  --surface0: #eceef1;
+  --base: #f5f6f8;
+  --mantle: #ffffff;
+  --crust: #eceef1;
   color-scheme: light;
 }
 
