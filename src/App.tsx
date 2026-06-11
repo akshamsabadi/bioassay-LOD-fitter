@@ -542,7 +542,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.7`);
+    csvRows.push(`App Version,v0.5.8`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -629,79 +629,87 @@ function App() {
 
   return (
     <div className="app-wrapper">
-      <header>
+      <header className="app-header">
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.7</h1>
+          <h1>Bioassay LOD Fitter v0.5.8</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button className="action-btn" onClick={toggleTheme}>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</button>
-          <select
-            value={subtheme}
-            onChange={e => setSubtheme(e.target.value)}
-            className="action-btn"
-            title="Choose your preferred Observable theme style"
-            style={{
-              backgroundColor: 'var(--surface0)',
-              border: '1px solid var(--surface2)',
-              color: 'var(--text)',
-              padding: '4px 8px',
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-              height: '32px',
-              cursor: 'pointer'
-            }}
-          >
-            {theme === 'dark' ? (
-              <>
-                <option value="slate">🌌 Slate</option>
-                <option value="midnight">🌙 Midnight</option>
-                <option value="deep-space">🚀 Deep Space</option>
-                <option value="ink">🖋️ Ink</option>
-              </>
-            ) : (
-              <>
-                <option value="air">💨 Air</option>
-                <option value="cotton">☁️ Cotton</option>
-                <option value="glacier">❄️ Glacier</option>
-                <option value="parchment">📜 Parchment</option>
-              </>
-            )}
-          </select>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImportCSV}
-            style={{ display: 'none' }}
-            accept=".csv"
-          />
-          <button className="action-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data">📄 CSV Template</button>
-          <button className="action-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file">📥 Import CSV</button>
-          <div
-            className="help-tooltip"
-            data-tooltip="CSV IMPORT FORMAT RULES:&#10;1. First column must be the Concentration (numeric value).&#10;2. Use 0, 'blank', or 'blanks' to specify blank rows.&#10;3. Subsequent columns are your measured signal replicates.&#10;4. Any row starting with '#' is ignored as a comment.&#10;&#10;Click 'CSV Template' to download an example!"
-            style={{
-              fontSize: '11px',
-              color: 'var(--subtext0)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              border: '1px solid var(--surface2)',
-              backgroundColor: 'var(--surface0)',
-              fontWeight: 'bold',
-              userSelect: 'none'
-            }}
-          >
-            ?
+        
+        <div className="toolbar-container">
+          {/* SECTION 1: DATA PRESETS */}
+          <div className="toolbar-section" title="Data Presets">
+            <span className="toolbar-section-label">Data</span>
+            <button className="toolbar-btn" onClick={handleClearData} title="Clear all input standard and blank data">Clear Data</button>
+            <button className="toolbar-btn primary-btn" onClick={handleLoadDemo} title={"Load the next experimental dataset preset: " + DEMO_PRESETS[demoIndex].name}>Load Demo</button>
           </div>
-          {results && (
-            <button className="action-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">📤 Export CSV</button>
-          )}
-          <button className="action-btn" onClick={handleClearData}>Clear Data</button>
-          <button className="action-btn" onClick={handleLoadDemo} title={"Load the next experimental dataset preset: " + DEMO_PRESETS[demoIndex].name}>🔄 Load Demo</button>
+
+          {/* SECTION 2: CSV ACTIONS */}
+          <div className="toolbar-section" title="CSV Actions">
+            <span className="toolbar-section-label">CSV</span>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportCSV}
+              style={{ display: 'none' }}
+              accept=".csv"
+            />
+            <button className="toolbar-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data">Template</button>
+            <button className="toolbar-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file">Import</button>
+            <div
+              className="help-tooltip"
+              data-tooltip="CSV IMPORT FORMAT RULES:&#10;1. First column must be the Concentration (numeric value).&#10;2. Use 0, 'blank', or 'blanks' to specify blank rows.&#10;3. Subsequent columns are your measured signal replicates.&#10;4. Any row starting with '#' is ignored as a comment.&#10;&#10;Click 'Template' to download an example!"
+              style={{
+                fontSize: '11px',
+                color: 'var(--subtext0)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                border: '1px solid var(--surface2)',
+                backgroundColor: 'var(--surface0)',
+                fontWeight: 'bold',
+                userSelect: 'none',
+                cursor: 'help'
+              }}
+            >
+              ?
+            </div>
+            {results && (
+              <button className="toolbar-btn success-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">Export Report</button>
+            )}
+          </div>
+
+          {/* SECTION 3: THEME SETTINGS */}
+          <div className="toolbar-section" title="Theme Settings">
+            <span className="toolbar-section-label">Theme</span>
+            <select
+              value={subtheme}
+              onChange={e => setSubtheme(e.target.value)}
+              className="toolbar-select"
+              title="Choose your preferred Observable theme style"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <option value="slate">Slate</option>
+                  <option value="midnight">Midnight</option>
+                  <option value="deep-space">Deep Space</option>
+                  <option value="ink">Ink</option>
+                </>
+              ) : (
+                <>
+                  <option value="air">Air</option>
+                  <option value="cotton">Cotton</option>
+                  <option value="glacier">Glacier</option>
+                  <option value="parchment">Parchment</option>
+                </>
+              )}
+            </select>
+            <button className="toolbar-btn" onClick={toggleTheme} style={{ width: '38px', padding: 0 }} title="Toggle Light/Dark mode">
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+          </div>
         </div>
       </header>
       <main className="main-container">
@@ -840,12 +848,12 @@ function App() {
                         shape={renderScatterDot}
                       />
                       
-                      <Line data={lcLeftData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
-                      <Line data={lcRightData} dataKey="y" stroke="#fab387" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                      <Line data={lcLeftData} dataKey="y" stroke="var(--peach)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                      <Line data={lcRightData} dataKey="y" stroke="var(--peach)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
                       <ReferenceLine y={results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: 'none' }} />
                       
-                      <Line data={ldLeftData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
-                      <Line data={ldRightData} dataKey="y" stroke="#a6e3a1" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                      <Line data={ldLeftData} dataKey="y" stroke="var(--green)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+                      <Line data={ldRightData} dataKey="y" stroke="var(--green)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
                       <ReferenceLine y={results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: 'none' }} />
                       
                       <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} style={{ pointerEvents: 'none' }} />
@@ -910,7 +918,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.7...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.8...</p></div>
           )}
         </section>
       </main>

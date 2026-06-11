@@ -334,13 +334,15 @@ body {
 }
 
 /* Header */
-header {
+.app-header {
   background-color: var(--mantle);
-  padding: 10px 24px;
+  padding: 8px 24px;
   border-bottom: 1px solid var(--surface0);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .header-content h1 {
@@ -356,6 +358,103 @@ header {
   font-size: 0.8rem;
   color: var(--subtext1);
   opacity: 0.6;
+}
+
+.toolbar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background-color: var(--surface0);
+  border: 1px solid var(--surface1);
+  border-radius: 8px;
+  position: relative;
+  height: 38px;
+}
+
+.toolbar-section-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--subtext0);
+  margin-right: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--surface1);
+  user-select: none;
+  height: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-btn {
+  height: 28px;
+  padding: 0 12px;
+  background: var(--surface1);
+  color: var(--text);
+  border: 1px solid var(--surface2);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+  user-select: none;
+}
+
+.toolbar-btn:hover {
+  background: var(--surface2);
+  border-color: var(--overlay2);
+}
+
+.toolbar-btn:active {
+  transform: scale(0.97);
+}
+
+.toolbar-btn.primary-btn {
+  background-color: var(--blue);
+  color: var(--base);
+  border-color: var(--sapphire);
+}
+.toolbar-btn.primary-btn:hover {
+  filter: brightness(1.15);
+}
+
+.toolbar-btn.success-btn {
+  background-color: var(--green);
+  color: var(--base);
+  border-color: var(--green);
+}
+.toolbar-btn.success-btn:hover {
+  filter: brightness(1.15);
+}
+
+.toolbar-select {
+  height: 28px;
+  padding: 0 8px;
+  background: var(--surface1);
+  color: var(--text);
+  border: 1px solid var(--surface2);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease-in-out;
+}
+
+.toolbar-select:hover {
+  background: var(--surface2);
+  border-color: var(--overlay2);
 }
 
 .main-container {
