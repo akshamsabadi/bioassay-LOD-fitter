@@ -1,31 +1,31 @@
 :root {
-  /* Default Catppuccin Mocha Palette (Dark) */
-  --rosewater: #f5e0dc;
-  --flamingo: #f2cdcd;
-  --pink: #f5c2e7;
-  --mauve: #cba6f7;
-  --red: #f38ba8;
-  --maroon: #eba0ac;
-  --peach: #fab387;
-  --yellow: #f9e2af;
-  --green: #a6e3a1;
-  --teal: #94e2d5;
-  --sky: #89dceb;
-  --sapphire: #74c7ec;
-  --blue: #89b4fa;
-  --lavender: #b4befe;
-  --text: #cdd6f4;
-  --subtext1: #bac2de;
-  --subtext0: #a6adc8;
-  --overlay2: #9399b2;
-  --overlay1: #7f849c;
-  --overlay0: #6c7086;
-  --surface2: #585b70;
-  --surface1: #45475a;
-  --surface0: #313244;
-  --base: #1e1e2e;
-  --mantle: #181825;
-  --crust: #11111b;
+  /* Flexoki Mocha Palette (Dark) */
+  --rosewater: #e6e4d9;
+  --flamingo: #d0a215;
+  --pink: #ce5d97;
+  --mauve: #8b7ec8;
+  --red: #d14d41;
+  --maroon: #ce5d97;
+  --peach: #da702c;
+  --yellow: #d0a215;
+  --green: #879a39;
+  --teal: #3aa99f;
+  --sky: #3aa99f;
+  --sapphire: #4385be;
+  --blue: #4385be;
+  --lavender: #8b7ec8;
+  --text: #cecdc3;
+  --subtext1: #b7b5ac;
+  --subtext0: #878580;
+  --overlay2: #878580;
+  --overlay1: #575653;
+  --overlay0: #403f3e;
+  --surface2: #343331;
+  --surface1: #282726;
+  --surface0: #1c1917;
+  --base: #100f0f;
+  --mantle: #1c1917;
+  --crust: #100f0f;
 
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 13px;
@@ -35,33 +35,33 @@
 }
 
 [data-theme='light'] {
-  /* Catppuccin Latte Palette (Light) */
-  --rosewater: #dc8a78;
-  --flamingo: #dd7878;
-  --pink: #ea76cb;
-  --mauve: #8839ef;
-  --red: #d20f39;
-  --maroon: #e64553;
-  --peach: #fe640b;
-  --yellow: #df8e1d;
-  --green: #40a02b;
-  --teal: #179299;
-  --sky: #04a5e5;
-  --sapphire: #209fb5;
-  --blue: #1e66f5;
-  --lavender: #7287fd;
-  --text: #4c4f69;
-  --subtext1: #5c5f77;
-  --subtext0: #6c6f85;
-  --overlay2: #7c7f93;
-  --overlay1: #8c8fa1;
-  --overlay0: #9ca0b0;
-  --surface2: #acb0be;
-  --surface1: #bcc0cc;
-  --surface0: #ccd0da;
-  --base: #eff1f5;
-  --mantle: #e6e9ef;
-  --crust: #dce0e8;
+  /* Flexoki Latte Palette (Light) */
+  --rosewater: #ce5d97;
+  --flamingo: #da702c;
+  --pink: #a02f6f;
+  --mauve: #5e409d;
+  --red: #af3029;
+  --maroon: #a02f6f;
+  --peach: #bc5215;
+  --yellow: #ad8300;
+  --green: #66800b;
+  --teal: #248f8d;
+  --sky: #248f8d;
+  --sapphire: #205ea6;
+  --blue: #205ea6;
+  --lavender: #5e409d;
+  --text: #100f0f;
+  --subtext1: #282726;
+  --subtext0: #6f6e69;
+  --overlay2: #6f6e69;
+  --overlay1: #b7b5ac;
+  --overlay0: #b7b5ac;
+  --surface2: #cecdc3;
+  --surface1: #dad8ce;
+  --surface0: #e6e4d9;
+  --base: #fffcf0;
+  --mantle: #f2f0e5;
+  --crust: #e6e4d9;
   color-scheme: light;
 }
 
