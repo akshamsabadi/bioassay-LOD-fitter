@@ -1,31 +1,31 @@
 :root {
-  /* Observable Dark Theme Palette */
-  --rosewater: #c5c8cf;
-  --flamingo: #f18428;
-  --pink: #e14f81;
+  /* Official Observable Dark (Slate) Palette */
+  --rosewater: #d7d7e1;
+  --flamingo: #efb118;
+  --pink: #ff725c;
   --mauve: #ac58e5;
-  --red: #e14f81;
-  --maroon: #e14f81;
-  --peach: #f18428;
+  --red: #ff725c;
+  --maroon: #ff725c;
+  --peach: #efb118;
   --yellow: #efb118;
-  --green: #529c2d;
+  --green: #3ca951;
   --teal: #38a6a5;
   --sky: #38a6a5;
   --sapphire: #4269d0;
   --blue: #4269d0;
   --lavender: #ac58e5;
-  --text: #e8e9eb;
-  --subtext1: #c5c8cf;
-  --subtext0: #9ea2ad;
-  --overlay2: #9ea2ad;
-  --overlay1: #787d89;
-  --overlay0: #5c6270;
-  --surface2: #4d5462;
-  --surface1: #3b414c;
-  --surface0: #1e2026;
-  --base: #15161a;
-  --mantle: #1e2026;
-  --crust: #101114;
+  --text: #d7d7e1;
+  --subtext1: #c0c0d1;
+  --subtext0: #88889b;
+  --overlay2: #88889b;
+  --overlay1: #5b5a6c;
+  --overlay0: #424153;
+  --surface2: #3a3949;
+  --surface1: #2a2937;
+  --surface0: #1c1b25;
+  --base: #24232e;
+  --mantle: #1c1b25;
+  --crust: #12111b;
 
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 13px;
@@ -35,32 +35,32 @@
 }
 
 [data-theme='light'] {
-  /* Observable Light Theme Palette */
-  --rosewater: #e14f81;
-  --flamingo: #f18428;
-  --pink: #e14f81;
+  /* Official Observable Light (Air) Palette */
+  --rosewater: #ff725c;
+  --flamingo: #efb118;
+  --pink: #ff725c;
   --mauve: #ac58e5;
-  --red: #e14f81;
-  --maroon: #e14f81;
-  --peach: #f18428;
+  --red: #ff725c;
+  --maroon: #ff725c;
+  --peach: #efb118;
   --yellow: #efb118;
-  --green: #529c2d;
+  --green: #3ca951;
   --teal: #38a6a5;
   --sky: #38a6a5;
   --sapphire: #4269d0;
   --blue: #4269d0;
   --lavender: #ac58e5;
   --text: #1b1e23;
-  --subtext1: #484e57;
-  --subtext0: #767d86;
-  --overlay2: #767d86;
-  --overlay1: #a2a7b1;
-  --overlay0: #b0b4be;
+  --subtext1: #424851;
+  --subtext0: #737c8c;
+  --overlay2: #737c8c;
+  --overlay1: #a9aeb9;
+  --overlay0: #bdc1cb;
   --surface2: #d1d5da;
   --surface1: #e1e4e8;
-  --surface0: #eceef1;
-  --base: #f5f6f8;
-  --mantle: #ffffff;
+  --surface0: #f5f6f8;
+  --base: #ffffff;
+  --mantle: #f5f6f8;
   --crust: #eceef1;
   color-scheme: light;
 }
