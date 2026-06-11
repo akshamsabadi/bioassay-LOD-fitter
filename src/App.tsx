@@ -54,7 +54,7 @@ const DEMO_PRESETS: DemoPreset[] = [
   {
     name: "Linear Response Assay",
     blanks: "0.05, 0.06, 0.04",
-    fitMethod: "linear",
+    fitMethod: "auto",
     plotTitle: "Linear Calibration Range",
     standards: [
       { id: '1', conc: '0.1', signals: '0.12, 0.14, 0.13' },
@@ -68,7 +68,7 @@ const DEMO_PRESETS: DemoPreset[] = [
   {
     name: "Asymmetric 5PL Assay",
     blanks: "0.12, 0.15, 0.10",
-    fitMethod: "5pl",
+    fitMethod: "auto",
     plotTitle: "Asymmetric Sigmoidal (5PL)",
     standards: [
       { id: '1', conc: '0.01', signals: '0.15, 0.18, 0.14' },
@@ -529,7 +529,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.1`);
+    csvRows.push(`App Version,v0.5.2`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -618,7 +618,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.1</h1>
+          <h1>Bioassay LOD Fitter v0.5.2</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -865,7 +865,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.1...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.2...</p></div>
           )}
         </section>
       </main>
