@@ -464,7 +464,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.4.21`);
+    csvRows.push(`App Version,v0.4.22`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -500,6 +500,44 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadTemplate = () => {
+    const csvRows = [
+      '# ===================================================',
+      '# BIOASSAY LOD FITTER - IMPORT TEMPLATE',
+      '# Edit this file with your experimental data and import it.',
+      '# ===================================================',
+      '# FORMAT RULES:',
+      '# 1. First column is Concentration (numeric).',
+      '# 2. Use 0 or "blank" for zero-concentration blanks.',
+      '# 3. Subsequent columns are your measured signal replicates.',
+      '# ===================================================',
+      'Concentration,Replicate1,Replicate2,Replicate3',
+      '0,0.07,0.13,0.08',
+      '0.001,0.08,0.15,0.09',
+      '0.003,0.10,0.18,0.11',
+      '0.01,0.14,0.10,0.19',
+      '0.03,0.20,0.32,0.23',
+      '0.1,0.45,0.65,0.52',
+      '0.3,1.05,1.45,1.20',
+      '1,2.30,2.80,2.45',
+      '3,3.50,4.00,3.65',
+      '10,4.30,4.75,4.45',
+      '30,4.65,5.05,4.75',
+      '100,4.80,5.20,4.85',
+      '300,4.85,5.25,4.90'
+    ];
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'bioassay_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleCopyMetrics = () => {
     if (!results) return;
     const text = `Bioassay Results\nLOD: ${results.lodConc.toExponential(3)}\nAICc: ${results.fit.metrics.aicc.toFixed(2)}\nR2: ${results.fit.metrics.r2.toFixed(5)}\nLC: ${results.lc.toFixed(4)}\nLD: ${results.ld.toFixed(4)}`;
@@ -515,7 +553,7 @@ function App() {
     <div className="app-wrapper">
       <header>
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.4.21</h1>
+          <h1>Bioassay LOD Fitter v0.4.22</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -527,7 +565,28 @@ function App() {
             style={{ display: 'none' }}
             accept=".csv"
           />
+          <button className="action-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data">📄 CSV Template</button>
           <button className="action-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file">📥 Import CSV</button>
+          <div
+            className="help-tooltip"
+            data-tooltip="CSV IMPORT FORMAT RULES:&#10;1. First column must be the Concentration (numeric value).&#10;2. Use 0, 'blank', or 'blanks' to specify blank rows.&#10;3. Subsequent columns are your measured signal replicates.&#10;4. Any row starting with '#' is ignored as a comment.&#10;&#10;Click 'CSV Template' to download an example!"
+            style={{
+              fontSize: '11px',
+              color: 'var(--subtext0)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              border: '1px solid var(--surface2)',
+              backgroundColor: 'var(--surface0)',
+              fontWeight: 'bold',
+              userSelect: 'none'
+            }}
+          >
+            ?
+          </div>
           {results && (
             <button className="action-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">📤 Export CSV</button>
           )}
@@ -741,7 +800,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.21...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.4.22...</p></div>
           )}
         </section>
       </main>
