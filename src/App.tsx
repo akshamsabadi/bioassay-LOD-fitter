@@ -250,9 +250,9 @@ const CustomTooltip = ({ active, payload, results }: any) => {
   const ci = results.fit.getCI(x);
 
   // Find actual replicates at this concentration in results data
-  const replicates = results.fit.actualY.filter((_, i) => {
+  const replicates = results.fit.actualY.filter((_: number, i: number) => {
     const ptX = results.fit.actualX[i];
-    if (x === 0 || Math.abs(x - results.fit.actualX.filter(val => val > 0)[0] / 10) < 1e-9) {
+    if (x === 0 || Math.abs(x - results.fit.actualX.filter((val: number) => val > 0)[0] / 10) < 1e-9) {
       return ptX === 0;
     }
     return Math.abs(ptX - x) < 1e-9;
@@ -277,7 +277,7 @@ const CustomTooltip = ({ active, payload, results }: any) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface2)', paddingBottom: '4px', marginBottom: '4px' }}>
         <span style={{ color: 'var(--overlay2)', fontWeight: 'bold', fontSize: '0.7rem', letterSpacing: '0.5px' }}>CONCENTRATION</span>
         <span style={{ fontWeight: 'bold', fontFamily: '"Google Sans Mono", monospace' }}>
-          {x === 0 || Math.abs(x - results.fit.actualX.filter(val => val > 0)[0] / 10) < 1e-9 ? '0 (Blank)' : x.toFixed(4)}
+          {x === 0 || Math.abs(x - results.fit.actualX.filter((val: number) => val > 0)[0] / 10) < 1e-9 ? '0 (Blank)' : x.toFixed(4)}
         </span>
       </div>
       
@@ -285,7 +285,7 @@ const CustomTooltip = ({ active, payload, results }: any) => {
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span style={{ color: 'var(--subtext0)' }}>Replicates:</span>
           <span style={{ fontWeight: 'bold', color: 'var(--pink)', fontFamily: '"Google Sans Mono", monospace' }}>
-            {replicates.map(val => val.toFixed(3)).join(', ')}
+            {replicates.map((val: number) => val.toFixed(3)).join(', ')}
           </span>
         </div>
       )}
