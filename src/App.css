@@ -939,3 +939,115 @@ sub {
     opacity: 0.2;
   }
 }
+
+/* ========================================== */
+/* THEME TRANSITIONS & NEOMORPHIC UI POLISH   */
+/* ========================================== */
+
+/* Targeted smooth theme transition across layout elements (excluding SVGs for performance) */
+body, 
+.app-wrapper, 
+.app-header, 
+.sidebar, 
+.sidebar-section, 
+.stats-card, 
+.chart-card, 
+.data-row, 
+.toolbar-container,
+.toolbar-section,
+input, 
+select, 
+button,
+.theme-toggle-pill {
+  transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.35s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.35s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Neomorphic Theme Toggle Pill Switch */
+.theme-toggle-pill {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px;
+  width: 58px;
+  height: 28px;
+  background: var(--surface0);
+  border: 1px solid var(--surface1);
+  border-radius: 100px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 
+              inset 0 -1px 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+[data-theme='light'] .theme-toggle-pill {
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1), 
+              inset 0 -1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.toggle-track {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.toggle-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--surface2), var(--surface1));
+  border: 1px solid var(--surface2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  position: absolute;
+  left: 2px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
+  font-size: 0.75rem;
+}
+
+[data-theme='light'] .toggle-thumb {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+  border-color: #e1e4e8;
+}
+
+.toggle-track.light .toggle-thumb {
+  transform: translateX(30px);
+}
+
+/* Input, Select, and Button Glow States */
+.method-select, 
+.toolbar-select, 
+.text-input, 
+.signals-input,
+.conc-input {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.method-select:focus,
+.toolbar-select:focus,
+.text-input:focus,
+.signals-input:focus {
+  border-color: var(--mauve);
+  box-shadow: 0 0 0 2px rgba(187, 135, 250, 0.15);
+}
+
+.toolbar-btn, .action-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toolbar-btn:hover, .action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.toolbar-btn:active, .action-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

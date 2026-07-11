@@ -626,7 +626,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.14`);
+    csvRows.push(`App Version,v0.5.15`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -722,7 +722,7 @@ function App() {
     <div className="app-wrapper">
       <header className="app-header">
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.14</h1>
+          <h1>Bioassay LOD Fitter v0.5.15</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         
@@ -797,9 +797,13 @@ function App() {
                 </>
               )}
             </select>
-            <button className="toolbar-btn" onClick={toggleTheme} style={{ width: '38px', padding: 0 }} title="Toggle Light/Dark mode">
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
+            <div className="theme-toggle-pill" onClick={toggleTheme} title="Toggle Light/Dark Mode">
+              <span className={`toggle-track ${theme}`}>
+                <span className="toggle-thumb">
+                  {theme === 'dark' ? '🌙' : '☀️'}
+                </span>
+              </span>
+            </div>
           </div>
         </div>
       </header>
@@ -1054,7 +1058,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.14...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.15...</p></div>
           )}
         </section>
       </main>
