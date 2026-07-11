@@ -679,7 +679,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.16`);
+    csvRows.push(`App Version,v0.5.17`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -775,7 +775,7 @@ function App() {
     <div className="app-wrapper">
       <header className="app-header">
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.16</h1>
+          <h1>Bioassay LOD Fitter v0.5.17</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         
@@ -933,6 +933,26 @@ function App() {
               )}
             </div>
           </section>
+
+          {results && (
+            <section className="sidebar-section">
+              <span className="section-title" style={{ color: 'var(--peach)' }}>Assay Quality Checks</span>
+              {qualityChecks && qualityChecks.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--green)', fontWeight: 'bold', fontSize: '0.8rem', marginTop: '4px' }}>
+                  <span style={{ fontSize: '1rem', color: 'var(--green)' }}>✓</span> All Checks Passed (Optimal Run)
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                  {qualityChecks?.map((warning, index) => (
+                    <div key={index} style={{ display: 'flex', gap: '8px', fontSize: '0.75rem', color: 'var(--flamingo)', lineHeight: '1.4' }}>
+                      <span style={{ color: 'var(--pink)', fontWeight: 'bold' }}>⚠️</span>
+                      <span>{warning}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
         </aside>
         <section className="content-area">
           {results ? (
@@ -1049,24 +1069,6 @@ function App() {
                   <span className="lod-hero-unit">{xAxisLabel.split('(')[0].trim()}</span>
                 </div>
 
-                <div className="stats-card quality-checks-card">
-                  <h3 style={{ color: 'var(--peach)', marginBottom: '12px' }}>Assay Quality Checks</h3>
-                  {qualityChecks && qualityChecks.length === 0 ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--green)', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                      <span style={{ fontSize: '1.1rem', color: 'var(--green)' }}>✓</span> All Checks Passed (Optimal Run)
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {qualityChecks?.map((warning, index) => (
-                        <div key={index} style={{ display: 'flex', gap: '8px', fontSize: '0.75rem', color: 'var(--flamingo)', lineHeight: '1.4' }}>
-                          <span style={{ color: 'var(--pink)', fontWeight: 'bold' }}>⚠️</span>
-                          <span>{warning}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 <div className="stats-card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <h3 style={{ margin: 0, color: 'var(--blue)' }}>Curve Fitting</h3>
@@ -1130,7 +1132,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.16...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.17...</p></div>
           )}
         </section>
       </main>

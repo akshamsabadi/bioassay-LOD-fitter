@@ -683,7 +683,10 @@ body {
   flex-direction: column;
   gap: 16px;
   height: 100%;
-  overflow-y: visible;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface1) transparent;
+  padding-right: 4px;
 }
 
 .stats-card {
