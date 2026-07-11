@@ -542,7 +542,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.11`);
+    csvRows.push(`App Version,v0.5.12`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -631,7 +631,7 @@ function App() {
     <div className="app-wrapper">
       <header className="app-header">
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.11</h1>
+          <h1>Bioassay LOD Fitter v0.5.12</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         
@@ -915,10 +915,47 @@ function App() {
                   <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Decision Limit (LC) is the signal threshold above which an observed response is statistically considered to be distinct from background noise (guarding against false positives, α=0.05)."><span className="stat-label">L<sub>C</sub></span></span><span className="stat-value" style={{color: 'var(--peach)'}}>{results.lc.toFixed(4)}</span></div>
                   <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Detection Limit Signal (LD) is the true signal level at which there is a 95% probability that the measured signal will fall above LC (guarding against false negatives, β=0.05)."><span className="stat-label">L<sub>D</sub></span></span><span className="stat-value" style={{color: 'var(--green)'}}>{results.ld.toFixed(4)}</span></div>
                 </div>
+
+                <div className="stats-card model-comparison-card">
+                  <h3 style={{ color: 'var(--mauve)', marginBottom: '12px' }}>Model Comparison (AICc)</h3>
+                  <div className="comparison-table-wrapper">
+                    <table className="comparison-table">
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>R²</th>
+                          <th>AICc</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(results.comparison.fits).map(([method, fit]) => {
+                          const isSelected = results.fit.method === method;
+                          const isBetter = results.comparison.betterMethod === method;
+                          return (
+                            <tr key={method} className={`${isSelected ? 'selected-row' : ''} ${isBetter ? 'better-row' : ''}`}>
+                              <td style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {method.toUpperCase()}
+                                {isBetter && <span className="better-tag" title="Lowest AICc Score (Best Theoretical Model)">★</span>}
+                                {isSelected && <span className="active-dot" title="Active Model"></span>}
+                              </td>
+                              <td>{fit.metrics.r2.toFixed(4)}</td>
+                              <td style={{ color: isBetter ? 'var(--green)' : 'inherit', fontWeight: isBetter ? 'bold' : 'normal' }}>
+                                {fit.metrics.aicc.toFixed(1)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="comparison-footnote">
+                    * AICc (Akaike Information Criterion) penalizes model complexity to guard against overfitting. Lower scores indicate superior mathematical balance.
+                  </p>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.11...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.12...</p></div>
           )}
         </section>
       </main>

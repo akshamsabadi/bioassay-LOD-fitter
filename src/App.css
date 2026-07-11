@@ -844,3 +844,82 @@ sub {
   visibility: visible;
   top: calc(100% + 4px);
 }
+
+/* Model Comparison Table CSS */
+.comparison-table-wrapper {
+  overflow-x: auto;
+  margin-top: 4px;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.8rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.comparison-table th {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--overlay2);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--surface2);
+}
+
+.comparison-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--surface1);
+  color: var(--subtext1);
+}
+
+.comparison-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Active and best fit indicator overrides */
+.comparison-table tr.selected-row {
+  background: rgba(187, 135, 250, 0.08); /* Transparent mauve */
+}
+
+.comparison-table tr.selected-row td {
+  color: var(--text);
+}
+
+.comparison-table tr.selected-row td:first-child {
+  border-left: 3px solid var(--mauve);
+}
+
+.active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--mauve);
+  box-shadow: 0 0 8px var(--mauve);
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.better-tag {
+  color: var(--yellow);
+  font-size: 0.85rem;
+  font-weight: bold;
+  display: inline-block;
+  cursor: help;
+  margin-left: 2px;
+  animation: pulse-star 2s infinite ease-in-out;
+}
+
+.comparison-footnote {
+  font-size: 0.65rem;
+  color: var(--overlay2);
+  margin-top: 10px;
+  line-height: 1.35;
+}
+
+@keyframes pulse-star {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
