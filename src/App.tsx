@@ -12,7 +12,8 @@ import {
   ReferenceLine,
   ReferenceArea,
   Area,
-  Legend
+  Legend,
+  Tooltip
 } from 'recharts';
 import './App.css';
 
@@ -234,6 +235,72 @@ const CustomLegend = () => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--blue)' }}></span></span> <span>Model Fit</span></div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--blue) 25%, transparent)', border: '1px solid var(--blue)' }}></span></span> <span>95% CI Fit</span></div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center', color: 'var(--red)', fontSize: '14px', lineHeight: '10px' }}>●</span> <span>Measured Data</span></div>
+    </div>
+  );
+};
+
+const CustomTooltip = ({ active, payload, results }: any) => {
+  if (!active || !payload || !payload.length || !results) return null;
+
+  // The active coordinate's x value (concentration)
+  const x = payload[0].payload.x;
+  if (x === undefined || isNaN(x)) return null;
+
+  const pred = results.fit.predict(x);
+  const ci = results.fit.getCI(x);
+
+  // Find actual replicates at this concentration in results data
+  const replicates = results.fit.actualY.filter((_, i) => {
+    const ptX = results.fit.actualX[i];
+    if (x === 0 || Math.abs(x - results.fit.actualX.filter(val => val > 0)[0] / 10) < 1e-9) {
+      return ptX === 0;
+    }
+    return Math.abs(ptX - x) < 1e-9;
+  });
+
+  return (
+    <div className="custom-chart-tooltip" style={{
+      backgroundColor: 'var(--mantle)',
+      border: '1px solid var(--mauve)',
+      borderRadius: '8px',
+      padding: '12px 16px',
+      fontSize: '0.8rem',
+      color: 'var(--text)',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '6px',
+      pointerEvents: 'none',
+      zIndex: 1000,
+      minWidth: '240px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--surface2)', paddingBottom: '4px', marginBottom: '4px' }}>
+        <span style={{ color: 'var(--overlay2)', fontWeight: 'bold', fontSize: '0.7rem', letterSpacing: '0.5px' }}>CONCENTRATION</span>
+        <span style={{ fontWeight: 'bold', fontFamily: '"Google Sans Mono", monospace' }}>
+          {x === 0 || Math.abs(x - results.fit.actualX.filter(val => val > 0)[0] / 10) < 1e-9 ? '0 (Blank)' : x.toFixed(4)}
+        </span>
+      </div>
+      
+      {replicates.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ color: 'var(--subtext0)' }}>Replicates:</span>
+          <span style={{ fontWeight: 'bold', color: 'var(--pink)', fontFamily: '"Google Sans Mono", monospace' }}>
+            {replicates.map(val => val.toFixed(3)).join(', ')}
+          </span>
+        </div>
+      )}
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ color: 'var(--subtext0)' }}>Model Fit (Trend):</span>
+        <span style={{ fontWeight: 'bold', color: 'var(--blue)' }}>{pred.toFixed(4)}</span>
+      </div>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ color: 'var(--subtext0)' }}>95% Confidence:</span>
+        <span style={{ fontWeight: 'bold', color: 'var(--lavender)', fontSize: '0.75rem' }}>
+          [{ci.low.toFixed(3)}, {ci.high.toFixed(3)}]
+        </span>
+      </div>
     </div>
   );
 };
@@ -559,7 +626,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.13`);
+    csvRows.push(`App Version,v0.5.14`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -655,7 +722,7 @@ function App() {
     <div className="app-wrapper">
       <header className="app-header">
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.13</h1>
+          <h1>Bioassay LOD Fitter v0.5.14</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         
@@ -851,6 +918,10 @@ function App() {
                         label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fill: 'var(--overlay2)', fontSize: 11, offset: -5 }} 
                       />
                       <Legend verticalAlign="top" content={<CustomLegend />} />
+                      <Tooltip 
+                        content={<CustomTooltip results={results} />} 
+                        cursor={{ stroke: 'var(--overlay1)', strokeDasharray: '4 4', strokeWidth: 1.5 }} 
+                      />
                       
                       {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => (
                         <ReferenceLine 
@@ -983,7 +1054,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.13...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.14...</p></div>
           )}
         </section>
       </main>
