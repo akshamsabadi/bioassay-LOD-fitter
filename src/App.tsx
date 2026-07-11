@@ -630,7 +630,7 @@ function App() {
   return (
     <div className="app-wrapper">
       <header className="app-header">
-        <div class="header-content">
+        <div className="header-content">
           <h1>Bioassay LOD Fitter v0.5.11</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
