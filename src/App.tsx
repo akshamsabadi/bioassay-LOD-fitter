@@ -190,21 +190,37 @@ const CustomMinorYAxisTickLabel = ({ viewBox }: any) => {
 };
 
 const CustomScatterDot = (props: any) => {
-  const { cx, cy, payload, setHoveredPoint } = props;
+  const { cx, cy, payload, setHoveredPoint, tableHoveredRowId, hoveredPointId } = props;
+  const isSelected = payload.id === tableHoveredRowId || payload.id === hoveredPointId;
+  
   return (
-    <circle
-      cx={cx}
-      cy={cy}
-      r={4}
-      fill="var(--red)"
-      onMouseEnter={() => {
-        if (setHoveredPoint) setHoveredPoint({ id: payload.id, y: payload.y, cx, cy, conc: payload.actualX });
-      }}
-      onMouseLeave={() => {
-        if (setHoveredPoint) setHoveredPoint(null);
-      }}
-      style={{ cursor: 'pointer', transition: 'all 0.2s', pointerEvents: 'all' }}
-    />
+    <g>
+      {isSelected && (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={9}
+          fill="none"
+          stroke="var(--pink)"
+          strokeWidth={1.5}
+          className="pulsing-halo"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={isSelected ? 6 : 4}
+        fill={isSelected ? 'var(--pink)' : 'var(--red)'}
+        onMouseEnter={() => {
+          if (setHoveredPoint) setHoveredPoint({ id: payload.id, y: payload.y, cx, cy, conc: payload.actualX });
+        }}
+        onMouseLeave={() => {
+          if (setHoveredPoint) setHoveredPoint(null);
+        }}
+        style={{ cursor: 'pointer', transition: 'all 0.2s', pointerEvents: 'all' }}
+      />
+    </g>
   );
 };
 
@@ -242,6 +258,7 @@ function App() {
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
   const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
   const [hoveredPoint, setHoveredPoint] = useState<{ id: string, y: number, cx: number, cy: number, conc: number | string } | null>(null);
+  const [tableHoveredRowId, setTableHoveredRowId] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -542,7 +559,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.12`);
+    csvRows.push(`App Version,v0.5.13`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -624,14 +641,21 @@ function App() {
   };
 
   const renderScatterDot = useCallback((props: any) => {
-    return <CustomScatterDot {...props} setHoveredPoint={setHoveredPoint} />;
-  }, [setHoveredPoint]);
+    return (
+      <CustomScatterDot 
+        {...props} 
+        setHoveredPoint={setHoveredPoint} 
+        tableHoveredRowId={tableHoveredRowId} 
+        hoveredPointId={hoveredPoint?.id} 
+      />
+    );
+  }, [setHoveredPoint, tableHoveredRowId, hoveredPoint?.id]);
 
   return (
     <div className="app-wrapper">
       <header className="app-header">
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.12</h1>
+          <h1>Bioassay LOD Fitter v0.5.13</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         
@@ -734,7 +758,9 @@ function App() {
           </section>
           <section className="sidebar-section">
             <span className="section-title" style={{ color: 'var(--peach)' }}>Blanks</span>
-            <div className="data-row">
+            <div className="data-row"
+                 onMouseEnter={() => setTableHoveredRowId('blank')}
+                 onMouseLeave={() => setTableHoveredRowId(null)}>
               <div className="conc-input disabled" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: hoveredPoint?.id === 'blank' ? 'var(--pink)' : 'var(--overlay0)' }}>0</div>
               <div style={{ position: 'relative', flex: 1 }}>
                 <input type="text" className="signals-input" placeholder="Comma separated..." value={blankSignals} onChange={e => setBlankSignals(e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === 'blank' ? 'transparent' : 'var(--text)' }} />
@@ -754,7 +780,9 @@ function App() {
             <span className="section-title" style={{ color: 'var(--green)' }}>Standards</span>
             <div className="rows-container">
               {standardRows.map((r) => (
-                <div key={r.id} className="data-row">
+                <div key={r.id} className="data-row"
+                     onMouseEnter={() => setTableHoveredRowId(r.id)}
+                     onMouseLeave={() => setTableHoveredRowId(null)}>
                   <div style={{ position: 'relative' }}>
                     <input type="text" className="conc-input" placeholder="Conc" value={r.conc} onChange={e => updateRow(r.id, 'conc', e.target.value)} style={{ color: hoveredPoint?.id === r.id ? 'var(--pink)' : 'var(--text)' }} />
                   </div>
@@ -955,7 +983,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.12...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.13...</p></div>
           )}
         </section>
       </main>

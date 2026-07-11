@@ -923,3 +923,19 @@ sub {
   0%, 100% { opacity: 0.7; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.2); }
 }
+
+/* Pulsing halo for hovered calibration scatter points */
+.pulsing-halo {
+  animation: halo-pulse 1.6s infinite ease-in-out;
+}
+
+@keyframes halo-pulse {
+  0%, 100% {
+    r: 6px;
+    opacity: 0.9;
+  }
+  50% {
+    r: 10px;
+    opacity: 0.2;
+  }
+}
