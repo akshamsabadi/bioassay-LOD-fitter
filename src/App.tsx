@@ -542,7 +542,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.10`);
+    csvRows.push(`App Version,v0.5.11`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -630,8 +630,8 @@ function App() {
   return (
     <div className="app-wrapper">
       <header className="app-header">
-        <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.10</h1>
+        <div class="header-content">
+          <h1>Bioassay LOD Fitter v0.5.11</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         
@@ -918,7 +918,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.10...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.11...</p></div>
           )}
         </section>
       </main>

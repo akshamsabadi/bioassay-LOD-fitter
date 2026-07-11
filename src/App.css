@@ -477,12 +477,6 @@ body {
   scrollbar-color: var(--surface1) transparent;
 }
 
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .action-btn {
   background: var(--surface0);
   color: var(--text);
@@ -514,12 +508,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.input-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--subtext1);
 }
 
 .method-select, .text-input {

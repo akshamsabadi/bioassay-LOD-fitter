@@ -145,13 +145,3 @@ export const fitData = (x: number[], y: number[], method: 'linear' | 'langmuir' 
     mse
   };
 };
-
-export const autoFit = (x: number[], y: number[]): FitResult => {
-  const fits = [
-    fitData(x, y, 'linear'),
-    fitData(x, y, 'langmuir'),
-    fitData(x, y, '4pl'),
-    fitData(x, y, '5pl')
-  ];
-  return fits.reduce((prev, curr) => curr.metrics.aicc < prev.metrics.aicc ? curr : prev);
-};
