@@ -524,6 +524,59 @@ function App() {
     return points;
   }, [results, blankSignals, standardRows]);
 
+  const qualityChecks = useMemo(() => {
+    if (!results) return null;
+    const warnings: string[] = [];
+
+    // 1. Check R2 Fit quality
+    if (results.fit.metrics.r2 < 0.95) {
+      warnings.push(`Poor fit quality (R² = ${results.fit.metrics.r2.toFixed(4)}). Consider manual model selection.`);
+    }
+
+    // 2. Check Replicate Variance (CV) for Standards
+    standardRows.forEach((row) => {
+      const c = parseFloat(row.conc);
+      if (isNaN(c)) return;
+      const sigs = row.signals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+      if (sigs.length > 1) {
+        const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
+        if (mean > 0) {
+          const sd = Math.sqrt(sigs.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (sigs.length - 1));
+          const cv = sd / mean;
+          if (cv > 0.15) {
+            warnings.push(`High replicate variance at concentration ${c} (CV = ${(cv * 100).toFixed(1)}%). Check for pipetting errors.`);
+          }
+        }
+      }
+    });
+
+    // 3. Check for Monotonicity (Hook Effect or anomalous trend)
+    const sortedStandards = [...standardRows]
+      .map(row => {
+        const c = parseFloat(row.conc);
+        const sigs = row.signals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+        const mean = sigs.length > 0 ? sigs.reduce((a, b) => a + b, 0) / sigs.length : 0;
+        return { conc: c, mean };
+      })
+      .filter(item => !isNaN(item.conc))
+      .sort((a, b) => a.conc - b.conc);
+
+    if (sortedStandards.length > 2) {
+      let increases = 0;
+      let decreases = 0;
+      for (let i = 1; i < sortedStandards.length; i++) {
+        const diff = sortedStandards[i].mean - sortedStandards[i - 1].mean;
+        if (diff > 0.05) increases++;
+        else if (diff < -0.05) decreases++;
+      }
+      if (increases > 0 && decreases > 0) {
+        warnings.push("Non-monotonic response detected (Hook Effect / signal drop at high concentration). Calibration curve may be compromised.");
+      }
+    }
+
+    return warnings;
+  }, [results, standardRows]);
+
   const { yDomain, yTicks, yMajorTicks } = useMemo((): { yDomain: [number | 'auto', number | 'auto'], yTicks: number[] | undefined, yMajorTicks: number[] } => {
     if (!results) return { yDomain: [0, 'auto'], yTicks: undefined, yMajorTicks: [] };
     const maxData = Math.max(...results.fit.actualY, results.ld);
@@ -626,7 +679,7 @@ function App() {
     csvRows.push('# ANALYSIS SUMMARY & STATISTICAL RESULTS');
     csvRows.push('# ===================================================');
     csvRows.push('Parameter,Value');
-    csvRows.push(`App Version,v0.5.15`);
+    csvRows.push(`App Version,v0.5.16`);
     csvRows.push(`Requested Fit Method,${fitMethod}`);
     csvRows.push(`Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
@@ -722,7 +775,7 @@ function App() {
     <div className="app-wrapper">
       <header className="app-header">
         <div className="header-content">
-          <h1>Bioassay LOD Fitter v0.5.15</h1>
+          <h1>Bioassay LOD Fitter v0.5.16</h1>
           <p className="header-description">Sigmoidal fitting with LOD validation.</p>
         </div>
         
@@ -995,6 +1048,25 @@ function App() {
                   <div className="lod-hero-value">{formatSuperscript(results.lodConc)}</div>
                   <span className="lod-hero-unit">{xAxisLabel.split('(')[0].trim()}</span>
                 </div>
+
+                <div className="stats-card quality-checks-card">
+                  <h3 style={{ color: 'var(--peach)', marginBottom: '12px' }}>Assay Quality Checks</h3>
+                  {qualityChecks && qualityChecks.length === 0 ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--green)', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                      <span style={{ fontSize: '1.1rem', color: 'var(--green)' }}>✓</span> All Checks Passed (Optimal Run)
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {qualityChecks?.map((warning, index) => (
+                        <div key={index} style={{ display: 'flex', gap: '8px', fontSize: '0.75rem', color: 'var(--flamingo)', lineHeight: '1.4' }}>
+                          <span style={{ color: 'var(--pink)', fontWeight: 'bold' }}>⚠️</span>
+                          <span>{warning}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="stats-card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <h3 style={{ margin: 0, color: 'var(--blue)' }}>Curve Fitting</h3>
@@ -1058,7 +1130,7 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.15...</p></div>
+            <div className="empty-prompt"><p>Loading Bioassay LOD Fitter v0.5.16...</p></div>
           )}
         </section>
       </main>
