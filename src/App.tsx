@@ -287,7 +287,7 @@ function App() {
       if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
     });
     csvRows.push('', '# ===================================================', '# ANALYSIS SUMMARY & STATISTICAL RESULTS', '# ===================================================', 'Parameter,Value');
-    csvRows.push('App Version,v0.6.5');
+    csvRows.push('App Version,v0.6.6');
     csvRows.push(`Requested Fit Method,${fitMethod}`, `Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
     csvRows.push(`LOD 95% Confidence Interval Low,${results.lodCI.low.toExponential(6)}`, `LOD 95% Confidence Interval High,${results.lodCI.high.toExponential(6)}`);
@@ -342,9 +342,41 @@ function App() {
 
   const handleCopyMetrics = () => {
     if (!results) return;
-    const text = `Bioassay Results\nLOD: ${results.lodConc.toExponential(3)}\nAICc: ${results.fit.metrics.aicc.toFixed(2)}\nR2: ${results.fit.metrics.r2.toFixed(5)}\nLC: ${results.lc.toFixed(4)}\nLD: ${results.ld.toFixed(4)}`;
-    navigator.clipboard.writeText(text);
-    alert('Metrics copied to clipboard!');
+    
+    let fitParamsText = '';
+    Object.entries(results.fit.parameters).forEach(([p, val]) => {
+      fitParamsText += `| **${p}** | ${val.toFixed(6)} |\n`;
+    });
+
+    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.6)
+Generated: ${new Date().toLocaleDateString()}
+
+#### 📈 Primary Results
+| Parameter | Value |
+| :--- | :--- |
+| **Limit of Detection (LOD)** | **${results.lodConc.toExponential(4)}** |
+| **95% Confidence Interval** | [${results.lodCI.low.toExponential(4)}, ${results.lodCI.high.toExponential(4)}] |
+| **Model Fitted** | ${results.fit.method.toUpperCase()} |
+| **R² (Coefficient of Determination)** | ${results.fit.metrics.r2.toFixed(5)} |
+| **AICc Score** | ${results.fit.metrics.aicc.toFixed(2)} |
+
+#### 🧪 Statistical Assay Parameters (Currie 1968 / Holstein et al. 2015)
+| Parameter | Value | Description |
+| :--- | :--- | :--- |
+| **Blank Mean** | ${results.meanBlank.toFixed(4)} | Average background signal |
+| **Blank SD** | ${results.sdBlank.toFixed(4)} | Background standard deviation |
+| **Pooled SD** | ${results.sdPooled.toFixed(4)} | Standards pooled standard deviation |
+| **L_C (Decision Limit)** | ${results.lc.toFixed(4)} | Critical signal threshold (α=0.05) |
+| **L_D (Detection Limit)** | ${results.ld.toFixed(4)} | Minimal detectable signal level (β=0.05) |
+
+#### ⚙️ Curve Fit Parameters
+| Parameter | Value |
+| :--- | :--- |
+${fitParamsText}
+*Copy-paste directly into your markdown lab notes, Slack, Teams, or report documents.*`;
+
+    navigator.clipboard.writeText(report);
+    alert('Comprehensive Analytics Report copied to clipboard as Markdown!');
   };
 
   return (
@@ -417,11 +449,13 @@ function App() {
                 results={results}
                 xAxisLabel={xAxisLabel}
                 handleCopyMetrics={handleCopyMetrics}
+                fitMethod={fitMethod}
+                setFitMethod={setFitMethod}
               />
             </div>
           ) : (
             <div className="empty-prompt">
-              <p>Loading Bioassay LOD Fitter v0.6.5...</p>
+              <p>Loading Bioassay LOD Fitter v0.6.6...</p>
             </div>
           )}
         </section>
