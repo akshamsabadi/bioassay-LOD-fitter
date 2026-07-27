@@ -16,9 +16,9 @@ import {
 import { type AdvancedLoDResult } from '../utils/calculations';
 
 interface XAxisTickProps {
-  x: number;
-  y: number;
-  payload: {
+  x?: number;
+  y?: number;
+  payload?: {
     value: number;
   };
   zeroX: number;
@@ -26,7 +26,8 @@ interface XAxisTickProps {
   breakEnd: number;
 }
 
-const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: XAxisTickProps) => {
+const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }: XAxisTickProps) => {
+  if (!payload) return null;
   const val = payload.value;
   if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
     return (
@@ -69,14 +70,15 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: XAxisTi
 };
 
 interface YAxisTickProps {
-  x: number;
-  y: number;
-  payload: {
+  x?: number;
+  y?: number;
+  payload?: {
     value: number;
   };
 }
 
-const CustomYAxisTick = ({ x, y, payload }: YAxisTickProps) => {
+const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
+  if (!payload) return null;
   const val = payload.value;
   return (
     <g>
@@ -89,7 +91,7 @@ const CustomYAxisTick = ({ x, y, payload }: YAxisTickProps) => {
 };
 
 interface ViewBoxProps {
-  viewBox: {
+  viewBox?: {
     x: number;
     y: number;
     width: number;
@@ -98,6 +100,7 @@ interface ViewBoxProps {
 }
 
 const CustomLcLabel = ({ viewBox }: ViewBoxProps) => {
+  if (!viewBox) return null;
   return (
     <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 4} fill="var(--peach)" fontSize={10}>
       L<tspan dy="0.3em" fontSize={7.5}>C</tspan>
@@ -106,6 +109,7 @@ const CustomLcLabel = ({ viewBox }: ViewBoxProps) => {
 };
 
 const CustomLdLabel = ({ viewBox }: ViewBoxProps) => {
+  if (!viewBox) return null;
   return (
     <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 4} fill="var(--green)" fontSize={10}>
       L<tspan dy="0.3em" fontSize={7.5}>D</tspan>
@@ -114,9 +118,8 @@ const CustomLdLabel = ({ viewBox }: ViewBoxProps) => {
 };
 
 const CustomMinorYAxisTickLabel = ({ viewBox }: Partial<ViewBoxProps>) => {
-  if (!viewBox || !viewBox.viewBox) return null;
-  const vb = viewBox.viewBox;
-  return <line x1={vb.x} y1={vb.y} x2={vb.x - 4} y2={vb.y} stroke="var(--text)" opacity={0.5} />;
+  if (!viewBox) return null;
+  return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--text)" opacity={0.5} />;
 };
 
 interface ScatterDotProps {
