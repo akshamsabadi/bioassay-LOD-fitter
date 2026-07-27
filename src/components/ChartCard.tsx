@@ -180,7 +180,7 @@ const CustomLegend = () => {
       position: 'absolute', 
       top: '16px', 
       left: '80px', 
-      backgroundColor: 'var(--base)', 
+      backgroundColor: 'var(--mantle)', 
       padding: '12px', 
       borderRadius: '8px', 
       border: '1px solid var(--surface1)', 

@@ -15,7 +15,7 @@ import './App.css';
 
 function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('app-theme') as 'dark' | 'light') || 'dark';
+    return (localStorage.getItem('app-theme') as 'dark' | 'light') || 'light';
   });
   const [blankSignals, setBlankSignals] = useState(DEFAULT_BLANKS);
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
@@ -23,7 +23,7 @@ function App() {
   const [subtheme, setSubtheme] = useState<string>(() => {
     const saved = localStorage.getItem('app-subtheme');
     if (saved) return saved;
-    return theme === 'dark' ? 'slate' : 'air';
+    return theme === 'dark' ? 'near-midnight' : 'air';
   });
   const [fitMethod, setFitMethod] = useState<'linear' | 'langmuir' | '4pl' | '5pl' | 'auto'>('auto');
   const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
@@ -42,7 +42,7 @@ function App() {
   const toggleTheme = () => {
     setTheme(prev => {
       const next = prev === 'dark' ? 'light' : 'dark';
-      setSubtheme(next === 'dark' ? 'slate' : 'air');
+      setSubtheme(next === 'dark' ? 'near-midnight' : 'air');
       return next;
     });
   };
