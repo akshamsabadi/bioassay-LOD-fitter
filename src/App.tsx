@@ -287,7 +287,7 @@ function App() {
       if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
     });
     csvRows.push('', '# ===================================================', '# ANALYSIS SUMMARY & STATISTICAL RESULTS', '# ===================================================', 'Parameter,Value');
-    csvRows.push('App Version,v0.6.1');
+    csvRows.push('App Version,v0.6.2');
     csvRows.push(`Requested Fit Method,${fitMethod}`, `Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
     csvRows.push(`LOD 95% Confidence Interval Low,${results.lodCI.low.toExponential(6)}`, `LOD 95% Confidence Interval High,${results.lodCI.high.toExponential(6)}`);
@@ -421,7 +421,7 @@ function App() {
             </div>
           ) : (
             <div className="empty-prompt">
-              <p>Loading Bioassay LOD Fitter v0.6.1...</p>
+              <p>Loading Bioassay LOD Fitter v0.6.2...</p>
             </div>
           )}
         </section>

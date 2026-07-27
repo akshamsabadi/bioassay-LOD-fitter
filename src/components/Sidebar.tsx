@@ -53,6 +53,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
+      {/* EXPLANATORY GUIDE BANNER FOR NEW USERS */}
+      <div style={{
+        fontSize: '0.75rem',
+        color: 'var(--subtext1)',
+        backgroundColor: 'var(--surface0)',
+        borderLeft: '3px solid var(--blue)',
+        padding: '10px 14px',
+        borderRadius: '0 8px 8px 0',
+        lineHeight: '1.4'
+      }}>
+        💡 <strong>Quick Start Guide:</strong> Enter your standards' concentrations on the left and measured signals on the right. For multiple replicates at the same concentration, enter them as a comma-separated list (e.g., <code>1.21, 1.25, 1.18</code>).
+      </div>
+
       {/* SECTION 1: MODEL OPTIONS */}
       <section className="sidebar-section" style={{ margin: 0 }}>
         <span className="section-title" style={{ color: 'var(--mauve)', display: 'block', marginBottom: '8px' }}>Fitting Model</span>
@@ -98,6 +111,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </section>
 
+      {/* COLUMN HEADERS FOR THE DATA TABLES */}
+      <div style={{ 
+        display: 'flex', 
+        gap: '8px', 
+        padding: '0 4px', 
+        marginBottom: '-12px', 
+        fontSize: '0.7rem', 
+        color: 'var(--subtext0)', 
+        fontWeight: 'bold', 
+        textTransform: 'uppercase', 
+        letterSpacing: '0.5px' 
+      }}>
+        <div style={{ width: '60px', textAlign: 'center' }}>Conc.</div>
+        <div style={{ flex: 1, paddingLeft: '4px' }}>Replicate Signals (comma-separated)</div>
+        <div style={{ width: '20px' }}></div>
+      </div>
+
       {/* SECTION 3: BLANKS DATA ENTRY */}
       <section className="sidebar-section" style={{ margin: 0 }}>
         <span className="section-title" style={{ color: 'var(--peach)', marginBottom: '10px' }}>Blanks</span>
@@ -106,7 +136,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
              onMouseLeave={() => setTableHoveredRowId(null)}>
           <div className="conc-input disabled" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: hoveredPoint?.id === 'blank' ? 'var(--pink)' : 'var(--overlay0)' }}>0</div>
           <div style={{ position: 'relative', flex: 1 }}>
-            <input type="text" className="signals-input" placeholder="Comma separated..." value={blankSignals} onChange={e => setBlankSignals(e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === 'blank' ? 'transparent' : 'var(--text)' }} />
+            <input type="text" className="signals-input" placeholder="e.g. 0.08, 0.12, 0.10" value={blankSignals} onChange={e => setBlankSignals(e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === 'blank' ? 'transparent' : 'var(--text)' }} />
             {hoveredPoint?.id === 'blank' && (
               <div className="signals-input" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'transparent', borderColor: 'transparent', pointerEvents: 'none', whiteSpace: 'pre', overflow: 'hidden' }}>
                 {blankSignals.split(/(,)/).map((part, i) => {
@@ -129,10 +159,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                  onMouseEnter={() => setTableHoveredRowId(r.id)}
                  onMouseLeave={() => setTableHoveredRowId(null)}>
               <div style={{ position: 'relative' }}>
-                <input type="text" className="conc-input" placeholder="Conc" value={r.conc} onChange={e => updateRow(r.id, 'conc', e.target.value)} style={{ color: hoveredPoint?.id === r.id ? 'var(--pink)' : 'var(--text)' }} />
+                <input type="text" className="conc-input" placeholder="e.g. 0.1" value={r.conc} onChange={e => updateRow(r.id, 'conc', e.target.value)} style={{ color: hoveredPoint?.id === r.id ? 'var(--pink)' : 'var(--text)' }} />
               </div>
               <div style={{ position: 'relative', flex: 1 }}>
-                <input type="text" className="signals-input" placeholder="Signals..." value={r.signals} onChange={e => updateRow(r.id, 'signals', e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === r.id ? 'transparent' : 'var(--text)' }} />
+                <input type="text" className="signals-input" placeholder="e.g. 0.15, 0.17, 0.16" value={r.signals} onChange={e => updateRow(r.id, 'signals', e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === r.id ? 'transparent' : 'var(--text)' }} />
                 {hoveredPoint?.id === r.id && (
                   <div className="signals-input" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'transparent', borderColor: 'transparent', pointerEvents: 'none', whiteSpace: 'pre', overflow: 'hidden' }}>
                     {r.signals.split(/(,)/).map((part, i) => {
@@ -155,7 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </section>
 
-      {/* SECTION 5: ASSAY DIAGNOSTICS - Moved back to the sidebar */}
+      {/* SECTION 5: ASSAY DIAGNOSTICS */}
       {results && (
         <section className="sidebar-section" style={{
           margin: 0,
