@@ -91,7 +91,6 @@ export const Header: React.FC<HeaderProps> = ({
             ?
           </div>
         </div>
-        </div>
 
         {/* SECTION 3: THEME SETTINGS */}
         <div className="toolbar-section" title="Theme Settings" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
