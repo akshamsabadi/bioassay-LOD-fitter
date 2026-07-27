@@ -43,7 +43,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   standardRows,
   updateRow,
   onAddRow,
-  onRemoveLast,
   onRemoveRow,
   hoveredPoint,
   setTableHoveredRowId,
@@ -53,19 +52,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* EXPLANATORY GUIDE BANNER FOR NEW USERS */}
-      <div style={{
-        fontSize: '0.75rem',
-        color: 'var(--subtext1)',
-        backgroundColor: 'var(--surface0)',
-        borderLeft: '3px solid var(--blue)',
-        padding: '10px 14px',
-        borderRadius: '0 8px 8px 0',
-        lineHeight: '1.4'
-      }}>
-        💡 <strong>Quick Start Guide:</strong> Enter your standards' concentrations on the left and measured signals on the right. For multiple replicates at the same concentration, enter them as a comma-separated list (e.g., <code>1.21, 1.25, 1.18</code>).
-      </div>
-
       {/* SECTION 1: MODEL OPTIONS */}
       <section className="sidebar-section" style={{ margin: 0 }}>
         <span className="section-title" style={{ color: 'var(--mauve)', display: 'block', marginBottom: '8px' }}>Fitting Model</span>
@@ -110,23 +96,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       </section>
-
-      {/* COLUMN HEADERS FOR THE DATA TABLES */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '8px', 
-        padding: '0 4px', 
-        marginBottom: '-12px', 
-        fontSize: '0.7rem', 
-        color: 'var(--subtext0)', 
-        fontWeight: 'bold', 
-        textTransform: 'uppercase', 
-        letterSpacing: '0.5px' 
-      }}>
-        <div style={{ width: '60px', textAlign: 'center' }}>Conc.</div>
-        <div style={{ flex: 1, paddingLeft: '4px' }}>Replicate Signals (comma-separated)</div>
-        <div style={{ width: '20px' }}></div>
-      </div>
 
       {/* SECTION 3: BLANKS DATA ENTRY */}
       <section className="sidebar-section" style={{ margin: 0 }}>
@@ -177,12 +146,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="add-row-btn" style={{ flex: 1, padding: '10px' }} onClick={onAddRow}>+ Add Point</button>
-          {standardRows.length > 1 && (
-            <button className="remove-last-btn" style={{ flex: 1, padding: '10px' }} onClick={onRemoveLast}>- Remove Last</button>
-          )}
-        </div>
+        
+        {/* Modern dashed outline "Add Point" (+) button */}
+        <button
+          onClick={onAddRow}
+          style={{
+            width: '100%',
+            padding: '8px',
+            backgroundColor: 'transparent',
+            border: '1px dashed var(--surface2)',
+            borderRadius: '6px',
+            color: 'var(--subtext0)',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: '4px'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'var(--blue)';
+            e.currentTarget.style.color = 'var(--blue)';
+            e.currentTarget.style.backgroundColor = 'var(--surface0)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'var(--surface2)';
+            e.currentTarget.style.color = 'var(--subtext0)';
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
+        >
+          +
+        </button>
       </section>
 
       {/* SECTION 5: ASSAY DIAGNOSTICS */}
