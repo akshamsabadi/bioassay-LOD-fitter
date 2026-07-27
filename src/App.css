@@ -612,7 +612,7 @@ body {
 
 .toolbar-select {
   height: 28px;
-  padding: 0 8px;
+  padding: 0 28px 0 10px;
   background: var(--surface1);
   color: var(--text);
   border: 1px solid var(--surface2);
@@ -622,6 +622,16 @@ body {
   cursor: pointer;
   outline: none;
   transition: all 0.15s ease-in-out;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2388889b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 4.5 6 7.5 9 4.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+[data-theme='light'] .toolbar-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23424851' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 4.5 6 7.5 9 4.5'/></svg>");
 }
 
 .toolbar-select:hover {
@@ -682,7 +692,29 @@ body {
   gap: 4px;
 }
 
-.method-select, .text-input {
+.method-select {
+  width: 100%;
+  padding: 6px 28px 6px 8px;
+  background: var(--surface0);
+  color: var(--text);
+  border: 1px solid var(--surface1);
+  border-radius: 6px;
+  outline: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2388889b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 4.5 6 7.5 9 4.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+[data-theme='light'] .method-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23424851' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 4.5 6 7.5 9 4.5'/></svg>");
+}
+
+.text-input {
   width: 100%;
   padding: 6px 8px;
   background: var(--surface0);
@@ -692,8 +724,6 @@ body {
   outline: none;
   font-size: 0.8rem;
 }
-
-.method-select { cursor: pointer; }
 .text-input:focus { border-color: var(--blue); }
 
 /* Data Table UI */
@@ -1224,4 +1254,11 @@ button,
 .toolbar-btn:active, .action-btn:active {
   transform: translateY(0);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Premium styled options for standard select dropdown elements */
+select option {
+  background-color: var(--base);
+  color: var(--text);
+  padding: 8px;
 }
