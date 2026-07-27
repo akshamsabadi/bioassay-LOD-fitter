@@ -111,20 +111,12 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                 <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Akaike Information Criterion (corrected). Lower scores indicate a superior balance of model fit and simplicity."><span className="stat-label">AICc Score</span></span><span className="stat-value">{results.fit.metrics.aicc.toFixed(2)}</span></div>
                 
-                <div className="stat-row" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '2px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="stat-label-wrap" data-tooltip="Coefficient of determination. Closer to 1.0 indicates a stronger fit."><span className="stat-label">R² (Fit)</span></span>
-                    <span className="stat-value">{results.fit.metrics.r2.toFixed(5)}</span>
-                  </div>
-                  {/* R² Visual Progress Bar */}
-                  <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--surface0)', borderRadius: '2px', overflow: 'hidden', marginTop: '2px' }}>
-                    <div style={{
-                      width: `${Math.min(100, Math.max(0, results.fit.metrics.r2 * 100))}%`,
-                      height: '100%',
-                      backgroundColor: results.fit.metrics.r2 >= 0.99 ? 'var(--green)' : results.fit.metrics.r2 >= 0.95 ? 'var(--peach)' : 'var(--red)',
-                      transition: 'width 0.3s ease'
-                    }} />
-                  </div>
+                <div className="stat-row">
+                  <span className="stat-label-wrap" data-tooltip="Coefficient of determination. Closer to 1.0 indicates a stronger fit."><span className="stat-label">R² (Fit)</span></span>
+                  <span className="stat-value" style={{
+                    color: results.fit.metrics.r2 >= 0.99 ? 'var(--green)' : results.fit.metrics.r2 >= 0.95 ? 'var(--peach)' : 'var(--pink)',
+                    fontWeight: 'bold'
+                  }}>{results.fit.metrics.r2.toFixed(5)}</span>
                 </div>
 
                 <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The lower asymptote of the sigmoidal curve, representing the theoretical background signal at analyte concentration zero."><span className="stat-label">Bottom (a)</span></span><span className="stat-value">{results.fit.parameters['Bottom (a)']?.toFixed(4) || 'N/A'}</span></div>

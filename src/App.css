@@ -777,9 +777,8 @@ body {
 .stat-label-wrap::after {
   content: attr(data-tooltip);
   position: absolute;
-  top: 50%;
-  right: calc(100% + 12px);
-  transform: translateY(-50%);
+  bottom: calc(100% + 12px);
+  left: 0;
   background: linear-gradient(135deg, var(--surface1), var(--surface0));
   color: var(--text);
   border: 1px solid var(--mauve);
@@ -794,7 +793,7 @@ body {
   z-index: 1000;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s, visibility 0.2s, right 0.2s;
+  transition: opacity 0.2s, visibility 0.2s, bottom 0.2s;
   pointer-events: none;
   box-shadow: 0 8px 16px rgba(0,0,0,0.4);
   font-weight: 500;
@@ -803,7 +802,7 @@ body {
 .stat-label-wrap:hover::after {
   opacity: 1;
   visibility: visible;
-  right: calc(100% + 8px);
+  bottom: calc(100% + 8px);
 }
 
 sub {
