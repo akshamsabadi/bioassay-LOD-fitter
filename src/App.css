@@ -507,9 +507,9 @@ body {
 
 /* Header */
 .app-header {
-  background-color: var(--mantle);
+  background-color: var(--crust);
   padding: 8px 24px;
-  border-bottom: 1px solid var(--surface0);
+  border-bottom: 1px solid var(--surface1);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -638,8 +638,8 @@ body {
 /* Sidebar */
 .sidebar {
   width: 320px;
-  background-color: var(--mantle);
-  border-right: 1px solid var(--surface0);
+  background-color: var(--crust);
+  border-right: 1px solid var(--surface1);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -789,7 +789,7 @@ body {
 /* Content Area */
 .content-area {
   flex: 1;
-  background-color: var(--base);
+  background-color: var(--crust);
   overflow-y: hidden;
   padding: 16px;
 }
@@ -803,10 +803,10 @@ body {
 }
 
 .chart-card {
-  background-color: var(--mantle);
+  background-color: var(--base);
   border-radius: 12px;
   padding: 16px;
-  border: 1px solid var(--surface0);
+  border: 1px solid var(--surface1);
   display: flex;
   flex-direction: column;
 }
@@ -862,10 +862,10 @@ body {
 }
 
 .stats-card {
-  background-color: var(--mantle);
+  background-color: var(--base);
   border-radius: 12px;
   padding: 16px;
-  border: 1px solid var(--surface0);
+  border: 1px solid var(--surface1);
 }
 
 .stats-card h3 {

@@ -12,7 +12,7 @@ interface ResultsPanelProps {
 
 const formatSuperscript = (val: number): ReactNode => {
   if (isNaN(val)) {
-    return <span className="out-of-bounds-lod" style={{ fontSize: '1.2rem', color: 'var(--maroon)', fontWeight: 'bold' }}>Out of Bounds</span>;
+    return <span className="out-of-bounds-lod" style={{ fontSize: '1.2rem', color: 'var(--red)', fontWeight: 'bold' }}>Out of Bounds</span>;
   }
   if (val === 0) return '0';
   const exponent = Math.floor(Math.log10(Math.abs(val)));

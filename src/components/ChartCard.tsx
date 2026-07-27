@@ -180,10 +180,10 @@ const CustomLegend = () => {
       position: 'absolute', 
       top: '16px', 
       left: '80px', 
-      backgroundColor: 'var(--mantle)', 
+      backgroundColor: 'var(--base)', 
       padding: '12px', 
       borderRadius: '8px', 
-      border: '1px solid var(--surface0)', 
+      border: '1px solid var(--surface1)', 
       zIndex: 10,
       transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease'
     }}>
@@ -223,7 +223,7 @@ const CustomTooltip = ({ active, payload, results }: TooltipProps) => {
 
   return (
     <div className="custom-chart-tooltip" style={{
-      backgroundColor: 'var(--mantle)',
+      backgroundColor: 'var(--crust)',
       border: '1px solid var(--mauve)',
       borderRadius: '8px',
       padding: '12px 16px',
@@ -533,7 +533,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             position: 'absolute',
             left: hoveredPoint.cx + 15,
             top: hoveredPoint.cy - 15,
-            backgroundColor: 'var(--mantle)',
+            backgroundColor: 'var(--crust)',
             border: '1px solid var(--pink)',
             borderRadius: '8px',
             padding: '10px 14px',
