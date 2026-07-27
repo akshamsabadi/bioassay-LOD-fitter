@@ -31,23 +31,35 @@ export const Header: React.FC<HeaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <header className="app-header">
-      <div className="header-content">
-        <h1>Bioassay LOD Fitter v0.6.1</h1>
-        <p className="header-description">Sigmoidal fitting with LOD validation.</p>
+    <header className="app-header" style={{
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '10px 24px',
+      backgroundColor: 'var(--mantle)',
+      borderBottom: '1px solid var(--surface1)',
+      gap: '16px',
+      flexWrap: 'wrap',
+      minHeight: '60px'
+    }}>
+      <div className="header-content" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <h1 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>🧪</span> Bioassay LOD Fitter
+          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--surface2)', borderRadius: '10px', color: 'var(--subtext1)', fontWeight: 'normal', fontFamily: 'monospace' }}>v0.6.1</span>
+        </h1>
+        <p className="header-description" style={{ margin: 0, display: 'none' }}>Sigmoidal fitting with LOD validation.</p>
       </div>
       
-      <div className="toolbar-container">
+      <div className="toolbar-container" style={{ margin: 0, display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
         {/* SECTION 1: DATA PRESETS */}
-        <div className="toolbar-section" title="Data Presets">
-          <span className="toolbar-section-label">Data</span>
-          <button className="toolbar-btn" onClick={handleClearData} title="Clear all input standard and blank data">Clear Data</button>
-          <button className="toolbar-btn primary-btn" onClick={handleLoadDemo} title={"Load the next experimental dataset preset: " + demoName}>Load Demo</button>
+        <div className="toolbar-section" title="Data Presets" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button className="toolbar-btn" onClick={handleClearData} title="Clear all input standard and blank data" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Clear Data</button>
+          <button className="toolbar-btn primary-btn" onClick={handleLoadDemo} title={"Load the next experimental dataset preset: " + demoName} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Load Demo</button>
         </div>
 
         {/* SECTION 2: CSV ACTIONS */}
-        <div className="toolbar-section" title="CSV Actions">
-          <span className="toolbar-section-label">CSV</span>
+        <div className="toolbar-section" title="CSV Actions" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
           <input
             type="file"
             ref={fileInputRef}
@@ -55,8 +67,8 @@ export const Header: React.FC<HeaderProps> = ({
             style={{ display: 'none' }}
             accept=".csv"
           />
-          <button className="toolbar-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data">Template</button>
-          <button className="toolbar-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file">Import</button>
+          <button className="toolbar-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Template</button>
+          <button className="toolbar-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Import</button>
           <div
             className="help-tooltip"
             data-tooltip="CSV IMPORT FORMAT RULES:&#10;1. First column must be the Concentration (numeric value).&#10;2. Use 0, 'blank', or 'blanks' to specify blank rows.&#10;3. Subsequent columns are your measured signal replicates.&#10;4. Any row starting with '#' is ignored as a comment.&#10;&#10;Click 'Template' to download an example!"
@@ -79,18 +91,18 @@ export const Header: React.FC<HeaderProps> = ({
             ?
           </div>
           {results && (
-            <button className="toolbar-btn success-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">Export Report</button>
+            <button className="toolbar-btn success-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Export Report</button>
           )}
         </div>
 
         {/* SECTION 3: THEME SETTINGS */}
-        <div className="toolbar-section" title="Theme Settings">
-          <span className="toolbar-section-label">Theme</span>
+        <div className="toolbar-section" title="Theme Settings" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
           <select
             value={subtheme}
             onChange={e => setSubtheme(e.target.value)}
             className="toolbar-select"
             title="Choose your preferred Observable theme style"
+            style={{ padding: '4px 8px', fontSize: '0.75rem', height: '28px' }}
           >
             {theme === 'dark' ? (
               <>
@@ -108,9 +120,9 @@ export const Header: React.FC<HeaderProps> = ({
               </>
             )}
           </select>
-          <div className="theme-toggle-pill" onClick={toggleTheme} title="Toggle Light/Dark Mode">
+          <div className="theme-toggle-pill" onClick={toggleTheme} title="Toggle Light/Dark Mode" style={{ height: '24px', width: '48px', padding: '2px' }}>
             <span className={`toggle-track ${theme}`}>
-              <span className="toggle-thumb">
+              <span className="toggle-thumb" style={{ fontSize: '10px', height: '18px', width: '18px', lineHeight: '18px' }}>
                 {theme === 'dark' ? '🌙' : '☀️'}
               </span>
             </span>
