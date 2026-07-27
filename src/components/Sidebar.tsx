@@ -225,7 +225,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               gap: '8px',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}>
-              <span style={{ fontSize: '1rem', color: 'var(--green)' }}>✨</span>
               <span>All quality checks passed successfully!</span>
             </div>
           )}

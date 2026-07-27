@@ -386,8 +386,61 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             <span className="warning-badge">Better fit available ({results.comparison.betterMethod.toUpperCase()})</span>
           )}
           
-          <button className="action-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">📥 CSV</button>
-          <button className="action-btn" onClick={handleDownloadPlot} title="Download Plot (300 DPI, PNG)">📥 PNG</button>
+          <button 
+            className="action-btn" 
+            onClick={handleExportCSV} 
+            title="Export raw data and analysis results as CSV"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '44px',
+              height: '44px',
+              padding: '4px',
+              borderRadius: '8px',
+              fontSize: '0.65rem',
+              fontWeight: 'bold',
+              lineHeight: '1.2',
+              backgroundColor: 'var(--surface0)',
+              border: '1px solid var(--surface1)',
+              color: 'var(--text)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+              userSelect: 'none'
+            }}
+          >
+            <span>CSV</span>
+            <span style={{ fontSize: '0.8rem', marginTop: '2px', lineHeight: '1' }}>↓</span>
+          </button>
+          
+          <button 
+            className="action-btn" 
+            onClick={handleDownloadPlot} 
+            title="Download Plot (300 DPI, PNG)"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '44px',
+              height: '44px',
+              padding: '4px',
+              borderRadius: '8px',
+              fontSize: '0.65rem',
+              fontWeight: 'bold',
+              lineHeight: '1.2',
+              backgroundColor: 'var(--surface0)',
+              border: '1px solid var(--surface1)',
+              color: 'var(--text)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease-in-out',
+              userSelect: 'none'
+            }}
+          >
+            <span>PNG</span>
+            <span style={{ fontSize: '0.8rem', marginTop: '2px', lineHeight: '1' }}>↓</span>
+          </button>
         </div>
       </div>
       
