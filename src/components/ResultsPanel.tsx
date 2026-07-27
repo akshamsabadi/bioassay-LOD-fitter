@@ -5,7 +5,6 @@ interface ResultsPanelProps {
   results: AdvancedLoDResult;
   xAxisLabel: string;
   handleCopyMetrics: () => void;
-  qualityChecks: string[] | null;
 }
 
 const formatSuperscript = (val: number): ReactNode => {
@@ -25,19 +24,17 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   results,
   xAxisLabel,
   handleCopyMetrics,
-  qualityChecks,
 }) => {
-  const [activeTab, setActiveTab] = useState<'summary' | 'fit' | 'stats' | 'models'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'models'>('summary');
 
   return (
-    <div className="results-side-panel">
+    <div className="results-side-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Segmented Tab Controls */}
       <div className="results-tabs" style={{
         display: 'flex',
         backgroundColor: 'var(--surface0)',
         padding: '4px',
         borderRadius: '8px',
-        marginBottom: '16px',
         border: '1px solid var(--surface1)',
         gap: '2px'
       }}>
@@ -60,42 +57,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           Summary
         </button>
         <button
-          onClick={() => setActiveTab('fit')}
-          className={`tab-btn ${activeTab === 'fit' ? 'active' : ''}`}
-          style={{
-            flex: 1,
-            padding: '8px 4px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '0.75rem',
-            fontWeight: 'bold',
-            transition: 'all 0.2s',
-            backgroundColor: activeTab === 'fit' ? 'var(--surface2)' : 'transparent',
-            color: activeTab === 'fit' ? 'var(--mauve)' : 'var(--subtext0)'
-          }}
-        >
-          Fit Details
-        </button>
-        <button
-          onClick={() => setActiveTab('stats')}
-          className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
-          style={{
-            flex: 1,
-            padding: '8px 4px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '0.75rem',
-            fontWeight: 'bold',
-            transition: 'all 0.2s',
-            backgroundColor: activeTab === 'stats' ? 'var(--surface2)' : 'transparent',
-            color: activeTab === 'stats' ? 'var(--peach)' : 'var(--subtext0)'
-          }}
-        >
-          Stats
-        </button>
-        <button
           onClick={() => setActiveTab('models')}
           className={`tab-btn ${activeTab === 'models' ? 'active' : ''}`}
           style={{
@@ -111,13 +72,14 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             color: activeTab === 'models' ? 'var(--green)' : 'var(--subtext0)'
           }}
         >
-          Models
+          Model Comparison
         </button>
       </div>
 
-      {/* TAB 1: SUMMARY */}
+      {/* TAB 1: SUMMARY (Contains LOD Hero, Curve Fitting details, and Assay Parameters) */}
       {activeTab === 'summary' && (
         <div className="tab-content" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* LOD Hero Card */}
           <div className="lod-hero-card" style={{ margin: 0 }}>
             <label>LOD</label>
             <div className="lod-hero-value">{formatSuperscript(results.lodConc)}</div>
@@ -129,66 +91,36 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             <span className="lod-hero-unit">{xAxisLabel.split('(')[0].trim()}</span>
           </div>
 
-          {/* Integrated Assay Warnings / Diagnostics */}
-          <div className="stats-card" style={{ borderLeft: '3px solid var(--mauve)' }}>
-            <h3 style={{ color: 'var(--mauve)', margin: '0 0 12px 0' }}>Assay Diagnostics</h3>
-            {qualityChecks && qualityChecks.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {qualityChecks.map((warning, index) => (
-                  <div key={index} style={{
-                    fontSize: '0.75rem',
-                    color: 'var(--pink)',
-                    backgroundColor: 'color-mix(in srgb, var(--pink) 10%, transparent)',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    lineHeight: '1.4',
-                    border: '1px solid color-mix(in srgb, var(--pink) 20%, transparent)'
-                  }}>
-                    ⚠️ {warning}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ fontSize: '0.75rem', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>✨</span> All analytical quality checks passed successfully!
-              </div>
+          {/* Curve Fitting details */}
+          <div className="stats-card" style={{ margin: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, color: 'var(--blue)' }}>Curve Fitting</h3>
+              <button className="action-btn" onClick={handleCopyMetrics} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>Copy</button>
+            </div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Akaike Information Criterion (corrected). Evaluates the relative quality of statistical models for a given set of data, penalising for complexity to prevent overfitting. Lower scores indicate a superior balance of model fit and simplicity."><span className="stat-label">AICc Score</span></span><span className="stat-value">{results.fit.metrics.aicc.toFixed(2)}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Coefficient of determination. Represents the proportion of the variance in the dependent variable that is predictable from the independent variable. Closer to 1.0 indicates a stronger fit."><span className="stat-label">R² (Fit)</span></span><span className="stat-value">{results.fit.metrics.r2.toFixed(5)}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The lower asymptote of the sigmoidal curve, representing the theoretical background signal at an analyte concentration of zero."><span className="stat-label">Bottom (a)</span></span><span className="stat-value">{results.fit.parameters['Bottom (a)']?.toFixed(4) || 'N/A'}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Hill coefficient characterizing the steepness of the sigmoidal curve at the inflection point."><span className="stat-label">Hill Slope (b)</span></span><span className="stat-value">{results.fit.parameters['Hill Slope (b)']?.toFixed(4) || 'N/A'}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The concentration corresponding to a response halfway between the lower and upper asymptotes."><span className="stat-label">EC50 (c)</span></span><span className="stat-value">{results.fit.parameters['EC50 (c)']?.toFixed(4) || 'N/A'}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The upper asymptote of the sigmoidal curve, representing the maximum theoretical response (saturation) of the assay."><span className="stat-label">Top (d)</span></span><span className="stat-value">{results.fit.parameters['Top (d)']?.toFixed(4) || 'N/A'}</span></div>
+            {results.fit.parameters['Asymmetry (g)'] !== undefined && (
+              <div className="stat-row"><span className="stat-label-wrap" data-tooltip="An asymmetry parameter in the 5PL model that allows the curve to approach the upper and lower asymptotes at different rates."><span className="stat-label">Asymmetry (g)</span></span><span className="stat-value">{results.fit.parameters['Asymmetry (g)'].toFixed(4)}</span></div>
             )}
           </div>
-        </div>
-      )}
 
-      {/* TAB 2: FIT DETAILS */}
-      {activeTab === 'fit' && (
-        <div className="tab-content stats-card" style={{ margin: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0, color: 'var(--blue)' }}>Curve Fitting</h3>
-            <button className="action-btn" onClick={handleCopyMetrics} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>Copy</button>
+          {/* Assay Parameters */}
+          <div className="stats-card" style={{ margin: 0 }}>
+            <h3 style={{ color: 'var(--red)', margin: '0 0 12px 0' }}>Assay Parameters</h3>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The arithmetic mean of the measured signal responses for the zero-concentration blank replicates."><span className="stat-label">Blank Mean</span></span><span className="stat-value">{results.meanBlank.toFixed(4)}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The sample standard deviation of the measured signal responses for the zero-concentration blank replicates."><span className="stat-label">Blank SD</span></span><span className="stat-value">{results.sdBlank.toFixed(4)}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="A weighted average of the standard deviations from the non-zero standard replicates, providing a more robust estimate of assay variance in the low-concentration regime."><span className="stat-label">Pooled SD</span></span><span className="stat-value">{results.sdPooled.toFixed(4)}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Decision Limit (LC) is the signal threshold above which an observed response is statistically considered to be distinct from background noise (guarding against false positives, α=0.05)."><span className="stat-label">L<sub>C</sub></span></span><span className="stat-value" style={{color: 'var(--peach)'}}>{results.lc.toFixed(4)}</span></div>
+            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Detection Limit Signal (LD) is the true signal level at which there is a 95% probability that the measured signal will fall above LC (guarding against false negatives, β=0.05)."><span className="stat-label">L<sub>D</sub></span></span><span className="stat-value" style={{color: 'var(--green)'}}>{results.ld.toFixed(4)}</span></div>
           </div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Akaike Information Criterion (corrected). Evaluates the relative quality of statistical models for a given set of data, penalising for complexity to prevent overfitting. Lower scores indicate a superior balance of model fit and simplicity."><span className="stat-label">AICc Score</span></span><span className="stat-value">{results.fit.metrics.aicc.toFixed(2)}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="Coefficient of determination. Represents the proportion of the variance in the dependent variable that is predictable from the independent variable. Closer to 1.0 indicates a stronger fit."><span className="stat-label">R² (Fit)</span></span><span className="stat-value">{results.fit.metrics.r2.toFixed(5)}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The lower asymptote of the sigmoidal curve, representing the theoretical background signal at an analyte concentration of zero."><span className="stat-label">Bottom (a)</span></span><span className="stat-value">{results.fit.parameters['Bottom (a)']?.toFixed(4) || 'N/A'}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Hill coefficient characterizing the steepness of the sigmoidal curve at the inflection point."><span className="stat-label">Hill Slope (b)</span></span><span className="stat-value">{results.fit.parameters['Hill Slope (b)']?.toFixed(4) || 'N/A'}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The concentration corresponding to a response halfway between the lower and upper asymptotes."><span className="stat-label">EC50 (c)</span></span><span className="stat-value">{results.fit.parameters['EC50 (c)']?.toFixed(4) || 'N/A'}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The upper asymptote of the sigmoidal curve, representing the maximum theoretical response (saturation) of the assay."><span className="stat-label">Top (d)</span></span><span className="stat-value">{results.fit.parameters['Top (d)']?.toFixed(4) || 'N/A'}</span></div>
-          {results.fit.parameters['Asymmetry (g)'] !== undefined && (
-            <div className="stat-row"><span className="stat-label-wrap" data-tooltip="An asymmetry parameter in the 5PL model that allows the curve to approach the upper and lower asymptotes at different rates."><span className="stat-label">Asymmetry (g)</span></span><span className="stat-value">{results.fit.parameters['Asymmetry (g)'].toFixed(4)}</span></div>
-          )}
         </div>
       )}
 
-      {/* TAB 3: STATS */}
-      {activeTab === 'stats' && (
-        <div className="tab-content stats-card" style={{ margin: 0 }}>
-          <h3 style={{ color: 'var(--red)', margin: '0 0 12px 0' }}>Assay Parameters</h3>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The arithmetic mean of the measured signal responses for the zero-concentration blank replicates."><span className="stat-label">Blank Mean</span></span><span className="stat-value">{results.meanBlank.toFixed(4)}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The sample standard deviation of the measured signal responses for the zero-concentration blank replicates."><span className="stat-label">Blank SD</span></span><span className="stat-value">{results.sdBlank.toFixed(4)}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="A weighted average of the standard deviations from the non-zero standard replicates, providing a more robust estimate of assay variance in the low-concentration regime."><span className="stat-label">Pooled SD</span></span><span className="stat-value">{results.sdPooled.toFixed(4)}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Decision Limit (LC) is the signal threshold above which an observed response is statistically considered to be distinct from background noise (guarding against false positives, α=0.05)."><span className="stat-label">L<sub>C</sub></span></span><span className="stat-value" style={{color: 'var(--peach)'}}>{results.lc.toFixed(4)}</span></div>
-          <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Detection Limit Signal (LD) is the true signal level at which there is a 95% probability that the measured signal will fall above LC (guarding against false negatives, β=0.05)."><span className="stat-label">L<sub>D</sub></span></span><span className="stat-value" style={{color: 'var(--green)'}}>{results.ld.toFixed(4)}</span></div>
-        </div>
-      )}
-
-      {/* TAB 4: MODELS */}
+      {/* TAB 2: MODELS */}
       {activeTab === 'models' && (
         <div className="tab-content stats-card model-comparison-card" style={{ margin: 0 }}>
           <h3 style={{ color: 'var(--mauve)', marginBottom: '12px' }}>Model Comparison (AICc)</h3>

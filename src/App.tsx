@@ -417,7 +417,6 @@ function App() {
                 results={results}
                 xAxisLabel={xAxisLabel}
                 handleCopyMetrics={handleCopyMetrics}
-                qualityChecks={qualityChecks}
               />
             </div>
           ) : (
