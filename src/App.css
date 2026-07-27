@@ -191,8 +191,8 @@
   --surface2: #24242a;
   --surface1: #141419;
   --surface0: #000000;
-  --base: #0c0c0d;
-  --mantle: #000000;
+  --base: #000000;
+  --mantle: #141419;
   --crust: #000000;
   color-scheme: dark;
 }
@@ -217,14 +217,14 @@
   --subtext1: #c2c2cb;
   --subtext0: #7c7c8a;
   --overlay2: #7c7c8a;
-  --overlay1: #4a4a54;
-  --overlay0: #33333b;
-  --surface2: #2c2c2c;
-  --surface1: #212121;
-  --surface0: #151515;
-  --base: #000000;
-  --mantle: #151515;
-  --crust: #000000;
+  --overlay1: #5b5b66;
+  --overlay0: #4a4a54;
+  --surface2: #3c3c3c;
+  --surface1: #2c2c2c;
+  --surface0: #212121;
+  --base: #292929;
+  --mantle: #212121;
+  --crust: #151515;
   color-scheme: dark;
 }
 
