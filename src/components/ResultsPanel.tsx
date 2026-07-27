@@ -8,7 +8,10 @@ interface ResultsPanelProps {
 }
 
 const formatSuperscript = (val: number): ReactNode => {
-  if (val === 0 || isNaN(val)) return '0';
+  if (isNaN(val)) {
+    return <span className="out-of-bounds-lod" style={{ fontSize: '1.2rem', color: 'var(--maroon)', fontWeight: 'bold' }}>Out of Bounds</span>;
+  }
+  if (val === 0) return '0';
   const exponent = Math.floor(Math.log10(Math.abs(val)));
   const base = (val / Math.pow(10, exponent)).toFixed(2);
   if (parseFloat(base) === 1) {
@@ -27,6 +30,11 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       <div className="lod-hero-card">
         <label>LOD</label>
         <div className="lod-hero-value">{formatSuperscript(results.lodConc)}</div>
+        {!isNaN(results.lodConc) && !isNaN(results.lodCI.low) && (
+          <span className="lod-hero-ci" style={{ fontSize: '0.75rem', color: 'var(--subtext1)', marginTop: '4px', marginBottom: '4px', display: 'block' }}>
+            95% CI: [{results.lodCI.low.toExponential(2)}, {results.lodCI.high.toExponential(2)}]
+          </span>
+        )}
         <span className="lod-hero-unit">{xAxisLabel.split('(')[0].trim()}</span>
       </div>
 

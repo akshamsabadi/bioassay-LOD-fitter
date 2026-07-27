@@ -10,6 +10,7 @@ export interface FitResult {
     aicc: number;
   };
   predict: (x: number) => number;
+  predictDeriv: (x: number) => number;
   getCI: (x: number) => { low: number; high: number };
   actualX: number[];
   actualY: number[];
@@ -21,6 +22,7 @@ export interface FitResult {
 const models = {
   linear: {
     func: (x: number, [m, b]: number[]) => m * x + b,
+    dfdx: (_x: number, [m, _b]: number[]) => m,
     grad: (x: number, [_m, _b]: number[]) => [x, 1],
     k: 2,
     paramNames: ['Slope (m)', 'Intercept (b)'],
@@ -30,6 +32,11 @@ const models = {
     func: (x: number, [bmax, kd]: number[]) => {
       if (x <= 0) return 0;
       return (bmax * x) / (kd + x);
+    },
+    dfdx: (x: number, [bmax, kd]: number[]) => {
+      if (x <= 0) return 0;
+      const denom = kd + x;
+      return (bmax * kd) / (denom * denom);
     },
     grad: (x: number, [bmax, kd]: number[]) => {
       if (x <= 0) return [0, 0];
@@ -44,6 +51,13 @@ const models = {
     func: (x: number, [a, b, c, d]: number[]) => {
       if (x <= 0) return a;
       return d + (a - d) / (1 + Math.pow(x / c, b));
+    },
+    dfdx: (x: number, [a, b, c, d]: number[]) => {
+      if (x <= 0) return 0;
+      const x_c = x / c;
+      const x_c_b = Math.pow(x_c, b);
+      const denom = 1 + x_c_b;
+      return -(a - d) * b * Math.pow(x_c, b - 1) / (c * denom * denom);
     },
     grad: (x: number, [a, b, c, d]: number[]) => {
       if (x <= 0) return [1, 0, 0, 0];
@@ -63,6 +77,13 @@ const models = {
     func: (x: number, [a, b, c, d, g]: number[]) => {
       if (x <= 0) return a;
       return d + (a - d) / Math.pow(1 + Math.pow(x / c, b), g);
+    },
+    dfdx: (x: number, [a, b, c, d, g]: number[]) => {
+      if (x <= 0) return 0;
+      const x_c = x / c;
+      const x_c_b = Math.pow(x_c, b);
+      const denom_base = 1 + x_c_b;
+      return -(a - d) * g * b * Math.pow(x_c, b - 1) / (c * Math.pow(denom_base, g + 1));
     },
     grad: (x: number, [a, b, c, d, g]: number[]) => {
       if (x <= 0) return [1, 0, 0, 0, 0];
@@ -130,6 +151,7 @@ export const fitData = (x: number[], y: number[], method: 'linear' | 'langmuir' 
     parameters,
     metrics: { rmse: Math.sqrt(rss / n), r2: 1 - rss / ss_tot, aicc: n * Math.log(rss / n) + 2 * model.k + (2 * model.k * (model.k + 1)) / (n - model.k - 1) },
     predict: (val: number) => model.func(val, params),
+    predictDeriv: (val: number) => model.dfdx(val, params),
     getCI: (val: number) => {
       const g = new Matrix([model.grad(val, params)]);
       const variance = g.mmul(cov).mmul(g.transpose()).get(0, 0);

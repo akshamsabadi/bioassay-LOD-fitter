@@ -15,7 +15,18 @@ import {
 } from 'recharts';
 import { type AdvancedLoDResult } from '../utils/calculations';
 
-const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) => {
+interface XAxisTickProps {
+  x: number;
+  y: number;
+  payload: {
+    value: number;
+  };
+  zeroX: number;
+  breakStart: number;
+  breakEnd: number;
+}
+
+const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: XAxisTickProps) => {
   const val = payload.value;
   if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
     return (
@@ -57,7 +68,15 @@ const CustomXAxisTick = ({ x, y, payload, zeroX, breakStart, breakEnd }: any) =>
   );
 };
 
-const CustomYAxisTick = ({ x, y, payload }: any) => {
+interface YAxisTickProps {
+  x: number;
+  y: number;
+  payload: {
+    value: number;
+  };
+}
+
+const CustomYAxisTick = ({ x, y, payload }: YAxisTickProps) => {
   const val = payload.value;
   return (
     <g>
@@ -69,7 +88,16 @@ const CustomYAxisTick = ({ x, y, payload }: any) => {
   );
 };
 
-const CustomLcLabel = ({ viewBox }: any) => {
+interface ViewBoxProps {
+  viewBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+const CustomLcLabel = ({ viewBox }: ViewBoxProps) => {
   return (
     <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 4} fill="var(--peach)" fontSize={10}>
       L<tspan dy="0.3em" fontSize={7.5}>C</tspan>
@@ -77,7 +105,7 @@ const CustomLcLabel = ({ viewBox }: any) => {
   );
 };
 
-const CustomLdLabel = ({ viewBox }: any) => {
+const CustomLdLabel = ({ viewBox }: ViewBoxProps) => {
   return (
     <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 4} fill="var(--green)" fontSize={10}>
       L<tspan dy="0.3em" fontSize={7.5}>D</tspan>
@@ -85,12 +113,26 @@ const CustomLdLabel = ({ viewBox }: any) => {
   );
 };
 
-const CustomMinorYAxisTickLabel = ({ viewBox }: any) => {
-  if (!viewBox) return null;
-  return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--text)" opacity={0.5} />;
+const CustomMinorYAxisTickLabel = ({ viewBox }: Partial<ViewBoxProps>) => {
+  if (!viewBox || !viewBox.viewBox) return null;
+  const vb = viewBox.viewBox;
+  return <line x1={vb.x} y1={vb.y} x2={vb.x - 4} y2={vb.y} stroke="var(--text)" opacity={0.5} />;
 };
 
-const CustomScatterDot = (props: any) => {
+interface ScatterDotProps {
+  cx: number;
+  cy: number;
+  payload: {
+    id: string;
+    y: number;
+    actualX: number | string;
+  };
+  setHoveredPoint: (pt: { id: string; y: number; cx: number; cy: number; conc: number | string } | null) => void;
+  tableHoveredRowId: string | null;
+  hoveredPointId: string | undefined;
+}
+
+const CustomScatterDot = (props: ScatterDotProps) => {
   const { cx, cy, payload, setHoveredPoint, tableHoveredRowId, hoveredPointId } = props;
   const isSelected = payload.id === tableHoveredRowId || payload.id === hoveredPointId;
   
@@ -139,7 +181,13 @@ const CustomLegend = () => {
   );
 };
 
-const CustomTooltip = ({ active, payload, results }: any) => {
+interface TooltipProps {
+  active?: boolean;
+  payload?: any[];
+  results: AdvancedLoDResult;
+}
+
+const CustomTooltip = ({ active, payload, results }: TooltipProps) => {
   if (!active || !payload || !payload.length || !results) return null;
 
   const x = payload[0].payload.x;

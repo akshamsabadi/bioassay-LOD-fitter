@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="app-header">
       <div className="header-content">
-        <h1>Bioassay LOD Fitter v0.5.18</h1>
+        <h1>Bioassay LOD Fitter v0.6.1</h1>
         <p className="header-description">Sigmoidal fitting with LOD validation.</p>
       </div>
       

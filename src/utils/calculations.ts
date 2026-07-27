@@ -74,12 +74,6 @@ export const calculateAdvancedLoD = (
   alpha = 0.05,
   beta = 0.05
 ): AdvancedLoDResult => {
-  const meanBlank = blanks.reduce((a,b)=>a+b,0)/blanks.length;
-  const sdBlank = Math.sqrt(blanks.reduce((a,b)=>a+Math.pow(b-meanBlank,2),0)/(blanks.length-1));
-  const lc = meanBlank + tinv(1 - alpha, blanks.length - 1) * sdBlank;
-  const { sd: sdPooled, df: dfPooled } = calculatePooledSD(standards);
-  const ld = lc + tinv(1 - beta, dfPooled) * sdPooled;
-
   const x = standards.map(s => s.concentration);
   const y = standards.map(s => s.readout);
   
@@ -106,14 +100,27 @@ export const calculateAdvancedLoD = (
     fit = fits[method];
   }
 
-  let lodConc = 0;
+  const meanBlank = blanks.reduce((a, b) => a + b, 0) / blanks.length;
+  const sdBlank = Math.sqrt(blanks.reduce((a, b) => a + Math.pow(b - meanBlank, 2), 0) / (blanks.length - 1));
+  const lc = meanBlank + tinv(1 - alpha, blanks.length - 1) * sdBlank;
+
+  const { sd: sdPooledRaw, df: dfPooledRaw } = calculatePooledSD(standards);
+  const hasReplicates = dfPooledRaw > 0;
+  
+  // Fallback to fit RMSE if no replicates exist
+  const sdPooled = hasReplicates ? sdPooledRaw : fit.metrics.rmse;
+  const dfPooled = hasReplicates ? dfPooledRaw : Math.max(1, standards.length - fit.k);
+
+  const ld = lc + tinv(1 - beta, dfPooled) * sdPooled;
+
+  let lodConc = NaN;
   const p = fit.parameters;
   if (fit.method === 'linear') {
     lodConc = (ld - p['Intercept (b)']) / p['Slope (m)'];
   } else if (fit.method === 'langmuir') {
     const bmax = p['Bmax'];
     const kd = p['Kd'];
-    if (bmax - ld > 0) lodConc = (ld * kd) / (bmax - ld);
+    if (bmax - ld > 0 && ld > 0) lodConc = (ld * kd) / (bmax - ld);
   } else if (fit.method === '4pl') {
     const ratio = (p['Bottom (a)'] - ld) / (ld - p['Top (d)']);
     if (ratio > 0) lodConc = p['EC50 (c)'] * Math.pow(ratio, 1 / p['Hill Slope (b)']);
@@ -125,8 +132,38 @@ export const calculateAdvancedLoD = (
     }
   }
 
-  // Miller-style LOD CI (Placeholder for full delta method)
-  const lodCI = { low: lodConc * 0.85, high: lodConc * 1.15 };
+  // Ensure LOD is positive and physically meaningful
+  if (isNaN(lodConc) || lodConc <= 0) {
+    lodConc = NaN;
+  }
+
+  // Delta Method for rigorous LOD Confidence Interval
+  let lodCI = { low: NaN, high: NaN };
+  if (!isNaN(lodConc)) {
+    const ciAtLOD = fit.getCI(lodConc);
+    // Standard Error of prediction at the LOD concentration
+    // (ciAtLOD.high - ciAtLOD.low) = 2 * 1.96 * SE_fit
+    const seFit = (ciAtLOD.high - ciAtLOD.low) / (2 * 1.96);
+    
+    // Model derivative (slope) at LOD
+    const deriv = fit.predictDeriv(lodConc);
+    
+    if (Math.abs(deriv) > 1e-12) {
+      // SE_LOD = SE_fit / |df/dx|
+      const seLOD = seFit / Math.abs(deriv);
+      
+      const dfForLOD = dfPooled;
+      const tCrit = tinv(0.975, dfForLOD) || 1.96;
+      
+      lodCI = {
+        low: Math.max(0, lodConc - tCrit * seLOD),
+        high: lodConc + tCrit * seLOD
+      };
+    } else {
+      // Fallback if derivative is flat
+      lodCI = { low: lodConc * 0.85, high: lodConc * 1.15 };
+    }
+  }
 
   return { 
     lc, ld, lodConc, lodCI, meanBlank, sdBlank, sdPooled, fit,

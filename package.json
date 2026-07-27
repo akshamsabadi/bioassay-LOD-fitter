@@ -10,6 +10,7 @@
     "deploy": "gh-pages -d dist",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "tsc src/utils/csvParser.test.ts src/utils/calculations.test.ts --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
