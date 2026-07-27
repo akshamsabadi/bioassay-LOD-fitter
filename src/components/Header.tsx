@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="header-content" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
         <h1 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
           Bioassay LOD Fitter
-          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--surface2)', borderRadius: '10px', color: 'var(--subtext1)', fontWeight: 'normal', fontFamily: 'monospace' }}>v0.6.8</span>
+          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--surface2)', borderRadius: '10px', color: 'var(--subtext1)', fontWeight: 'normal', fontFamily: 'monospace' }}>v0.6.9</span>
         </h1>
         <p className="header-description" style={{ margin: 0, display: 'none' }}>Sigmoidal fitting with LOD validation.</p>
       </div>
@@ -98,14 +98,19 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {theme === 'dark' ? (
               <>
+                <option value="near-midnight">Near Midnight (Default)</option>
                 <option value="slate">Slate</option>
                 <option value="midnight">Midnight</option>
                 <option value="deep-space">Deep Space</option>
                 <option value="ink">Ink</option>
+                <option value="coffee">Coffee</option>
+                <option value="ocean-floor">Ocean Floor</option>
+                <option value="stark">Stark</option>
+                <option value="sun-faded">Sun Faded</option>
               </>
             ) : (
               <>
-                <option value="air">Air</option>
+                <option value="air">Air (Default)</option>
                 <option value="cotton">Cotton</option>
                 <option value="glacier">Glacier</option>
                 <option value="parchment">Parchment</option>
