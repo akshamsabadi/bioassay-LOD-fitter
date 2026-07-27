@@ -11,8 +11,6 @@ interface HeaderProps {
   demoName: string;
   handleImportCSV: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleDownloadTemplate: () => void;
-  handleExportCSV: () => void;
-  results: AdvancedLoDResult | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,8 +23,6 @@ export const Header: React.FC<HeaderProps> = ({
   demoName,
   handleImportCSV,
   handleDownloadTemplate,
-  handleExportCSV,
-  results,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 

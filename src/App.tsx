@@ -391,8 +391,6 @@ ${fitParamsText}
         demoName={DEMO_PRESETS[demoIndex].name}
         handleImportCSV={handleImportCSV}
         handleDownloadTemplate={handleDownloadTemplate}
-        handleExportCSV={handleExportCSV}
-        results={results}
       />
       <main className="main-container">
         <Sidebar
