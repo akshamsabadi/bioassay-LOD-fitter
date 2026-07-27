@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import { type AdvancedLoDResult } from '../utils/calculations';
 
 interface HeaderProps {
   theme: 'dark' | 'light';
