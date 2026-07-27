@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </select>
       </section>
       
-      {/* SECTION 2: PLOT LABELS CLEANUP */}
+      {/* SECTION 2: PLOT LABELS */}
       <section className="sidebar-section" style={{ margin: 0 }}>
         <span className="section-title" style={{ color: 'var(--sapphire)', display: 'block', marginBottom: '8px' }}>Plot Labels</span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -102,7 +102,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <span className="section-title" style={{ color: 'var(--peach)', marginBottom: '10px' }}>Blanks</span>
         <div className="data-row"
              onMouseEnter={() => setTableHoveredRowId('blank')}
-             onMouseLeave={() => setTableHoveredRowId(null)}>
+             onMouseLeave={() => setTableHoveredRowId(null)}
+             style={{ paddingRight: '16px' }} /* Keep gutter consistent with Standards */>
           <div className="conc-input disabled" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: hoveredPoint?.id === 'blank' ? 'var(--pink)' : 'var(--overlay0)' }}>0</div>
           <div style={{ position: 'relative', flex: 1 }}>
             <input type="text" className="signals-input" placeholder="e.g. 0.08, 0.12, 0.10" value={blankSignals} onChange={e => setBlankSignals(e.target.value)} style={{ width: '100%', color: hoveredPoint?.id === 'blank' ? 'transparent' : 'var(--text)' }} />
@@ -122,7 +123,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* SECTION 4: STANDARDS DATA ENTRY */}
       <section className="sidebar-section" style={{ margin: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <span className="section-title" style={{ color: 'var(--green)', marginBottom: '10px' }}>Standards</span>
-        <div className="rows-container" style={{ flex: 1, overflowY: 'auto', marginBottom: '12px', paddingRight: '4px' }}>
+        
+        {/* Fixed design flaw: paddingRight: '16px' ensures the scrollbar does NOT mask the red X delete button */}
+        <div className="rows-container" style={{ flex: 1, overflowY: 'auto', marginBottom: '12px', paddingRight: '16px' }}>
           {standardRows.map((r) => (
             <div key={r.id} className="data-row"
                  onMouseEnter={() => setTableHoveredRowId(r.id)}
@@ -151,7 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={onAddRow}
           style={{
-            width: '100%',
+            width: 'calc(100% - 16px)', /* Match width of inputs by subtracting padding gutter */
             padding: '8px',
             backgroundColor: 'transparent',
             border: '1px dashed var(--surface2)',
@@ -187,26 +190,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
           borderTop: '1px solid var(--surface1)',
           paddingTop: '16px'
         }}>
-          <span className="section-title" style={{ color: 'var(--red)', display: 'block', marginBottom: '10px' }}>Assay Diagnostics</span>
+          {/* Visual Harmony: match header colors to the rest of the Catppuccin interface */}
+          <span className="section-title" style={{ color: 'var(--pink)', display: 'block', marginBottom: '10px' }}>Assay Diagnostics</span>
           {qualityChecks && qualityChecks.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {qualityChecks.map((warning, index) => (
                 <div key={index} style={{
                   fontSize: '0.75rem',
-                  color: 'var(--pink)',
-                  backgroundColor: 'color-mix(in srgb, var(--pink) 10%, transparent)',
-                  padding: '8px 12px',
+                  color: 'var(--text)',
+                  backgroundColor: 'var(--surface0)',
+                  padding: '10px 14px',
                   borderRadius: '6px',
                   lineHeight: '1.4',
-                  border: '1px solid color-mix(in srgb, var(--pink) 20%, transparent)'
+                  border: '1px solid var(--surface1)',
+                  borderLeft: '4px solid var(--pink)',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}>
-                  ⚠️ {warning}
+                  <span style={{ marginRight: '6px' }}>⚠️</span> {warning}
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ fontSize: '0.75rem', color: 'var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '1rem' }}>✨</span> All quality checks passed successfully!
+            <div style={{
+              fontSize: '0.75rem',
+              color: 'var(--text)',
+              backgroundColor: 'var(--surface0)',
+              padding: '10px 14px',
+              borderRadius: '6px',
+              lineHeight: '1.4',
+              border: '1px solid var(--surface1)',
+              borderLeft: '4px solid var(--green)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              <span style={{ fontSize: '1rem', color: 'var(--green)' }}>✨</span>
+              <span>All quality checks passed successfully!</span>
             </div>
           )}
         </section>

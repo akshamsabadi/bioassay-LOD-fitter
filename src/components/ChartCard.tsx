@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import {
   Scatter,
   XAxis,
@@ -308,7 +308,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   handleExportCSV,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [showCI, setShowCI] = useState(true);
 
   const handleDownloadPlot = () => {
     if (!chartRef.current) return;
@@ -381,44 +380,14 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     <div className="chart-card">
       <div className="chart-header">
         <h2>{plotTitle}</h2>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span className="method-badge">{results.fit.method.toUpperCase()} FIT</span>
           {results.comparison.betterMethod !== results.fit.method && results.fit.method !== 'auto' && (
             <span className="warning-badge">Better fit available ({results.comparison.betterMethod.toUpperCase()})</span>
           )}
           
-          {/* Neomorphic toggle for Confidence Intervals */}
-          <label style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '8px', 
-            fontSize: '0.75rem', 
-            color: 'var(--subtext1)', 
-            cursor: 'pointer', 
-            userSelect: 'none',
-            padding: '4px 10px',
-            backgroundColor: 'var(--surface0)',
-            borderRadius: '20px',
-            border: '1px solid var(--surface1)',
-            fontWeight: 'bold',
-            transition: 'all 0.2s'
-          }}>
-            <input 
-              type="checkbox" 
-              checked={showCI} 
-              onChange={e => setShowCI(e.target.checked)} 
-              style={{ 
-                width: '12px', 
-                height: '12px', 
-                accentColor: 'var(--blue)',
-                cursor: 'pointer'
-              }} 
-            />
-            Show CI Bands
-          </label>
-
-          <button className="action-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">Export CSV</button>
-          <button className="action-btn" onClick={handleDownloadPlot} title="Download Plot (300 DPI, PNG)">Export PNG</button>
+          <button className="action-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV">📥 CSV</button>
+          <button className="action-btn" onClick={handleDownloadPlot} title="Download Plot (300 DPI, PNG)">📥 PNG</button>
         </div>
       </div>
       
@@ -462,9 +431,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               />
             ))}
 
-            {showCI && <Area data={leftChartData} dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />}
-            {showCI && <Area data={rightChartData} dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />}
-            {showCI && <ReferenceArea x1={results.lodCI.low} x2={results.lodCI.high} fill="var(--yellow)" fillOpacity={0.15} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: 'none' }} />}
+            <Area data={leftChartData} dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+            <Area data={rightChartData} dataKey="ciRange" stroke="none" fill="var(--blue)" fillOpacity={0.15} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+            <ReferenceArea x1={results.lodCI.low} x2={results.lodCI.high} fill="var(--yellow)" fillOpacity={0.15} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: 'none' }} />
             
             <Line data={leftChartData} dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
             <Line data={rightChartData} dataKey="trend" stroke="var(--blue)" strokeWidth={3} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
