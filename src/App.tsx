@@ -287,7 +287,7 @@ function App() {
       if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
     });
     csvRows.push('', '# ===================================================', '# ANALYSIS SUMMARY & STATISTICAL RESULTS', '# ===================================================', 'Parameter,Value');
-    csvRows.push('App Version,v0.6.7');
+    csvRows.push('App Version,v0.6.8');
     csvRows.push(`Requested Fit Method,${fitMethod}`, `Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
     csvRows.push(`LOD 95% Confidence Interval Low,${results.lodCI.low.toExponential(6)}`, `LOD 95% Confidence Interval High,${results.lodCI.high.toExponential(6)}`);
@@ -348,7 +348,7 @@ function App() {
       fitParamsText += `| **${p}** | ${val.toFixed(6)} |\n`;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.6)
+    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.8)
 Generated: ${new Date().toLocaleDateString()}
 
 #### 📈 Primary Results
@@ -451,11 +451,12 @@ ${fitParamsText}
                 handleCopyMetrics={handleCopyMetrics}
                 fitMethod={fitMethod}
                 setFitMethod={setFitMethod}
+                handleExportCSV={handleExportCSV}
               />
             </div>
           ) : (
             <div className="empty-prompt">
-              <p>Loading Bioassay LOD Fitter v0.6.7...</p>
+              <p>Loading Bioassay LOD Fitter v0.6.8...</p>
             </div>
           )}
         </section>

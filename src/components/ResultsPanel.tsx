@@ -7,6 +7,7 @@ interface ResultsPanelProps {
   handleCopyMetrics: () => void;
   fitMethod: 'linear' | 'langmuir' | '4pl' | '5pl' | 'auto';
   setFitMethod: (val: 'linear' | 'langmuir' | '4pl' | '5pl' | 'auto') => void;
+  handleExportCSV: () => void;
 }
 
 const formatSuperscript = (val: number): ReactNode => {
@@ -28,6 +29,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   handleCopyMetrics,
   fitMethod,
   setFitMethod,
+  handleExportCSV,
 }) => {
   const [activeTab, setActiveTab] = useState<'summary' | 'models'>('summary');
   const [showFit, setShowFit] = useState(true);
@@ -116,7 +118,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   <span className="stat-value" style={{
                     color: results.fit.metrics.r2 >= 0.99 ? 'var(--green)' : results.fit.metrics.r2 >= 0.95 ? 'var(--peach)' : 'var(--pink)',
                     fontWeight: 'bold'
-                  }}>{results.fit.metrics.r2.toFixed(5)}</span>
+                  }}>{results.fit.metrics.r2.toFixed(4)}</span>
                 </div>
 
                 <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The lower asymptote of the sigmoidal curve, representing the theoretical background signal at analyte concentration zero."><span className="stat-label">Bottom (a)</span></span><span className="stat-value">{results.fit.parameters['Bottom (a)']?.toFixed(4) || 'N/A'}</span></div>
@@ -151,32 +153,55 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             )}
           </div>
 
-          {/* Symmetrical, beautiful Copy Report button */}
-          <button 
-            onClick={handleCopyMetrics} 
-            style={{
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              backgroundColor: 'var(--blue)',
-              color: 'var(--base)',
-              fontWeight: 'bold',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-              transition: 'all 0.15s ease-in-out',
-              marginTop: '4px',
-              fontSize: '0.8rem'
-            }}
-            onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
-            onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1.0)'}
-          >
-            📋 Copy Analytics Report
-          </button>
+          {/* Symmetrical, beautiful Copy Report & Export Report buttons next to each other */}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <button 
+              onClick={handleCopyMetrics} 
+              style={{
+                flex: 1,
+                padding: '10px 4px',
+                borderRadius: '8px',
+                backgroundColor: 'var(--surface2)',
+                color: 'var(--text)',
+                fontWeight: 'bold',
+                border: '1px solid var(--surface1)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease-in-out',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+              onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.05)'}
+              onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1.0)'}
+            >
+              Copy Analytics Report
+            </button>
+            <button 
+              onClick={handleExportCSV} 
+              style={{
+                flex: 1,
+                padding: '10px 4px',
+                borderRadius: '8px',
+                backgroundColor: 'var(--green)',
+                color: 'var(--base)',
+                fontWeight: 'bold',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease-in-out',
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+              }}
+              onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
+              onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1.0)'}
+            >
+              Export Report
+            </button>
+          </div>
         </div>
       )}
 

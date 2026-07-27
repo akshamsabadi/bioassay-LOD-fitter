@@ -316,7 +316,7 @@
 * { box-sizing: border-box; }
 
 /* Unified theme transitions to prevent desynchronized flashes or lag when toggling light/dark mode */
-body, .app-wrapper, .app-header, .sidebar, .content-area, .chart-card, .results-side-panel, .stats-card, .toolbar-section, .toolbar-btn, .toolbar-select, .method-select, .text-input, .signals-input, .conc-input, .data-row, .results-tabs, .tab-btn, .action-btn {
+body, .app-wrapper, .app-header, .sidebar, .content-area, .chart-card, .results-side-panel, .stats-card, .toolbar-section, .toolbar-btn, .toolbar-select, .method-select, .text-input, .signals-input, .conc-input, .data-row, .results-tabs, .tab-btn, .action-btn, .recharts-legend-wrapper, .recharts-surface, rect, path, line {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, fill 0.2s ease, stroke 0.2s ease !important;
 }
 

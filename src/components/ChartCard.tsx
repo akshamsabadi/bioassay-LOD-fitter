@@ -172,7 +172,21 @@ const CustomScatterDot = (props: ScatterDotProps) => {
 
 const CustomLegend = () => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', position: 'absolute', top: '16px', left: '80px', backgroundColor: 'var(--mantle)', padding: '12px', borderRadius: '8px', border: '1px solid var(--surface0)', zIndex: 10 }}>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      gap: '8px', 
+      fontSize: '11px', 
+      position: 'absolute', 
+      top: '16px', 
+      left: '80px', 
+      backgroundColor: 'var(--mantle)', 
+      padding: '12px', 
+      borderRadius: '8px', 
+      border: '1px solid var(--surface0)', 
+      zIndex: 10,
+      transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease'
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--yellow)' }}></span></span> <span>LOD</span></div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--yellow) 25%, transparent)', border: '1px solid var(--yellow)' }}></span></span> <span>95% CI LOD</span></div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span></span> <span>L<sub>C</sub></span></div>

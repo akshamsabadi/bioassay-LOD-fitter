@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="header-content" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
         <h1 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
           Bioassay LOD Fitter
-          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--surface2)', borderRadius: '10px', color: 'var(--subtext1)', fontWeight: 'normal', fontFamily: 'monospace' }}>v0.6.7</span>
+          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--surface2)', borderRadius: '10px', color: 'var(--subtext1)', fontWeight: 'normal', fontFamily: 'monospace' }}>v0.6.8</span>
         </h1>
         <p className="header-description" style={{ margin: 0, display: 'none' }}>Sigmoidal fitting with LOD validation.</p>
       </div>
@@ -67,8 +67,8 @@ export const Header: React.FC<HeaderProps> = ({
             style={{ display: 'none' }}
             accept=".csv"
           />
-          <button className="toolbar-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Template</button>
-          <button className="toolbar-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Import</button>
+          <button className="toolbar-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Template ↓</button>
+          <button className="toolbar-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Import ↑</button>
           <div
             className="help-tooltip"
             data-tooltip="CSV IMPORT FORMAT RULES:&#10;1. First column must be the Concentration (numeric value).&#10;2. Use 0, 'blank', or 'blanks' to specify blank rows.&#10;3. Subsequent columns are your measured signal replicates.&#10;4. Any row starting with '#' is ignored as a comment.&#10;&#10;Click 'Template' to download an example!"
@@ -90,9 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             ?
           </div>
-          {results && (
-            <button className="toolbar-btn success-btn" onClick={handleExportCSV} title="Export raw data and analysis results as CSV" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Export Report</button>
-          )}
+        </div>
         </div>
 
         {/* SECTION 3: THEME SETTINGS */}
