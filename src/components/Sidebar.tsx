@@ -182,7 +182,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }}
                   title={s.visible ? "Hide curve on plot" : "Show curve on plot"}
                 >
-                  {s.visible ? "👁" : "🕶"}
+                  {s.visible ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8-11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  )}
                 </button>
                 {seriesList.length > 1 && (
                   <button
@@ -301,7 +311,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
           <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color }} />
           <span className="section-title" style={{ color: "var(--peach)", margin: 0 }}>
-            {activeSeries.name} Blanks (0 Conc)
+            {seriesList.length > 1 ? `${activeSeries.name} Blanks (0 Conc)` : "Assay Blanks (0 Conc)"}
           </span>
         </div>
         <div className="data-row"
@@ -338,7 +348,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color }} />
             <span className="section-title" style={{ color: "var(--green)", margin: 0 }}>
-              {activeSeries.name} Standards
+              {seriesList.length > 1 ? `${activeSeries.name} Standards` : "Assay Standards"}
             </span>
           </div>
           <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }} title="Paste from Excel or Google Sheets (Ctrl+V)">

@@ -43,6 +43,11 @@ function App() {
     localStorage.setItem("app-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    setHoveredPoint(null);
+    setTableHoveredRowId(null);
+  }, [activeSeriesId]);
+
   const toggleTheme = () => {
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
   };
@@ -408,6 +413,9 @@ function App() {
   const handleClearData = () => {
     updateActiveSeriesField("blankSignals", "");
     updateActiveSeriesField("standardRows", [{ id: "1", conc: "", signals: "" }]);
+    setHoveredPoint(null);
+    setTableHoveredRowId(null);
+    setHoveredSeriesId(null);
   };
 
   const handleLoadDemo = () => {
@@ -416,6 +424,9 @@ function App() {
     setActiveSeriesId(preset.series[0].id);
     setPlotTitle(preset.plotTitle);
     setDemoIndex(prev => (prev + 1) % DEMO_PRESETS.length);
+    setHoveredPoint(null);
+    setTableHoveredRowId(null);
+    setHoveredSeriesId(null);
   };
 
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -446,9 +457,9 @@ function App() {
     if (!activeResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.21)");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.22)");
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.6.21");
+    csvRows.push("App Version,v0.6.22");
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -479,7 +490,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.21_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.22_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -542,7 +553,7 @@ function App() {
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.21)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.22)
 Generated: ${new Date().toLocaleDateString()}
 
 ${leaderboardMarkdown}#### 📈 Active Curve: ${activeSeries.name}

@@ -28,6 +28,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   activeResults,
   leaderboardItems,
   onSelectSeries,
+  xAxisLabel,
   fitMethod,
   setFitMethod,
   handleCopyMetrics,
@@ -117,12 +118,22 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           padding: "8px 12px",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center"
+          alignItems: "center",
+          gap: "8px"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color }} />
-            <span style={{ fontSize: "0.72rem", color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700 }}>
-              {activeSeries.name} · LIMIT OF DETECTION (LOD)
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color, flexShrink: 0 }} />
+            <span style={{ 
+              fontSize: "0.72rem", 
+              color: "var(--text)", 
+              textTransform: "uppercase", 
+              letterSpacing: "0.8px", 
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }}>
+              {leaderboardItems.length > 1 ? `${activeSeries.name} · LIMIT OF DETECTION` : "LIMIT OF DETECTION"}
             </span>
           </div>
           <span style={{
@@ -131,41 +142,81 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             borderRadius: "4px",
             backgroundColor: "var(--surface1)",
             color: "var(--subtext1)",
-            fontWeight: 600
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            flexShrink: 0
           }}>
             {activeResults.fit.method.toUpperCase()} Model
           </span>
         </div>
 
         {/* Card Body */}
-        <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-            <span style={{ fontSize: "1.7rem", fontWeight: 800, color: "var(--yellow)", fontFamily: '"Google Sans Mono", monospace', lineHeight: 1 }}>
-              {activeResults.lodConc.toExponential(3)}
-            </span>
+        <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+              <span style={{ 
+                fontSize: "2.1rem", 
+                fontWeight: 800, 
+                color: "var(--yellow)", 
+                fontFamily: '"Google Sans Mono", monospace', 
+                lineHeight: 1,
+                letterSpacing: "-0.5px"
+              }}>
+                {isNaN(activeResults.lodConc) ? "N/A" : activeResults.lodConc.toExponential(3)}
+              </span>
+              {xAxisLabel && (
+                <span style={{ 
+                  fontSize: "0.72rem", 
+                  color: "var(--subtext0)", 
+                  fontWeight: 600,
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  backgroundColor: "var(--surface0)",
+                  border: "1px solid var(--surface1)"
+                }}>
+                  {xAxisLabel.includes("(") ? xAxisLabel.split("(")[1].replace(")", "") : xAxisLabel}
+                </span>
+              )}
+            </div>
+
+            {!isNaN(activeResults.lodConc) && !isNaN(activeResults.lodCI.low) ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.76rem", color: "var(--subtext1)", marginTop: "6px" }}>
+                <span style={{ fontWeight: 500 }}>95% CI:</span>
+                <span style={{ fontFamily: '"Google Sans Mono", monospace', color: "var(--lavender)", fontWeight: 600 }}>
+                  [{activeResults.lodCI.low.toExponential(2)}, {activeResults.lodCI.high.toExponential(2)}]
+                </span>
+              </div>
+            ) : isNaN(activeResults.lodConc) ? (
+              <div style={{ fontSize: "0.72rem", color: "var(--red)", marginTop: "6px" }}>
+                L<sub>D</sub> signal ({activeResults.ld.toFixed(3)}) falls outside dynamic range
+              </div>
+            ) : null}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.75rem", color: "var(--subtext1)" }}>
-            <span>95% CI:</span>
-            <span style={{ fontFamily: '"Google Sans Mono", monospace', color: "var(--lavender)", fontWeight: 600 }}>
-              [{activeResults.lodCI.low.toExponential(2)}, {activeResults.lodCI.high.toExponential(2)}]
-            </span>
-          </div>
-
-          <div style={{ display: "flex", gap: "12px", marginTop: "4px", paddingTop: "6px", borderTop: "1px solid var(--surface1)", fontSize: "0.72rem" }}>
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            paddingTop: "8px", 
+            borderTop: "1px solid var(--surface1)", 
+            fontSize: "0.74rem" 
+          }}>
             <div>
               <span style={{ color: "var(--subtext0)" }}>R²: </span>
-              <span style={{ fontWeight: 700, color: "var(--text)" }}>{activeResults.fit.metrics.r2.toFixed(4)}</span>
+              <span style={{ fontWeight: 700, color: activeResults.fit.metrics.r2 >= 0.99 ? "var(--green)" : "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
+                {activeResults.fit.metrics.r2.toFixed(4)}
+              </span>
             </div>
             <div>
               <span style={{ color: "var(--subtext0)" }}>AICc: </span>
-              <span style={{ fontWeight: 700, color: "var(--text)" }}>
+              <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
                 {isFinite(activeResults.fit.metrics.aicc) ? activeResults.fit.metrics.aicc.toFixed(1) : "—"}
               </span>
             </div>
             <div>
               <span style={{ color: "var(--subtext0)" }}>Points: </span>
-              <span style={{ fontWeight: 700, color: "var(--text)" }}>{activeResults.fit.actualX.length}</span>
+              <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
+                {activeResults.fit.actualX.length}
+              </span>
             </div>
           </div>
 
@@ -173,13 +224,12 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           <div style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: "4px 10px",
-            marginTop: "2px",
-            paddingTop: "6px",
+            gap: "5px 14px",
+            paddingTop: "8px",
             borderTop: "1px solid var(--surface1)"
           }}>
             {Object.entries(activeResults.fit.parameters).map(([name, val]) => (
-              <div key={name} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem" }}>
+              <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
                 <span style={{ color: "var(--subtext0)" }}>{name.split("(")[0].trim()}:</span>
                 <span style={{ fontWeight: 600, fontFamily: '"Google Sans Mono", monospace', color: "var(--text)" }}>
                   {Math.abs(val) >= 1000 || (Math.abs(val) > 0 && Math.abs(val) < 0.01) ? val.toExponential(2) : val.toFixed(3)}

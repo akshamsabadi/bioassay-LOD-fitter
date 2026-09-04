@@ -123,6 +123,55 @@ const CustomLdLabel = ({ viewBox }: ViewBoxProps) => {
   );
 };
 
+interface LodLabelProps {
+  viewBox?: {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+  };
+  labelText?: string;
+  color?: string;
+}
+
+const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)" }: LodLabelProps) => {
+  if (!viewBox || typeof viewBox.x !== "number" || isNaN(viewBox.x) || typeof viewBox.y !== "number" || isNaN(viewBox.y)) {
+    return null;
+  }
+  const x = viewBox.x;
+  const y = viewBox.y + 6;
+  const charWidth = 6.2;
+  const pillWidth = Math.max(labelText.length * charWidth + 14, 38);
+  const halfWidth = pillWidth / 2;
+
+  return (
+    <g style={{ pointerEvents: "none" }}>
+      <rect
+        x={x - halfWidth}
+        y={y}
+        width={pillWidth}
+        height={18}
+        rx={5}
+        fill="var(--surface0)"
+        stroke={color}
+        strokeWidth={1.2}
+        opacity={0.95}
+      />
+      <text
+        x={x}
+        y={y + 12.5}
+        fill={color}
+        fontSize={10}
+        fontWeight={700}
+        textAnchor="middle"
+        fontFamily="'Google Sans', -apple-system, sans-serif"
+      >
+        {labelText}
+      </text>
+    </g>
+  );
+};
+
 const CustomMinorYAxisTickLabel = ({ viewBox }: Partial<ViewBoxProps>) => {
   if (!viewBox) return null;
   return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--text)" opacity={0.5} />;
@@ -303,7 +352,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.21.png";
+        downloadLink.download = "bioassay_plot_v0.6.22.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -347,6 +396,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         })}
 
         <div style={{ borderTop: "1px solid var(--surface1)", paddingTop: "6px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
+            <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--yellow)" }} />
+            <span style={{ color: "var(--yellow)", fontWeight: 600 }}>LOD</span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
             <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--peach)" }} />
             <span>L<sub>C</sub></span>
@@ -571,16 +624,16 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                   />
                   <ReferenceLine 
                     x={s.results.lodConc} 
-                    stroke={s.color} 
-                    strokeWidth={s.isActive ? 2 : 1.5} 
-                    strokeDasharray="3 3" 
-                    strokeOpacity={isDimmed ? 0.2 : 0.85}
-                    label={s.isActive || curveSeriesList.length === 1 ? { 
-                      position: "top", 
-                      value: curveSeriesList.length > 1 ? `LOD (${s.name})` : "LOD", 
-                      fill: s.color, 
-                      fontSize: 9 
-                    } : undefined} 
+                    stroke={s.isActive ? "var(--yellow)" : s.color} 
+                    strokeWidth={s.isActive ? 2 : 1.2} 
+                    strokeDasharray={s.isActive ? "4 4" : "2 3"} 
+                    strokeOpacity={isDimmed ? 0.2 : (s.isActive ? 0.95 : 0.45)}
+                    label={s.isActive || curveSeriesList.length === 1 ? (
+                      <CustomLodLabel 
+                        labelText={curveSeriesList.length > 1 ? `LOD (${s.name})` : "LOD"} 
+                        color="var(--yellow)" 
+                      />
+                    ) : undefined} 
                     style={{ pointerEvents: "none" }} 
                   />
                 </React.Fragment>
