@@ -35,24 +35,25 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   handleExportCSV,
 }) => {
   const [showStats, setShowStats] = useState(false);
+  const isMultiCurve = leaderboardItems.length > 1;
 
   return (
-    <div className="results-side-panel" style={{ display: "flex", flexDirection: "column", gap: "10px", height: "100%", overflowY: "auto", paddingRight: "4px" }}>
+    <div className="results-side-panel" style={{ display: "flex", flexDirection: "column", gap: "12px", height: "100%", overflowY: "auto", paddingRight: "4px" }}>
       
       {/* SECTION 0: MULTI-CURVE COMPARATIVE LEADERBOARD (Shown when multiple curves exist) */}
-      {leaderboardItems.length > 1 && (
-        <div className="stats-card" style={{ margin: 0, padding: 0, overflow: "hidden", border: "1px solid var(--surface1)", borderRadius: "8px" }}>
-          {/* Top header banner with colored horizontal split */}
+      {isMultiCurve && (
+        <div className="stats-card" style={{ margin: 0, padding: 0, overflow: "hidden", border: "1px solid var(--surface1)", borderRadius: "10px", background: "var(--surface0)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          {/* Top header banner */}
           <div style={{
-            backgroundColor: "color-mix(in srgb, var(--blue) 12%, var(--surface0))",
-            borderBottom: "1.5px solid color-mix(in srgb, var(--blue) 55%, var(--surface1))",
+            backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
+            borderBottom: "1px solid var(--surface1)",
             padding: "8px 12px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center"
           }}>
-            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.76rem", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
-              <span>🏆</span> MULTI-CURVE SENSITIVITY LEADERBOARD
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.76rem", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+              <span>🏆</span> SENSITIVITY LEADERBOARD
             </h3>
             <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }}>Click row to inspect</span>
           </div>
@@ -109,70 +110,83 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         </div>
       )}
 
-      {/* SECTION 1: HERO METRIC CARD (Active Curve LOD) */}
-      <div className="stats-card hero-card" style={{ margin: 0, padding: 0, overflow: "hidden", border: "1px solid var(--surface1)", borderRadius: "8px" }}>
-        {/* Top header banner with colored horizontal split */}
+      {/* SECTION 1: MODERN BIOTECH HERO METRIC CARD (Limit of Detection) */}
+      <div className="stats-card hero-card" style={{
+        margin: 0,
+        padding: 0,
+        overflow: "hidden",
+        border: "1px solid var(--surface1)",
+        borderRadius: "10px",
+        background: "var(--surface0)",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+      }}>
+        {/* Top header banner */}
         <div style={{
-          backgroundColor: `color-mix(in srgb, ${activeSeries.color} 14%, var(--surface0))`,
-          borderBottom: `1.5px solid color-mix(in srgb, ${activeSeries.color} 55%, var(--surface1))`,
-          padding: "8px 12px",
+          backgroundColor: isMultiCurve ? `color-mix(in srgb, ${activeSeries.color} 12%, var(--surface0))` : "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
+          borderBottom: "1px solid var(--surface1)",
+          padding: "10px 14px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           gap: "8px"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color, flexShrink: 0 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="22" y1="12" x2="18" y2="12" />
+              <line x1="6" y1="12" x2="2" y2="12" />
+              <line x1="12" y1="6" x2="12" y2="2" />
+              <line x1="12" y1="22" x2="12" y2="18" />
+            </svg>
             <span style={{ 
-              fontSize: "0.72rem", 
+              fontSize: "0.78rem", 
               color: "var(--text)", 
-              textTransform: "uppercase", 
-              letterSpacing: "0.8px", 
               fontWeight: 700,
+              letterSpacing: "0.2px",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis"
             }}>
-              {leaderboardItems.length > 1 ? `${activeSeries.name} · LIMIT OF DETECTION` : "LIMIT OF DETECTION"}
+              {isMultiCurve ? `${activeSeries.name} · Limit of Detection` : "Limit of Detection (LOD)"}
             </span>
           </div>
           <span style={{
-            fontSize: "0.68rem",
-            padding: "2px 6px",
-            borderRadius: "4px",
-            backgroundColor: "var(--surface1)",
-            color: "var(--subtext1)",
+            fontSize: "0.7rem",
+            padding: "3px 8px",
+            borderRadius: "9999px",
+            backgroundColor: "color-mix(in srgb, var(--blue) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--blue) 25%, transparent)",
+            color: "var(--blue)",
             fontWeight: 600,
             whiteSpace: "nowrap",
             flexShrink: 0
           }}>
-            {activeResults.fit.method.toUpperCase()} Model
+            {activeResults.fit.method.toUpperCase()} Fit
           </span>
         </div>
 
         {/* Card Body */}
-        <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
           <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+            <div style={{ fontSize: "0.66rem", textTransform: "uppercase", letterSpacing: "0.6px", color: "var(--subtext0)", fontWeight: 600, marginBottom: "4px" }}>
+              Calculated Threshold
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
               <span style={{ 
-                fontSize: "2.1rem", 
+                fontSize: "2.3rem", 
                 fontWeight: 800, 
                 color: "var(--yellow)", 
-                fontFamily: '"Google Sans Mono", monospace', 
+                fontFamily: '"Google Sans", -apple-system, sans-serif',
                 lineHeight: 1,
-                letterSpacing: "-0.5px"
+                letterSpacing: "-0.02em"
               }}>
                 {isNaN(activeResults.lodConc) ? "N/A" : activeResults.lodConc.toExponential(3)}
               </span>
               {xAxisLabel && (
                 <span style={{ 
-                  fontSize: "0.72rem", 
-                  color: "var(--subtext0)", 
-                  fontWeight: 600,
-                  padding: "2px 6px",
-                  borderRadius: "4px",
-                  backgroundColor: "var(--surface0)",
-                  border: "1px solid var(--surface1)"
+                  fontSize: "0.95rem", 
+                  fontWeight: 600, 
+                  color: "var(--subtext0)"
                 }}>
                   {xAxisLabel.includes("(") ? xAxisLabel.split("(")[1].replace(")", "") : xAxisLabel}
                 </span>
@@ -180,41 +194,44 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             </div>
 
             {!isNaN(activeResults.lodConc) && !isNaN(activeResults.lodCI.low) ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.76rem", color: "var(--subtext1)", marginTop: "6px" }}>
-                <span style={{ fontWeight: 500 }}>95% CI:</span>
-                <span style={{ fontFamily: '"Google Sans Mono", monospace', color: "var(--lavender)", fontWeight: 600 }}>
-                  [{activeResults.lodCI.low.toExponential(2)}, {activeResults.lodCI.high.toExponential(2)}]
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.76rem", color: "var(--subtext0)", marginTop: "6px", flexWrap: "wrap" }}>
+                <span>95% Confidence Interval:</span>
+                <span style={{
+                  fontFamily: '"Google Sans Mono", monospace',
+                  color: "var(--lavender)",
+                  fontWeight: 600,
+                  backgroundColor: "color-mix(in srgb, var(--lavender) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--lavender) 25%, transparent)",
+                  padding: "2px 6px",
+                  borderRadius: "4px"
+                }}>
+                  {activeResults.lodCI.low.toExponential(2)} – {activeResults.lodCI.high.toExponential(2)}
                 </span>
               </div>
             ) : isNaN(activeResults.lodConc) ? (
-              <div style={{ fontSize: "0.72rem", color: "var(--red)", marginTop: "6px" }}>
-                L<sub>D</sub> signal ({activeResults.ld.toFixed(3)}) falls outside dynamic range
+              <div style={{ fontSize: "0.72rem", color: "var(--red)", marginTop: "6px", backgroundColor: "color-mix(in srgb, var(--red) 10%, transparent)", padding: "4px 8px", borderRadius: "6px" }}>
+                ⚠️ L<sub>D</sub> signal ({activeResults.ld.toFixed(3)}) falls outside dynamic range
               </div>
             ) : null}
           </div>
 
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            paddingTop: "8px", 
-            borderTop: "1px solid var(--surface1)", 
-            fontSize: "0.74rem" 
-          }}>
-            <div>
-              <span style={{ color: "var(--subtext0)" }}>R²: </span>
-              <span style={{ fontWeight: 700, color: activeResults.fit.metrics.r2 >= 0.99 ? "var(--green)" : "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
+          {/* Three Modern Metric KPI Cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginTop: "4px" }}>
+            <div style={{ backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))", borderRadius: "8px", padding: "8px 10px", border: "1px solid var(--surface1)", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Fit (R²)</span>
+              <span style={{ fontSize: "1.02rem", fontWeight: 700, color: activeResults.fit.metrics.r2 >= 0.99 ? "var(--green)" : "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
                 {activeResults.fit.metrics.r2.toFixed(4)}
               </span>
             </div>
-            <div>
-              <span style={{ color: "var(--subtext0)" }}>AICc: </span>
-              <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
+            <div style={{ backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))", borderRadius: "8px", padding: "8px 10px", border: "1px solid var(--surface1)", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>AICc</span>
+              <span style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
                 {isFinite(activeResults.fit.metrics.aicc) ? activeResults.fit.metrics.aicc.toFixed(1) : "—"}
               </span>
             </div>
-            <div>
-              <span style={{ color: "var(--subtext0)" }}>Points: </span>
-              <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
+            <div style={{ backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))", borderRadius: "8px", padding: "8px 10px", border: "1px solid var(--surface1)", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Points</span>
+              <span style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
                 {activeResults.fit.actualX.length}
               </span>
             </div>
@@ -222,54 +239,82 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
           {/* Micro-grid of fitted parameters */}
           <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "5px 14px",
-            paddingTop: "8px",
+            paddingTop: "10px",
             borderTop: "1px solid var(--surface1)"
           }}>
-            {Object.entries(activeResults.fit.parameters).map(([name, val]) => (
-              <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem" }}>
-                <span style={{ color: "var(--subtext0)" }}>{name.split("(")[0].trim()}:</span>
-                <span style={{ fontWeight: 600, fontFamily: '"Google Sans Mono", monospace', color: "var(--text)" }}>
-                  {Math.abs(val) >= 1000 || (Math.abs(val) > 0 && Math.abs(val) < 0.01) ? val.toExponential(2) : val.toFixed(3)}
-                </span>
-              </div>
-            ))}
+            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.6px", color: "var(--subtext0)", fontWeight: 600, marginBottom: "8px" }}>
+              Sigmoidal Parameters
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "6px 10px"
+            }}>
+              {Object.entries(activeResults.fit.parameters).map(([name, val]) => {
+                const cleanName = name.replace("EC50", "EC₅₀").split("(")[0].trim();
+                return (
+                  <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px", borderRadius: "6px", backgroundColor: "color-mix(in srgb, var(--surface1) 40%, transparent)", fontSize: "0.72rem" }}>
+                    <span style={{ color: "var(--subtext1)", fontWeight: 500 }}>{cleanName}</span>
+                    <span style={{ fontWeight: 600, fontFamily: '"Google Sans Mono", monospace', color: "var(--text)" }}>
+                      {Math.abs(val) >= 1000 || (Math.abs(val) > 0 && Math.abs(val) < 0.01) ? val.toExponential(2) : val.toFixed(3)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* SECTION 2: MODEL COMPARISON & SELECTION (For Active Curve) */}
-      <div className="stats-card model-comparison-card" style={{ margin: 0, padding: 0, overflow: "hidden", border: "1px solid var(--surface1)", borderRadius: "8px" }}>
-        {/* Top header banner with colored horizontal split */}
+      {/* SECTION 2: MODEL SELECTION & COMPARISON */}
+      <div className="stats-card model-comparison-card" style={{
+        margin: 0,
+        padding: 0,
+        overflow: "hidden",
+        border: "1px solid var(--surface1)",
+        borderRadius: "10px",
+        background: "var(--surface0)",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+      }}>
+        {/* Header */}
         <div style={{
-          backgroundColor: "color-mix(in srgb, var(--mauve) 12%, var(--surface0))",
-          borderBottom: "1.5px solid color-mix(in srgb, var(--mauve) 50%, var(--surface1))",
-          padding: "8px 12px",
+          backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
+          borderBottom: "1px solid var(--surface1)",
+          padding: "10px 14px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center"
         }}>
-          <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.76rem", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
-            <span>⚙️</span> MODEL SELECTION ({activeSeries.name.toUpperCase()})
-          </h3>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.78rem", letterSpacing: "0.2px", fontWeight: 700 }}>
+              Model Selection
+            </h3>
+          </div>
           <button
             onClick={() => setFitMethod("auto")}
             style={{
-              padding: "2px 8px",
-              borderRadius: "6px",
+              padding: "3px 10px",
+              borderRadius: "9999px",
               fontSize: "0.68rem",
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: "pointer",
-              border: fitMethod === "auto" ? "1px solid var(--green)" : "1px solid var(--surface1)",
-              backgroundColor: fitMethod === "auto" ? "color-mix(in srgb, var(--green) 14%, var(--surface0))" : "var(--surface0)",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              border: fitMethod === "auto" ? "1px solid var(--green)" : "1px solid var(--surface2)",
+              backgroundColor: fitMethod === "auto" ? "color-mix(in srgb, var(--green) 14%, var(--surface0))" : "transparent",
               color: fitMethod === "auto" ? "var(--green)" : "var(--subtext0)",
-              transition: "all 0.15s"
+              transition: "all 0.15s ease-in-out"
             }}
             title="Automatically select model with lowest AICc"
           >
-            {fitMethod === "auto" ? "✓ Auto (AICc)" : "Set Auto"}
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: fitMethod === "auto" ? "var(--green)" : "var(--subtext0)" }} />
+            {fitMethod === "auto" ? "Auto-Selected" : "Auto-Select"}
           </button>
         </div>
 
@@ -277,31 +322,48 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           <table className="comparison-table" style={{ margin: 0, width: "100%", fontSize: "0.72rem" }}>
             <thead>
               <tr>
-                <th>Model</th>
-                <th>R²</th>
-                <th>AICc</th>
+                <th style={{ padding: "8px 12px" }}>Model</th>
+                <th style={{ padding: "8px 12px" }}>R²</th>
+                <th style={{ padding: "8px 12px" }}>AICc</th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(activeResults.comparison.fits).map(([method, fit]) => {
                 const isSelected = activeResults.fit.method === method;
-                const isActiveSelection = fitMethod === method;
                 const isBetter = activeResults.comparison.betterMethod === method;
                 return (
                   <tr 
                     key={method} 
-                    className={`${isActiveSelection ? "selected-row" : ""} ${isBetter ? "better-row" : ""}`}
+                    className={`${isSelected ? "selected-row" : ""} ${isBetter ? "better-row" : ""}`}
                     onClick={() => setFitMethod(method as any)}
-                    style={{ cursor: "pointer", transition: "all 0.15s ease-in-out" }}
-                    title={`Click to select ${method.toUpperCase()} model for ${activeSeries.name}`}
+                    style={{
+                      cursor: "pointer",
+                      transition: "all 0.15s ease-in-out",
+                      backgroundColor: isSelected ? "color-mix(in srgb, var(--blue) 12%, var(--surface0))" : "transparent"
+                    }}
+                    title={`Click to select ${method.toUpperCase()} model`}
                   >
-                    <td style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "6px", height: "30px" }}>
-                      {method.toUpperCase()}
-                      {isBetter && <span className="better-tag" title="Lowest AICc Score (Best Theoretical Model)">★</span>}
-                      {isSelected && <span className="active-dot" title="Currently Plotted Fit Model" />}
+                    <td style={{ padding: "8px 12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>{method.toUpperCase()}</span>
+                      {isBetter && (
+                        <span style={{
+                          fontSize: "0.62rem",
+                          fontWeight: 700,
+                          backgroundColor: "color-mix(in srgb, var(--green) 14%, transparent)",
+                          color: "var(--green)",
+                          border: "1px solid color-mix(in srgb, var(--green) 25%, transparent)",
+                          padding: "1px 6px",
+                          borderRadius: "4px"
+                        }}>
+                          Best Fit
+                        </span>
+                      )}
+                      {isSelected && (
+                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--blue)" }} title="Active model" />
+                      )}
                     </td>
-                    <td>{fit.metrics.r2.toFixed(4)}</td>
-                    <td style={{ color: isBetter ? "var(--green)" : "inherit", fontWeight: isBetter ? "bold" : "normal" }}>
+                    <td style={{ padding: "8px 12px" }}>{fit.metrics.r2.toFixed(4)}</td>
+                    <td style={{ padding: "8px 12px", color: isBetter ? "var(--green)" : "inherit", fontWeight: isBetter ? "bold" : "normal" }}>
                       {isFinite(fit.metrics.aicc) ? fit.metrics.aicc.toFixed(1) : "—"}
                     </td>
                   </tr>
@@ -313,13 +375,21 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       </div>
 
       {/* SECTION 3: ASSAY STATISTICAL LIMITS */}
-      <div className="stats-card" style={{ margin: 0, padding: 0, overflow: "hidden", border: "1px solid var(--surface1)", borderRadius: "8px" }}>
+      <div className="stats-card" style={{
+        margin: 0,
+        padding: 0,
+        overflow: "hidden",
+        border: "1px solid var(--surface1)",
+        borderRadius: "10px",
+        background: "var(--surface0)",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+      }}>
         <div 
           onClick={() => setShowStats(!showStats)}
           style={{
-            backgroundColor: "color-mix(in srgb, var(--peach) 12%, var(--surface0))",
-            borderBottom: showStats ? "1.5px solid color-mix(in srgb, var(--peach) 50%, var(--surface1))" : "none",
-            padding: "8px 12px",
+            backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
+            borderBottom: showStats ? "1px solid var(--surface1)" : "none",
+            padding: "10px 14px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -327,32 +397,37 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             userSelect: "none"
           }}
         >
-          <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.76rem", textTransform: "uppercase", letterSpacing: "0.8px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
-            <span>📐</span> STATISTICAL LIMITS ({activeSeries.name.toUpperCase()})
-          </h3>
-          <span style={{ fontSize: "0.7rem", transform: showStats ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", color: "var(--overlay1)" }}>▶</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--peach)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 12h20M2 12l5-5m-5 5 5 5" />
+            </svg>
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.78rem", letterSpacing: "0.2px", fontWeight: 700 }}>
+              Statistical Limits & Noise
+            </h3>
+          </div>
+          <span style={{ fontSize: "0.7rem", transform: showStats ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", color: "var(--subtext0)" }}>▶</span>
         </div>
 
         {showStats && (
-          <div className="fade-in" style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px" }}>
-            <div className="stat-row">
+          <div className="fade-in" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
               <span className="stat-label-wrap" data-tooltip="Decision Limit (LC): Signal threshold above which response is statistically distinct from noise (α=0.05).">
-                <span className="stat-label">Critical Level (L<sub>C</sub>)</span>
+                <span className="stat-label" style={{ color: "var(--subtext1)" }}>Critical Level (L<sub>C</sub>)</span>
               </span>
-              <span className="stat-value" style={{ color: "var(--peach)" }}>{activeResults.lc.toFixed(4)}</span>
+              <span className="stat-value" style={{ color: "var(--peach)", fontWeight: 700, fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.lc.toFixed(4)}</span>
             </div>
-            <div className="stat-row">
+            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
               <span className="stat-label-wrap" data-tooltip="Detection Limit Signal (LD): Signal level ensuring 95% detection probability above LC (β=0.05).">
-                <span className="stat-label">Signal Limit (L<sub>D</sub>)</span>
+                <span className="stat-label" style={{ color: "var(--subtext1)" }}>Signal Limit (L<sub>D</sub>)</span>
               </span>
-              <span className="stat-value" style={{ color: "var(--green)" }}>{activeResults.ld.toFixed(4)}</span>
+              <span className="stat-value" style={{ color: "var(--green)", fontWeight: 700, fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.ld.toFixed(4)}</span>
             </div>
-            <div className="stat-row"><span className="stat-label">Blank Mean</span><span className="stat-value">{activeResults.meanBlank.toFixed(4)}</span></div>
-            <div className="stat-row"><span className="stat-label">Blank SD</span><span className="stat-value">{activeResults.sdBlank.toFixed(4)}</span></div>
-            <div className="stat-row"><span className="stat-label">Pooled Replicate SD</span><span className="stat-value">{activeResults.sdPooled.toFixed(4)}</span></div>
+            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}><span className="stat-label" style={{ color: "var(--subtext1)" }}>Blank Mean</span><span className="stat-value" style={{ fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.meanBlank.toFixed(4)}</span></div>
+            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}><span className="stat-label" style={{ color: "var(--subtext1)" }}>Blank SD</span><span className="stat-value" style={{ fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.sdBlank.toFixed(4)}</span></div>
+            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}><span className="stat-label" style={{ color: "var(--subtext1)" }}>Pooled Replicate SD</span><span className="stat-value" style={{ fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.sdPooled.toFixed(4)}</span></div>
             {activeResults.isDecreasing && (
-              <div className="stat-row">
-                <span className="stat-label">Assay Mode</span>
+              <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+                <span className="stat-label" style={{ color: "var(--subtext1)" }}>Assay Mode</span>
                 <span className="stat-value" style={{ color: "var(--mauve)", fontWeight: "bold" }}>Competitive / Decreasing</span>
               </div>
             )}
@@ -360,42 +435,60 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         )}
       </div>
 
-      {/* SECTION 4: UNIFIED ACTIONS */}
-      <div style={{ display: "flex", gap: "8px", marginTop: "2px" }}>
+      {/* SECTION 4: UNIFIED MODERN ACTION BUTTONS */}
+      <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
         <button 
           onClick={handleCopyMetrics} 
           style={{
             flex: 1,
-            padding: "8px 4px",
-            borderRadius: "6px",
-            backgroundColor: "var(--surface2)",
+            padding: "10px 14px",
+            borderRadius: "8px",
+            backgroundColor: "var(--surface1)",
             color: "var(--text)",
-            fontWeight: "bold",
-            border: "1px solid var(--surface1)",
+            fontWeight: 600,
+            border: "1px solid var(--surface2)",
             cursor: "pointer",
-            fontSize: "0.72rem",
+            fontSize: "0.75rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
             transition: "all 0.15s ease-in-out"
           }}
-          title="Copy comparative multi-curve analytics report as Markdown"
+          title="Copy analytics report as Markdown"
         >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
           Copy Report
         </button>
         <button 
           onClick={handleExportCSV} 
           style={{
             flex: 1,
-            padding: "8px 4px",
-            borderRadius: "6px",
+            padding: "10px 14px",
+            borderRadius: "8px",
             backgroundColor: "var(--green)",
             color: "var(--base)",
-            fontWeight: "bold",
+            fontWeight: 700,
             border: "none",
             cursor: "pointer",
-            fontSize: "0.72rem",
+            fontSize: "0.75rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            boxShadow: "0 2px 8px color-mix(in srgb, var(--green) 35%, transparent)",
             transition: "all 0.15s ease-in-out"
           }}
-          title="Download complete multi-curve experimental audit as CSV"
+          title="Download experimental audit as CSV"
         >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
           Export CSV
         </button>
       </div>

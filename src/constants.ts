@@ -38,6 +38,34 @@ export interface DemoPreset {
 
 export const DEMO_PRESETS: DemoPreset[] = [
   {
+    name: "Standard Sigmoidal (4PL)",
+    plotTitle: "Dose-Response (Standard 4PL)",
+    series: [
+      {
+        id: "single-4pl",
+        name: "Reference Assay",
+        color: SERIES_COLORS[0],
+        visible: true,
+        fitMethod: "auto",
+        blankSignals: "0.07, 0.13, 0.08",
+        standardRows: [
+          { id: "1", conc: "0.001", signals: "0.08, 0.09, 0.08" },
+          { id: "2", conc: "0.003", signals: "0.11, 0.12, 0.11" },
+          { id: "3", conc: "0.01", signals: "0.17, 0.19, 0.16" },
+          { id: "4", conc: "0.03", signals: "0.29, 0.33, 0.28" },
+          { id: "5", conc: "0.1", signals: "0.62, 0.68, 0.58" },
+          { id: "6", conc: "0.3", signals: "1.25, 1.38, 1.18" },
+          { id: "7", conc: "1", signals: "2.55, 2.75, 2.45" },
+          { id: "8", conc: "3", signals: "3.75, 3.95, 3.65" },
+          { id: "9", conc: "10", signals: "4.48, 4.68, 4.38" },
+          { id: "10", conc: "30", signals: "4.82, 4.96, 4.74" },
+          { id: "11", conc: "100", signals: "4.91, 5.03, 4.85" },
+          { id: "12", conc: "300", signals: "4.95, 5.05, 4.89" },
+        ]
+      }
+    ]
+  },
+  {
     name: "Multi-Construct Panel (4 Curves)",
     plotTitle: "Synthetic Construct Panel (4 Curves)",
     series: [
@@ -123,34 +151,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
       }
     ]
   },
-  {
-    name: "Standard Sigmoidal (4PL)",
-    plotTitle: "Dose-Response (Standard 4PL)",
-    series: [
-      {
-        id: "single-4pl",
-        name: "Reference Assay",
-        color: SERIES_COLORS[0],
-        visible: true,
-        fitMethod: "auto",
-        blankSignals: "0.07, 0.13, 0.08",
-        standardRows: [
-          { id: "1", conc: "0.001", signals: "0.08, 0.09, 0.08" },
-          { id: "2", conc: "0.003", signals: "0.11, 0.12, 0.11" },
-          { id: "3", conc: "0.01", signals: "0.17, 0.19, 0.16" },
-          { id: "4", conc: "0.03", signals: "0.29, 0.33, 0.28" },
-          { id: "5", conc: "0.1", signals: "0.62, 0.68, 0.58" },
-          { id: "6", conc: "0.3", signals: "1.25, 1.38, 1.18" },
-          { id: "7", conc: "1", signals: "2.55, 2.75, 2.45" },
-          { id: "8", conc: "3", signals: "3.75, 3.95, 3.65" },
-          { id: "9", conc: "10", signals: "4.48, 4.68, 4.38" },
-          { id: "10", conc: "30", signals: "4.82, 4.96, 4.74" },
-          { id: "11", conc: "100", signals: "4.91, 5.03, 4.85" },
-          { id: "12", conc: "300", signals: "4.95, 5.05, 4.89" },
-        ]
-      }
-    ]
-  },
+
   {
     name: "Linear Response Assay",
     plotTitle: "Linear Calibration Range",

@@ -193,12 +193,13 @@ interface ScatterDotProps {
   hoveredPointId: string | undefined;
   seriesColor?: string;
   isDimmed?: boolean;
+  isSingleCurve?: boolean;
 }
 
 const CustomScatterDot = (props: ScatterDotProps) => {
-  const { cx, cy, payload, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed } = props;
+  const { cx, cy, payload, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve } = props;
   const isSelected = payload.id === tableHoveredRowId || payload.id === hoveredPointId;
-  const color = seriesColor || payload.color || "var(--red)";
+  const color = isSingleCurve ? "var(--red)" : (seriesColor || payload.color || "var(--red)");
   
   return (
     <g opacity={isDimmed ? 0.3 : 1}>
@@ -352,7 +353,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.22.png";
+        downloadLink.download = "bioassay_plot_v0.6.23.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -362,8 +363,43 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     img.src = url;
   };
 
-  // Custom Interactive Multi-Curve Legend
+  // Custom Interactive Legend (Single Curve & Multi-Curve)
   const CustomLegend = () => {
+    if (curveSeriesList.length === 1) {
+      return (
+        <div className="custom-chart-legend">
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--yellow)" }} />
+            <span style={{ fontWeight: 600, color: "var(--yellow)" }}>LOD</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 25%, transparent)", border: "1px solid var(--yellow)", borderRadius: "2px" }} />
+            <span>95% CI LOD</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--peach)" }} />
+            <span>L<sub>C</sub></span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--green)" }} />
+            <span>L<sub>D</sub></span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ width: "14px", height: "2px", backgroundColor: "var(--blue)", borderRadius: "2px" }} />
+            <span>Model Fit</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--blue) 25%, transparent)", border: "1px solid var(--blue)", borderRadius: "2px" }} />
+            <span>95% CI Fit</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ color: "var(--red)", fontSize: "13px", lineHeight: "1" }}>●</span>
+            <span>Measured Data</span>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="custom-chart-legend">
         {curveSeriesList.map(s => {
@@ -658,6 +694,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                       hoveredPointId={hoveredPoint?.id}
                       seriesColor={s.color}
                       isDimmed={isDimmed}
+                      isSingleCurve={curveSeriesList.length === 1}
                     />
                   )}
                 />
