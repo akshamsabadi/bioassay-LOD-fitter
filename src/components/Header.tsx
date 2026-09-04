@@ -26,35 +26,24 @@ export const Header: React.FC<HeaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <header className="app-header" style={{
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '10px 24px',
-      backgroundColor: 'var(--crust)',
-      borderBottom: '1px solid var(--surface1)',
-      gap: '16px',
-      flexWrap: 'wrap',
-      minHeight: '60px'
-    }}>
-      <div className="header-content" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <header className="app-header">
+      <div className="header-content">
         <h1 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
           Bioassay LOD Fitter
-          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--surface2)', borderRadius: '10px', color: 'var(--subtext1)', fontWeight: 'normal', fontFamily: 'monospace' }}>v0.6.14</span>
+          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--surface2)', borderRadius: '10px', color: 'var(--subtext1)', fontWeight: 'normal', fontFamily: 'monospace' }}>v0.6.15</span>
         </h1>
         <p className="header-description" style={{ margin: 0, display: 'none' }}>Sigmoidal fitting with LOD validation.</p>
       </div>
       
-      <div className="toolbar-container" style={{ margin: 0, display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="toolbar-container">
         {/* SECTION 1: DATA PRESETS */}
-        <div className="toolbar-section" title="Data Presets" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="toolbar-section" title="Data Presets">
           <button className="toolbar-btn" onClick={handleClearData} title="Clear all input standard and blank data" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Clear Data</button>
           <button className="toolbar-btn primary-btn" onClick={handleLoadDemo} title={"Load the next experimental dataset preset: " + demoName} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Load Demo</button>
         </div>
 
         {/* SECTION 2: CSV ACTIONS */}
-        <div className="toolbar-section" title="CSV Actions" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="toolbar-section" title="CSV Actions">
           <input
             type="file"
             ref={fileInputRef}
@@ -70,8 +59,6 @@ export const Header: React.FC<HeaderProps> = ({
             style={{
               fontSize: '11px',
               color: 'var(--subtext0)',
-              display: 'flex',
-              alignItems: 'center',
               justifyContent: 'center',
               width: '18px',
               height: '18px',
@@ -88,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* SECTION 3: THEME SETTINGS */}
-        <div className="toolbar-section" title="Theme Settings" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="toolbar-section" title="Theme Settings">
           <select
             value={subtheme}
             onChange={e => setSubtheme(e.target.value)}

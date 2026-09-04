@@ -178,21 +178,7 @@ const CustomScatterDot = (props: ScatterDotProps) => {
 
 const CustomLegend = () => {
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '8px', 
-      fontSize: '11px', 
-      position: 'absolute', 
-      top: '16px', 
-      left: '80px', 
-      backgroundColor: 'var(--mantle)', 
-      padding: '12px', 
-      borderRadius: '8px', 
-      border: '1px solid var(--surface1)', 
-      zIndex: 10,
-      transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease'
-    }}>
+    <div className="custom-chart-legend">
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '2px', backgroundColor: 'var(--yellow)' }}></span></span> <span>LOD</span></div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '10px', height: '10px', backgroundColor: 'color-mix(in srgb, var(--yellow) 25%, transparent)', border: '1px solid var(--yellow)' }}></span></span> <span>95% CI LOD</span></div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', display: 'flex', justifyContent: 'center' }}><span style={{ width: '14px', height: '0', borderTop: '2px dashed var(--peach)' }}></span></span> <span>L<sub>C</sub></span></div>
@@ -382,7 +368,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL('image/png');
         const downloadLink = document.createElement('a');
         downloadLink.href = pngUrl;
-        downloadLink.download = 'bioassay_plot_v0.6.14.png';
+        downloadLink.download = 'bioassay_plot_v0.6.15.png';
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -473,7 +459,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       
       <div className="chart-frame" ref={chartRef} style={{ position: 'relative' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart margin={{ top: 25, right: 30, left: 20, bottom: 40 }}>
+          <ComposedChart margin={{ top: 20, right: 25, left: 15, bottom: 35 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
             <ReferenceArea x1={breakStart} x2={breakEnd} y1={yDomain[0]} y2={yDomain[1]} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: 'none' }} />
             <XAxis 

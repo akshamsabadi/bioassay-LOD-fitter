@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   qualityChecks,
 }) => {
   return (
-    <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <aside className="sidebar">
       
       {/* SECTION 1: MODEL OPTIONS */}
       <section className="sidebar-section" style={{ margin: 0 }}>

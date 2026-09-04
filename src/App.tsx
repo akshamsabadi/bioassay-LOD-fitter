@@ -322,7 +322,7 @@ function App() {
       if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
     });
     csvRows.push('', '# ===================================================', '# ANALYSIS SUMMARY & STATISTICAL RESULTS', '# ===================================================', 'Parameter,Value');
-    csvRows.push('App Version,v0.6.14');
+    csvRows.push('App Version,v0.6.15');
     csvRows.push(`Requested Fit Method,${fitMethod}`, `Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
     csvRows.push(`LOD 95% Confidence Interval Low,${results.lodCI.low.toExponential(6)}`, `LOD 95% Confidence Interval High,${results.lodCI.high.toExponential(6)}`);
@@ -337,7 +337,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `bioassay_lod_report_v0.6.14_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `bioassay_lod_report_v0.6.15_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -383,7 +383,7 @@ function App() {
       fitParamsText += `| **${p}** | ${val.toFixed(6)} |\n`;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.14)
+    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.15)
 Generated: ${new Date().toLocaleDateString()}
 
 #### 📈 Primary Results
