@@ -33,8 +33,8 @@ export interface DemoPreset {
 
 export const DEMO_PRESETS: DemoPreset[] = [
   {
-    name: "Multi-Construct Comparison (WT vs Mutant)",
-    plotTitle: "Construct Sensitivity & Potency Comparison",
+    name: "Multi-Construct Panel (4 Curves)",
+    plotTitle: "Construct Sensitivity & Potency Comparison (4 Curves)",
     series: [
       {
         id: "wt-series",
@@ -57,23 +57,63 @@ export const DEMO_PRESETS: DemoPreset[] = [
         ]
       },
       {
-        id: "mut-series",
+        id: "mut-k120a-series",
         name: "Mutant K120A",
         color: SERIES_COLORS[1],
         visible: true,
         fitMethod: "auto",
         blankSignals: "0.07, 0.10, 0.08",
         standardRows: [
-          { id: "mut-1", conc: "0.003", signals: "0.09, 0.10, 0.09" },
-          { id: "mut-2", conc: "0.01", signals: "0.12, 0.13, 0.11" },
-          { id: "mut-3", conc: "0.03", signals: "0.18, 0.20, 0.17" },
-          { id: "mut-4", conc: "0.1", signals: "0.35, 0.38, 0.32" },
-          { id: "mut-5", conc: "0.3", signals: "0.82, 0.89, 0.78" },
-          { id: "mut-6", conc: "1", signals: "1.75, 1.88, 1.68" },
-          { id: "mut-7", conc: "3", signals: "3.05, 3.25, 2.95" },
-          { id: "mut-8", conc: "10", signals: "4.15, 4.35, 4.05" },
-          { id: "mut-9", conc: "30", signals: "4.70, 4.85, 4.62" },
-          { id: "mut-10", conc: "100", signals: "4.90, 5.02, 4.85" },
+          { id: "k120a-1", conc: "0.003", signals: "0.09, 0.10, 0.09" },
+          { id: "k120a-2", conc: "0.01", signals: "0.12, 0.13, 0.11" },
+          { id: "k120a-3", conc: "0.03", signals: "0.18, 0.20, 0.17" },
+          { id: "k120a-4", conc: "0.1", signals: "0.35, 0.38, 0.32" },
+          { id: "k120a-5", conc: "0.3", signals: "0.82, 0.89, 0.78" },
+          { id: "k120a-6", conc: "1", signals: "1.75, 1.88, 1.68" },
+          { id: "k120a-7", conc: "3", signals: "3.05, 3.25, 2.95" },
+          { id: "k120a-8", conc: "10", signals: "4.15, 4.35, 4.05" },
+          { id: "k120a-9", conc: "30", signals: "4.70, 4.85, 4.62" },
+          { id: "k120a-10", conc: "100", signals: "4.90, 5.02, 4.85" },
+        ]
+      },
+      {
+        id: "mut-e85q-series",
+        name: "Mutant E85Q",
+        color: SERIES_COLORS[2],
+        visible: true,
+        fitMethod: "auto",
+        blankSignals: "0.05, 0.07, 0.06",
+        standardRows: [
+          { id: "e85q-1", conc: "0.0003", signals: "0.07, 0.08, 0.07" },
+          { id: "e85q-2", conc: "0.001", signals: "0.10, 0.12, 0.10" },
+          { id: "e85q-3", conc: "0.003", signals: "0.18, 0.21, 0.17" },
+          { id: "e85q-4", conc: "0.01", signals: "0.42, 0.46, 0.39" },
+          { id: "e85q-5", conc: "0.03", signals: "1.05, 1.15, 0.98" },
+          { id: "e85q-6", conc: "0.1", signals: "2.35, 2.48, 2.25" },
+          { id: "e85q-7", conc: "0.3", signals: "3.65, 3.82, 3.52" },
+          { id: "e85q-8", conc: "1", signals: "4.50, 4.68, 4.40" },
+          { id: "e85q-9", conc: "3", signals: "4.85, 4.98, 4.78" },
+          { id: "e85q-10", conc: "10", signals: "4.96, 5.06, 4.92" },
+        ]
+      },
+      {
+        id: "var-d32a-series",
+        name: "Variant D32A",
+        color: SERIES_COLORS[3],
+        visible: true,
+        fitMethod: "auto",
+        blankSignals: "0.06, 0.08, 0.07",
+        standardRows: [
+          { id: "d32a-1", conc: "0.003", signals: "0.08, 0.09, 0.08" },
+          { id: "d32a-2", conc: "0.01", signals: "0.11, 0.13, 0.11" },
+          { id: "d32a-3", conc: "0.03", signals: "0.19, 0.22, 0.18" },
+          { id: "d32a-4", conc: "0.1", signals: "0.45, 0.50, 0.42" },
+          { id: "d32a-5", conc: "0.3", signals: "1.10, 1.20, 1.05" },
+          { id: "d32a-6", conc: "1", signals: "1.95, 2.10, 1.88" },
+          { id: "d32a-7", conc: "3", signals: "2.65, 2.80, 2.55" },
+          { id: "d32a-8", conc: "10", signals: "3.02, 3.15, 2.95" },
+          { id: "d32a-9", conc: "30", signals: "3.15, 3.22, 3.08" },
+          { id: "d32a-10", conc: "100", signals: "3.18, 3.25, 3.12" },
         ]
       }
     ]

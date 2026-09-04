@@ -436,14 +436,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   fontSize: "0.72rem",
                   color: "var(--text)",
                   backgroundColor: "var(--surface0)",
-                  padding: "8px 12px",
                   borderRadius: "6px",
-                  lineHeight: "1.4",
+                  overflow: "hidden",
                   border: "1px solid var(--surface1)",
-                  borderLeft: "4px solid var(--pink)",
                   boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
                 }}>
-                  <span style={{ marginRight: "6px" }}>⚠️</span> {warning}
+                  <div style={{
+                    backgroundColor: "color-mix(in srgb, var(--pink) 12%, var(--surface0))",
+                    borderBottom: "1.5px solid color-mix(in srgb, var(--pink) 50%, var(--surface1))",
+                    padding: "4px 8px",
+                    fontSize: "0.68rem",
+                    fontWeight: 700,
+                    color: "var(--pink)",
+                    letterSpacing: "0.6px",
+                    textTransform: "uppercase",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}>
+                    <span>⚠️</span> QUALITY ADVISORY
+                  </div>
+                  <div style={{ padding: "8px 10px", lineHeight: "1.4" }}>
+                    {warning}
+                  </div>
                 </div>
               ))}
             </div>
@@ -452,17 +467,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
               fontSize: "0.72rem",
               color: "var(--text)",
               backgroundColor: "var(--surface0)",
-              padding: "8px 12px",
               borderRadius: "6px",
-              lineHeight: "1.4",
+              overflow: "hidden",
               border: "1px solid var(--surface1)",
-              borderLeft: "4px solid var(--green)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
               boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
             }}>
-              <span>All quality checks passed for this curve!</span>
+              <div style={{
+                backgroundColor: "color-mix(in srgb, var(--green) 12%, var(--surface0))",
+                borderBottom: "1.5px solid color-mix(in srgb, var(--green) 50%, var(--surface1))",
+                padding: "4px 8px",
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                color: "var(--green)",
+                letterSpacing: "0.6px",
+                textTransform: "uppercase",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px"
+              }}>
+                <span>✓</span> QUALITY VERIFICATION
+              </div>
+              <div style={{ padding: "8px 10px", lineHeight: "1.4" }}>
+                All quality checks passed for this curve.
+              </div>
             </div>
           )}
         </section>

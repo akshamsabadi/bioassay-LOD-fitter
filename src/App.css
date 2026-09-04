@@ -681,9 +681,7 @@ sub {
   color: var(--text);
 }
 
-.comparison-table tr.selected-row td:first-child {
-  border-left: 3px solid var(--mauve);
-}
+
 
 .active-dot {
   width: 6px;
