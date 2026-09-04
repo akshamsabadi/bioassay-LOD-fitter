@@ -1,28 +1,34 @@
 import React from "react";
 import { type AdvancedLoDResult } from "../utils/calculations";
 import { parseCSVData } from "../utils/csvParser";
+import { type AssaySeries, type StandardRow } from "../constants";
 
-export interface StandardRow {
-  id: string;
-  conc: string;
-  signals: string;
-}
+export { type StandardRow };
 
 interface SidebarProps {
+  seriesList: AssaySeries[];
+  activeSeriesId: string;
+  setActiveSeriesId: (id: string) => void;
+  onAddSeries: () => void;
+  onRemoveSeries: (id: string) => void;
+  onToggleSeriesVisibility: (id: string) => void;
+  onUpdateSeriesName: (id: string, name: string) => void;
+
   plotTitle: string;
   setPlotTitle: (val: string) => void;
   xAxisLabel: string;
   setXAxisLabel: (val: string) => void;
   yAxisLabel: string;
   setYAxisLabel: (val: string) => void;
+
   blankSignals: string;
   setBlankSignals: (val: string) => void;
   standardRows: StandardRow[];
   setStandardRows: React.Dispatch<React.SetStateAction<StandardRow[]>>;
   updateRow: (id: string, field: "conc" | "signals", value: string) => void;
   onAddRow: () => void;
-  onRemoveLast?: () => void;
   onRemoveRow: (id: string) => void;
+
   hoveredPoint: { id: string; y: number; cx: number; cy: number; conc: number | string } | null;
   setTableHoveredRowId: (id: string | null) => void;
   results: AdvancedLoDResult | null;
@@ -30,12 +36,21 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
+  seriesList,
+  activeSeriesId,
+  setActiveSeriesId,
+  onAddSeries,
+  onRemoveSeries,
+  onToggleSeriesVisibility,
+  onUpdateSeriesName,
+
   plotTitle,
   setPlotTitle,
   xAxisLabel,
   setXAxisLabel,
   yAxisLabel,
   setYAxisLabel,
+
   blankSignals,
   setBlankSignals,
   standardRows,
@@ -43,12 +58,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   updateRow,
   onAddRow,
   onRemoveRow,
+
   hoveredPoint,
   setTableHoveredRowId,
   results,
   qualityChecks,
 }) => {
-  // Global table paste handler: supports copying directly from Excel or Google Sheets
+  const activeSeries = seriesList.find(s => s.id === activeSeriesId) || seriesList[0];
+
+  // Clipboard paste handler for spreadsheet table data
   const handleGlobalPaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData("text");
     if (!text) return;
@@ -110,6 +128,128 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="sidebar" onPaste={handleGlobalPaste}>
       
+      {/* SECTION 0: MULTI-CURVE SERIES SELECTOR PILLS */}
+      <section className="sidebar-section" style={{ margin: 0, paddingBottom: "10px", borderBottom: "1px solid var(--surface1)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+          <span className="section-title" style={{ color: "var(--blue)", margin: 0 }}>Curves / Conditions</span>
+          <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }}>{seriesList.length} {seriesList.length === 1 ? "curve" : "curves"}</span>
+        </div>
+
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          overflowX: "auto",
+          paddingBottom: "4px",
+          scrollbarWidth: "thin"
+        }}>
+          {seriesList.map(s => {
+            const isActive = s.id === activeSeriesId;
+            return (
+              <div 
+                key={s.id}
+                onClick={() => setActiveSeriesId(s.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "4px 8px",
+                  borderRadius: "14px",
+                  fontSize: "0.72rem",
+                  fontWeight: isActive ? 700 : 500,
+                  backgroundColor: isActive ? "var(--surface1)" : "var(--surface0)",
+                  border: isActive ? `1.5px solid ${s.color}` : "1px solid var(--surface1)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  color: isActive ? "var(--text)" : "var(--subtext0)",
+                  transition: "all 0.15s",
+                  boxShadow: isActive ? `0 0 6px ${s.color}33` : "none"
+                }}
+                title={`Click to edit ${s.name}`}
+              >
+                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: s.color, display: "inline-block" }} />
+                <span>{s.name}</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onToggleSeriesVisibility(s.id); }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    opacity: s.visible ? 1 : 0.35,
+                    fontSize: "0.75rem",
+                    lineHeight: 1
+                  }}
+                  title={s.visible ? "Hide curve on plot" : "Show curve on plot"}
+                >
+                  {s.visible ? "👁" : "🕶"}
+                </button>
+                {seriesList.length > 1 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onRemoveSeries(s.id); }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      color: "var(--subtext0)",
+                      fontSize: "0.85rem",
+                      lineHeight: 1
+                    }}
+                    title="Delete this curve"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          <button
+            onClick={onAddSeries}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              padding: "4px 8px",
+              borderRadius: "14px",
+              fontSize: "0.72rem",
+              fontWeight: 600,
+              backgroundColor: "transparent",
+              border: "1px dashed var(--surface2)",
+              color: "var(--subtext0)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              transition: "all 0.15s"
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = "var(--blue)";
+              e.currentTarget.style.color = "var(--blue)";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = "var(--surface2)";
+              e.currentTarget.style.color = "var(--subtext0)";
+            }}
+            title="Overlay a new curve series onto the plot"
+          >
+            + Add Curve
+          </button>
+        </div>
+
+        {/* Active Curve Rename Input */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px" }}>
+          <span style={{ fontSize: "0.72rem", color: "var(--subtext0)", whiteSpace: "nowrap" }}>Curve Label:</span>
+          <input
+            type="text"
+            className="text-input"
+            value={activeSeries.name}
+            onChange={e => onUpdateSeriesName(activeSeries.id, e.target.value)}
+            style={{ flex: 1, padding: "3px 8px", fontSize: "0.75rem", height: "24px" }}
+            placeholder="Series Name"
+          />
+        </div>
+      </section>
+
       {/* SECTION 1: COLLAPSIBLE PLOT LABELS */}
       <section className="sidebar-section" style={{ margin: 0, paddingBottom: "10px", borderBottom: "1px solid var(--surface1)" }}>
         <details style={{ margin: 0, fontSize: "0.8rem" }}>
@@ -158,7 +298,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* SECTION 2: BLANKS DATA ENTRY */}
       <section className="sidebar-section" style={{ margin: 0 }}>
-        <span className="section-title" style={{ color: "var(--peach)", marginBottom: "8px" }}>Blanks (0 Conc)</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+          <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color }} />
+          <span className="section-title" style={{ color: "var(--peach)", margin: 0 }}>
+            {activeSeries.name} Blanks (0 Conc)
+          </span>
+        </div>
         <div className="data-row"
              onMouseEnter={() => setTableHoveredRowId("blank")}
              onMouseLeave={() => setTableHoveredRowId(null)}
@@ -190,9 +335,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* SECTION 3: STANDARDS DATA ENTRY */}
       <section className="sidebar-section" style={{ margin: 0, display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
-          <span className="section-title" style={{ color: "var(--green)", margin: 0 }}>Standards</span>
-          <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }} title="You can copy a table from Excel or Google Sheets and paste anywhere in the sidebar">
-            📋 Paste from Excel/Sheets supported
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color }} />
+            <span className="section-title" style={{ color: "var(--green)", margin: 0 }}>
+              {activeSeries.name} Standards
+            </span>
+          </div>
+          <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }} title="Paste from Excel or Google Sheets (Ctrl+V)">
+            📋 Excel paste supported
           </span>
         </div>
         
@@ -236,7 +386,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </div>
         
-        {/* Modern dashed outline "Add Point" (+) button */}
         <button
           onClick={onAddRow}
           style={{
@@ -277,7 +426,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           borderTop: "1px solid var(--surface1)",
           paddingTop: "12px"
         }}>
-          <span className="section-title" style={{ color: "var(--pink)", display: "block", marginBottom: "8px" }}>Assay Diagnostics</span>
+          <span className="section-title" style={{ color: "var(--pink)", display: "block", marginBottom: "8px" }}>
+            {activeSeries.name} Diagnostics
+          </span>
           {qualityChecks && qualityChecks.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               {qualityChecks.map((warning, index) => (
@@ -311,7 +462,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               gap: "8px",
               boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
             }}>
-              <span>All quality checks passed successfully!</span>
+              <span>All quality checks passed for this curve!</span>
             </div>
           )}
         </section>

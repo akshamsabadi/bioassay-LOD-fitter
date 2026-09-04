@@ -1,63 +1,200 @@
-import { useState, useMemo, useEffect } from 'react';
-import { calculateAdvancedLoD, type StandardData, type AdvancedLoDResult } from './utils/calculations';
-import { parseCSVData } from './utils/csvParser';
-import { Header } from './components/Header';
-import { Sidebar } from './components/Sidebar';
-import { ChartCard } from './components/ChartCard';
-import { ResultsPanel } from './components/ResultsPanel';
+import { useState, useMemo, useEffect } from "react";
+import {
+  calculateAdvancedLoD,
+  type StandardData,
+  type AdvancedLoDResult,
+  computeSensitivityFoldChange
+} from "./utils/calculations";
+import { parseCSVData } from "./utils/csvParser";
+import { Header } from "./components/Header";
+import { Sidebar } from "./components/Sidebar";
+import { ChartCard, type MultiCurvePlotSeries } from "./components/ChartCard";
+import { ResultsPanel, type SeriesLeaderboardItem } from "./components/ResultsPanel";
 import {
   DEMO_PRESETS,
-  DEFAULT_STANDARDS,
-  DEFAULT_BLANKS,
+  SERIES_COLORS,
+  type AssaySeries,
   type StandardRow
-} from './constants';
-import './App.css';
+} from "./constants";
+import "./App.css";
 
 function App() {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('app-theme') as 'dark' | 'light') || 'light';
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("app-theme") as "dark" | "light") || "light";
   });
-  const [blankSignals, setBlankSignals] = useState(DEFAULT_BLANKS);
-  const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
+
+  const [seriesList, setSeriesList] = useState<AssaySeries[]>(() => {
+    return DEMO_PRESETS[0].series;
+  });
+  const [activeSeriesId, setActiveSeriesId] = useState<string>(() => {
+    return DEMO_PRESETS[0].series[0].id;
+  });
   const [demoIndex, setDemoIndex] = useState(1);
-  const [fitMethod, setFitMethod] = useState<'linear' | 'langmuir' | '4pl' | '5pl' | 'auto'>('auto');
-  const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
-  const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
-  const [yAxisLabel, setYAxisLabel] = useState('Signal Intensity');
-  const [hoveredPoint, setHoveredPoint] = useState<{ id: string; y: number; cx: number; cy: number; conc: number | string } | null>(null);
+  const [plotTitle, setPlotTitle] = useState(DEMO_PRESETS[0].plotTitle);
+  const [xAxisLabel, setXAxisLabel] = useState("Concentration (mM)");
+  const [yAxisLabel, setYAxisLabel] = useState("Signal Intensity");
+  const [hoveredPoint, setHoveredPoint] = useState<{ id: string; y: number; cx: number; cy: number; conc: number | string; seriesName?: string } | null>(null);
   const [tableHoveredRowId, setTableHoveredRowId] = useState<string | null>(null);
+  const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.setAttribute('data-subtheme', theme === 'dark' ? 'near-midnight' : 'air');
-    localStorage.setItem('app-theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-subtheme", theme === "dark" ? "near-midnight" : "air");
+    localStorage.setItem("app-theme", theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(prev => (prev === "dark" ? "light" : "dark"));
   };
 
-  const results = useMemo((): AdvancedLoDResult | null => {
-    try {
-      const blanks = blankSignals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-      const standards: StandardData[] = [];
-      standardRows.forEach(row => {
-        const c = parseFloat(row.conc);
-        if (isNaN(c)) return;
-        row.signals.split(',').forEach(s => {
-          const val = parseFloat(s.trim());
-          if (!isNaN(val)) standards.push({ concentration: c, readout: val });
-        });
-      });
-      if (blanks.length < 2 || standards.length < 3) return null;
-      return calculateAdvancedLoD(blanks, standards, fitMethod);
-    } catch { return null; }
-  }, [blankSignals, standardRows, fitMethod]);
+  const activeSeries = useMemo(() => {
+    return seriesList.find(s => s.id === activeSeriesId) || seriesList[0];
+  }, [seriesList, activeSeriesId]);
 
+  const updateActiveSeriesField = <K extends keyof AssaySeries>(field: K, value: AssaySeries[K]) => {
+    setSeriesList(prev => prev.map(s => s.id === activeSeries.id ? { ...s, [field]: value } : s));
+  };
+
+  const handleAddSeries = () => {
+    const nextIdx = seriesList.length;
+    const newColor = SERIES_COLORS[nextIdx % SERIES_COLORS.length];
+    const newId = "series-" + Math.random().toString(36).substring(2, 7);
+    const newName = `Curve ${nextIdx + 1}`;
+    const newSeries: AssaySeries = {
+      id: newId,
+      name: newName,
+      color: newColor,
+      visible: true,
+      fitMethod: "auto",
+      blankSignals: activeSeries.blankSignals,
+      standardRows: [
+        { id: Math.random().toString(36), conc: "0.01", signals: "" },
+        { id: Math.random().toString(36), conc: "0.1", signals: "" },
+        { id: Math.random().toString(36), conc: "1.0", signals: "" },
+      ]
+    };
+    setSeriesList(prev => [...prev, newSeries]);
+    setActiveSeriesId(newId);
+  };
+
+  const handleRemoveSeries = (id: string) => {
+    if (seriesList.length <= 1) return;
+    setSeriesList(prev => {
+      const nextList = prev.filter(s => s.id !== id);
+      if (activeSeriesId === id) {
+        setActiveSeriesId(nextList[0].id);
+      }
+      return nextList;
+    });
+  };
+
+  const handleToggleSeriesVisibility = (id: string) => {
+    setSeriesList(prev => prev.map(s => s.id === id ? { ...s, visible: !s.visible } : s));
+  };
+
+  const handleUpdateSeriesName = (id: string, name: string) => {
+    setSeriesList(prev => prev.map(s => s.id === id ? { ...s, name } : s));
+  };
+
+  // Quality Checks computation
+  const computeQualityChecks = (results: AdvancedLoDResult | null, standardRows: StandardRow[]): string[] => {
+    if (!results) return [];
+    const warnings: string[] = [];
+    if (results.fit.metrics.r2 < 0.95) {
+      warnings.push(`Poor fit quality (R² = ${results.fit.metrics.r2.toFixed(4)}). Consider manual model selection.`);
+    }
+    standardRows.forEach((row) => {
+      const c = parseFloat(row.conc);
+      if (isNaN(c)) return;
+      const sigs = row.signals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+      if (sigs.length > 1) {
+        const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
+        if (mean > 0) {
+          const sd = Math.sqrt(sigs.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (sigs.length - 1));
+          const cv = sd / mean;
+          if (cv > 0.15) {
+            warnings.push(`High replicate variance at concentration ${c} (CV = ${(cv * 100).toFixed(1)}%). Check for pipetting errors.`);
+          }
+        }
+      }
+    });
+    const sortedStandards = [...standardRows]
+      .map(row => {
+        const c = parseFloat(row.conc);
+        const sigs = row.signals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+        const mean = sigs.length > 0 ? sigs.reduce((a, b) => a + b, 0) / sigs.length : 0;
+        return { conc: c, mean };
+      })
+      .filter(item => !isNaN(item.conc))
+      .sort((a, b) => a.conc - b.conc);
+    if (sortedStandards.length > 2) {
+      let increases = 0;
+      let decreases = 0;
+      for (let i = 1; i < sortedStandards.length; i++) {
+        const diff = sortedStandards[i].mean - sortedStandards[i - 1].mean;
+        if (diff > 0.05) increases++;
+        else if (diff < -0.05) decreases++;
+      }
+      if (increases > 0 && decreases > 0) {
+        warnings.push("Non-monotonic response detected (Hook Effect / signal drop at high concentration).");
+      }
+    }
+    return warnings;
+  };
+
+  // Fit calculations for each series in seriesList
+  interface SeriesFitMapItem {
+    series: AssaySeries;
+    results: AdvancedLoDResult | null;
+    qualityChecks: string[];
+  }
+
+  const seriesFitMap = useMemo((): SeriesFitMapItem[] => {
+    return seriesList.map(s => {
+      try {
+        const blanks = s.blankSignals.split(",").map(str => parseFloat(str.trim())).filter(n => !isNaN(n));
+        const standards: StandardData[] = [];
+        s.standardRows.forEach(row => {
+          const c = parseFloat(row.conc);
+          if (isNaN(c)) return;
+          row.signals.split(",").forEach(sig => {
+            const val = parseFloat(sig.trim());
+            if (!isNaN(val)) standards.push({ concentration: c, readout: val });
+          });
+        });
+        if (blanks.length < 2 || standards.length < 3) {
+          return { series: s, results: null, qualityChecks: [] };
+        }
+        const res = calculateAdvancedLoD(blanks, standards, s.fitMethod);
+        const qc = computeQualityChecks(res, s.standardRows);
+        return { series: s, results: res, qualityChecks: qc };
+      } catch {
+        return { series: s, results: null, qualityChecks: [] };
+      }
+    });
+  }, [seriesList]);
+
+  const activeFitItem = useMemo(() => {
+    return seriesFitMap.find(item => item.series.id === activeSeries.id) || seriesFitMap[0];
+  }, [seriesFitMap, activeSeries.id]);
+
+  const activeResults = activeFitItem?.results || null;
+  const activeQualityChecks = activeFitItem?.qualityChecks || [];
+
+  const validVisibleSeries = useMemo(() => {
+    return seriesFitMap.filter(item => item.series.visible && item.results !== null);
+  }, [seriesFitMap]);
+
+  // Unified global logarithmic X domain
   const { xTicks, xDomain, breakStart, breakEnd } = useMemo(() => {
-    if (!results) return { xTicks: [], xDomain: [0, 0] as [number, number], breakStart: 0, breakEnd: 0 };
-    const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
-    const maxX = Math.max(...results.fit.actualX);
+    if (validVisibleSeries.length === 0) {
+      return { xTicks: [], xDomain: [0, 0] as [number, number], breakStart: 0, breakEnd: 0 };
+    }
+    const allX = validVisibleSeries.flatMap(item => item.results!.fit.actualX.filter(x => x > 0));
+    if (allX.length === 0) return { xTicks: [], xDomain: [0, 0] as [number, number], breakStart: 0, breakEnd: 0 };
+
+    const minX = Math.min(...allX);
+    const maxX = Math.max(...allX);
     const zeroX = minX / 10;
     const maxAxisValue = maxX * 1.5;
     const breakCenterLog = (Math.log10(zeroX) + Math.log10(minX)) / 2;
@@ -81,142 +218,28 @@ function App() {
       }
     }
     return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [number, number], breakStart, breakEnd };
-  }, [results]);
+  }, [validVisibleSeries]);
 
-  const leftChartData = useMemo(() => {
-    if (!results || !breakStart) return [];
-    const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
-    const zeroX = minX / 10;
-    const data = [];
-    const steps = 20;
-    const logMin = Math.log10(zeroX);
-    const logMax = Math.log10(breakStart);
-    for (let i = 0; i <= steps; i++) {
-      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
-      const pred = results.fit.predict(0);
-      const { low, high } = results.fit.getCI(0);
-      data.push({ x: xVal, trend: pred, ciRange: [low, high] });
-    }
-    return data;
-  }, [results, breakStart]);
-
-  const rightChartData = useMemo(() => {
-    if (!results || !breakEnd) return [];
-    const maxX = Math.max(...results.fit.actualX);
-    const data = [];
-    const steps = 80;
-    const logMin = Math.log10(breakEnd);
-    const logMax = Math.log10(maxX * 1.5);
-    for (let i = 0; i <= steps; i++) {
-      const xVal = Math.pow(10, logMin + i * (logMax - logMin) / steps);
-      const pred = results.fit.predict(xVal);
-      const { low, high } = results.fit.getCI(xVal);
-      data.push({ x: xVal, trend: pred, ciRange: [low, high] });
-    }
-    return data;
-  }, [results, breakEnd]);
-
-  const lcLeftData = useMemo(() => {
-    if (!results || !breakStart) return [];
-    return [{ x: xDomain[0], y: results.lc }, { x: breakStart, y: results.lc }];
-  }, [results, xDomain, breakStart]);
-
-  const lcRightData = useMemo(() => {
-    if (!results || !breakEnd) return [];
-    return [{ x: breakEnd, y: results.lc }, { x: xDomain[1], y: results.lc }];
-  }, [results, xDomain, breakEnd]);
-
-  const ldLeftData = useMemo(() => {
-    if (!results || !breakStart) return [];
-    return [{ x: xDomain[0], y: results.ld }, { x: breakStart, y: results.ld }];
-  }, [results, xDomain, breakStart]);
-
-  const ldRightData = useMemo(() => {
-    if (!results || !breakEnd) return [];
-    return [{ x: breakEnd, y: results.ld }, { x: xDomain[1], y: results.ld }];
-  }, [results, xDomain, breakEnd]);
-
-  const scatterData = useMemo(() => {
-    if (!results) return [];
-    const minX = Math.min(...results.fit.actualX.filter(x => x > 0));
-    const zeroX = minX / 10;
-    const points: any[] = [];
-    const blanks = blankSignals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-    blanks.forEach(y => points.push({ x: zeroX, y, id: 'blank', actualX: '0', isScatterData: true }));
-    standardRows.forEach(row => {
-      const c = parseFloat(row.conc);
-      if (isNaN(c)) return;
-      row.signals.split(',').forEach(s => {
-        const val = parseFloat(s.trim());
-        if (!isNaN(val)) points.push({ x: c === 0 ? zeroX : c, y: val, id: row.id, actualX: c, isScatterData: true });
-      });
-    });
-    return points;
-  }, [results, blankSignals, standardRows]);
-
-  const qualityChecks = useMemo(() => {
-    if (!results) return null;
-    const warnings: string[] = [];
-    if (results.fit.metrics.r2 < 0.95) {
-      warnings.push(`Poor fit quality (R² = ${results.fit.metrics.r2.toFixed(4)}). Consider manual model selection.`);
-    }
-    standardRows.forEach((row) => {
-      const c = parseFloat(row.conc);
-      if (isNaN(c)) return;
-      const sigs = row.signals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-      if (sigs.length > 1) {
-        const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
-        if (mean > 0) {
-          const sd = Math.sqrt(sigs.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (sigs.length - 1));
-          const cv = sd / mean;
-          if (cv > 0.15) {
-            warnings.push(`High replicate variance at concentration ${c} (CV = ${(cv * 100).toFixed(1)}%). Check for pipetting errors.`);
-          }
-        }
-      }
-    });
-    const sortedStandards = [...standardRows]
-      .map(row => {
-        const c = parseFloat(row.conc);
-        const sigs = row.signals.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-        const mean = sigs.length > 0 ? sigs.reduce((a, b) => a + b, 0) / sigs.length : 0;
-        return { conc: c, mean };
-      })
-      .filter(item => !isNaN(item.conc))
-      .sort((a, b) => a.conc - b.conc);
-    if (sortedStandards.length > 2) {
-      let increases = 0;
-      let decreases = 0;
-      for (let i = 1; i < sortedStandards.length; i++) {
-        const diff = sortedStandards[i].mean - sortedStandards[i - 1].mean;
-        if (diff > 0.05) increases++;
-        else if (diff < -0.05) decreases++;
-      }
-      if (increases > 0 && decreases > 0) {
-        warnings.push("Non-monotonic response detected (Hook Effect / signal drop at high concentration). Calibration curve may be compromised.");
-      }
-    }
-    return warnings;
-  }, [results, standardRows]);
-
+  // Unified global Y domain
   const { yDomain, yTicks, yMajorTicks } = useMemo(() => {
-    if (!results) return { yDomain: [0, 1] as [number, number], yTicks: undefined, yMajorTicks: [] as number[] };
-
-    const validSignals = results.fit.actualY.filter(v => isFinite(v));
-    const allKeyValues = [...validSignals];
-    if (isFinite(results.lc)) allKeyValues.push(results.lc);
-    if (isFinite(results.ld)) allKeyValues.push(results.ld);
+    if (validVisibleSeries.length === 0) {
+      return { yDomain: [0, 1] as [number, number], yTicks: undefined, yMajorTicks: [] as number[] };
+    }
+    const allSignals = validVisibleSeries.flatMap(item => item.results!.fit.actualY.filter(v => isFinite(v)));
+    const allKeyValues = [...allSignals];
+    validVisibleSeries.forEach(item => {
+      if (isFinite(item.results!.lc)) allKeyValues.push(item.results!.lc);
+      if (isFinite(item.results!.ld)) allKeyValues.push(item.results!.ld);
+    });
 
     const minData = allKeyValues.length > 0 ? Math.min(...allKeyValues) : 0;
     const maxData = allKeyValues.length > 0 ? Math.max(...allKeyValues) : 1;
-    
-    // Ensure we have a non-zero range with modest padding
+
     const span = maxData > minData ? maxData - minData : (Math.abs(maxData) || 1);
     const targetMin = minData < 0 ? minData - span * 0.05 : Math.max(0, minData - span * 0.05);
     const targetMax = maxData + span * 0.08;
     const roughSpan = Math.max(1e-9, targetMax - targetMin);
 
-    // Determine "nice" step based on target tick count (5-6 intervals)
     const rawStep = roughSpan / 5;
     const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
     const normalizedStep = rawStep / magnitude;
@@ -236,7 +259,6 @@ function App() {
       majorTicks.push(Number((niceMin + i * niceStep).toPrecision(10)));
     }
 
-    // Determine minor tick step (subdivide into 2 or 5 parts, capped at 40 ticks max)
     const subDiv = multiplier === 2 ? 2 : 5;
     const subStep = niceStep / subDiv;
     const numMinor = Math.round((niceMax - niceMin) / subStep);
@@ -250,32 +272,148 @@ function App() {
     }
 
     return { yDomain: [niceMin, niceMax] as [number, number], yTicks: allTicks, yMajorTicks: majorTicks };
-  }, [results]);
+  }, [validVisibleSeries]);
 
   const leftAxisData = useMemo(() => {
-    if (!results || !breakStart) return [];
+    if (validVisibleSeries.length === 0 || !breakStart) return [];
     return [{ x: xDomain[0], y: yDomain[0] }, { x: breakStart, y: yDomain[0] }];
-  }, [results, xDomain, breakStart, yDomain]);
+  }, [validVisibleSeries, xDomain, breakStart, yDomain]);
 
   const rightAxisData = useMemo(() => {
-    if (!results || !breakEnd) return [];
+    if (validVisibleSeries.length === 0 || !breakEnd) return [];
     return [{ x: breakEnd, y: yDomain[0] }, { x: xDomain[1], y: yDomain[0] }];
-  }, [results, xDomain, breakEnd, yDomain]);
+  }, [validVisibleSeries, xDomain, breakEnd, yDomain]);
 
-  const updateRow = (id: string, field: 'conc' | 'signals', value: string) => {
-    setStandardRows(standardRows.map(r => r.id === id ? { ...r, [field]: value } : r));
+  // Generate chart data for all visible curves
+  const curveSeriesList = useMemo((): MultiCurvePlotSeries[] => {
+    if (validVisibleSeries.length === 0 || !breakStart || !breakEnd) return [];
+    const zeroX = xDomain[0];
+    const maxAxisValue = xDomain[1];
+
+    return validVisibleSeries.map(item => {
+      const res = item.results!;
+      const s = item.series;
+      const isActive = s.id === activeSeries.id;
+
+      // Left chart data (zero break)
+      const leftData = [];
+      const leftSteps = 20;
+      const logMinLeft = Math.log10(zeroX);
+      const logMaxLeft = Math.log10(breakStart);
+      for (let i = 0; i <= leftSteps; i++) {
+        const xVal = Math.pow(10, logMinLeft + i * (logMaxLeft - logMinLeft) / leftSteps);
+        const pred = res.fit.predict(0);
+        const { low, high } = res.fit.getCI(0);
+        leftData.push({ x: xVal, trend: pred, ciRange: [low, high] });
+      }
+
+      // Right chart data (main curve)
+      const rightData = [];
+      const rightSteps = 80;
+      const logMinRight = Math.log10(breakEnd);
+      const logMaxRight = Math.log10(maxAxisValue);
+      for (let i = 0; i <= rightSteps; i++) {
+        const xVal = Math.pow(10, logMinRight + i * (logMaxRight - logMinRight) / rightSteps);
+        const pred = res.fit.predict(xVal);
+        const { low, high } = res.fit.getCI(xVal);
+        rightData.push({ x: xVal, trend: pred, ciRange: [low, high] });
+      }
+
+      // Scatter points
+      const scatter: any[] = [];
+      // Blanks
+      s.blankSignals.split(",").forEach(sig => {
+        const val = parseFloat(sig.trim());
+        if (!isNaN(val)) {
+          scatter.push({
+            x: zeroX,
+            y: val,
+            actualX: 0,
+            id: `${s.id}-blank`,
+            seriesId: s.id,
+            seriesName: s.name,
+            color: s.color
+          });
+        }
+      });
+      // Standards
+      s.standardRows.forEach(row => {
+        const c = parseFloat(row.conc);
+        if (isNaN(c)) return;
+        row.signals.split(",").forEach(sig => {
+          const val = parseFloat(sig.trim());
+          if (!isNaN(val)) {
+            scatter.push({
+              x: c,
+              y: val,
+              actualX: c,
+              id: row.id,
+              seriesId: s.id,
+              seriesName: s.name,
+              color: s.color
+            });
+          }
+        });
+      });
+
+      const lcLeft = [{ x: zeroX, y: res.lc }, { x: breakStart, y: res.lc }];
+      const lcRight = [{ x: breakEnd, y: res.lc }, { x: maxAxisValue, y: res.lc }];
+      const ldLeft = [{ x: zeroX, y: res.ld }, { x: breakStart, y: res.ld }];
+      const ldRight = [{ x: breakEnd, y: res.ld }, { x: maxAxisValue, y: res.ld }];
+
+      return {
+        id: s.id,
+        name: s.name,
+        color: s.color,
+        visible: s.visible,
+        isActive,
+        results: res,
+        leftChartData: leftData,
+        rightChartData: rightData,
+        scatterData: scatter,
+        lcLeftData: lcLeft,
+        lcRightData: lcRight,
+        ldLeftData: ldLeft,
+        ldRightData: ldRight
+      };
+    });
+  }, [validVisibleSeries, breakStart, breakEnd, xDomain, activeSeries.id]);
+
+  // Comparative Leaderboard Items
+  const leaderboardItems = useMemo((): SeriesLeaderboardItem[] => {
+    const refResult = validVisibleSeries[0]?.results;
+    const refLod = refResult?.lodConc || 0;
+
+    return validVisibleSeries.map(item => {
+      const s = item.series;
+      const res = item.results!;
+      const fold = computeSensitivityFoldChange(res.lodConc, refLod);
+      return {
+        id: s.id,
+        name: s.name,
+        color: s.color,
+        isActive: s.id === activeSeries.id,
+        results: res,
+        foldChangeVsRef: fold
+      };
+    });
+  }, [validVisibleSeries, activeSeries.id]);
+
+  // Handlers for active series data editing
+  const updateRow = (id: string, field: "conc" | "signals", value: string) => {
+    const newRows = activeSeries.standardRows.map(r => r.id === id ? { ...r, [field]: value } : r);
+    updateActiveSeriesField("standardRows", newRows);
   };
 
   const handleClearData = () => {
-    setBlankSignals('');
-    setStandardRows([{ id: '1', conc: '', signals: '' }]);
+    updateActiveSeriesField("blankSignals", "");
+    updateActiveSeriesField("standardRows", [{ id: "1", conc: "", signals: "" }]);
   };
 
   const handleLoadDemo = () => {
     const preset = DEMO_PRESETS[demoIndex];
-    setBlankSignals(preset.blanks);
-    setStandardRows(preset.standards);
-    setFitMethod(preset.fitMethod);
+    setSeriesList(preset.series);
+    setActiveSeriesId(preset.series[0].id);
     setPlotTitle(preset.plotTitle);
     setDemoIndex(prev => (prev + 1) % DEMO_PRESETS.length);
   };
@@ -287,47 +425,61 @@ function App() {
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (!text) return;
-      const { blankSignals: parsedBlanks, standards: parsedStandards } = parseCSVData(text);
-      if (parsedBlanks || parsedStandards.length > 0) {
-        if (parsedBlanks) setBlankSignals(parsedBlanks);
-        if (parsedStandards.length > 0) setStandardRows(parsedStandards);
-        alert('CSV Data imported successfully!');
+      const parsed = parseCSVData(text);
+      if (parsed.multiSeries && parsed.multiSeries.length > 1) {
+        setSeriesList(parsed.multiSeries);
+        setActiveSeriesId(parsed.multiSeries[0].id);
+        alert(`Successfully imported ${parsed.multiSeries.length} curves from file!`);
+      } else if (parsed.blankSignals || parsed.standards.length > 0) {
+        if (parsed.blankSignals) updateActiveSeriesField("blankSignals", parsed.blankSignals);
+        if (parsed.standards.length > 0) updateActiveSeriesField("standardRows", parsed.standards);
+        alert("Data imported successfully into current curve!");
       } else {
-        alert('Could not find any valid concentration-signal data in the uploaded CSV file.');
+        alert("Could not find any valid concentration-signal data in the uploaded file.");
       }
     };
     reader.readAsText(file);
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleExportCSV = () => {
-    if (!results) return;
+    if (!activeResults) return;
     const csvRows: string[] = [];
-    csvRows.push('# ===================================================');
-    csvRows.push('# BIOASSAY LOD FITTER - INPUT DATA TEMPLATE');
-    csvRows.push('# ===================================================');
-    csvRows.push('Concentration,Signals');
-    if (blankSignals) csvRows.push(`0,${blankSignals}`);
-    standardRows.forEach(row => {
-      if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
+    csvRows.push("# ===================================================");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.17)");
+    csvRows.push("# ===================================================");
+    csvRows.push("App Version,v0.6.17");
+    csvRows.push(`Total Curves,${seriesList.length}`);
+    csvRows.push("");
+
+    if (leaderboardItems.length > 1) {
+      csvRows.push("# ===================================================");
+      csvRows.push("# COMPARATIVE SENSITIVITY LEADERBOARD");
+      csvRows.push("# ===================================================");
+      csvRows.push("Curve Name,Fitted Model,LOD (Conc),LOD 95% CI Low,LOD 95% CI High,R2,AICc,Sensitivity vs Ref");
+      leaderboardItems.forEach(item => {
+        csvRows.push(`"${item.name}",${item.results.fit.method.toUpperCase()},${item.results.lodConc.toExponential(6)},${item.results.lodCI.low.toExponential(6)},${item.results.lodCI.high.toExponential(6)},${item.results.fit.metrics.r2.toFixed(6)},${item.results.fit.metrics.aicc.toFixed(2)},"${item.foldChangeVsRef}"`);
+      });
+      csvRows.push("");
+    }
+
+    seriesList.forEach((s) => {
+      csvRows.push("# ===================================================");
+      csvRows.push(`# SERIES: ${s.name}`);
+      csvRows.push("# ===================================================");
+      csvRows.push("Concentration,Signals");
+      if (s.blankSignals) csvRows.push(`0,${s.blankSignals}`);
+      s.standardRows.forEach(row => {
+        if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
+      });
+      csvRows.push("");
     });
-    csvRows.push('', '# ===================================================', '# ANALYSIS SUMMARY & STATISTICAL RESULTS', '# ===================================================', 'Parameter,Value');
-    csvRows.push('App Version,v0.6.16');
-    csvRows.push(`Requested Fit Method,${fitMethod}`, `Best/Selected Model,${results.fit.method.toUpperCase()}`);
-    csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
-    csvRows.push(`LOD 95% Confidence Interval Low,${results.lodCI.low.toExponential(6)}`, `LOD 95% Confidence Interval High,${results.lodCI.high.toExponential(6)}`);
-    csvRows.push(`AICc Score,${results.fit.metrics.aicc.toFixed(4)}`, `R² (Coefficient of Determination),${results.fit.metrics.r2.toFixed(6)}`);
-    csvRows.push(`Blank Mean,${results.meanBlank.toFixed(6)}`, `Blank SD,${results.sdBlank.toFixed(6)}`, `Pooled SD (Standards),${results.sdPooled.toFixed(6)}`);
-    csvRows.push(`Critical Level (LC),${results.lc.toFixed(6)}`, `Detection Limit Signal (LD),${results.ld.toFixed(6)}`);
-    csvRows.push('', '# ===================================================', '# FITTED MODEL PARAMETERS', '# ===================================================', 'Model Parameter,Value');
-    Object.entries(results.fit.parameters).forEach(([param, value]) => {
-      csvRows.push(`"${param}",${value.toFixed(6)}`);
-    });
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `bioassay_lod_report_v0.6.16_${new Date().toISOString().slice(0, 10)}.csv`);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.17_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -336,29 +488,32 @@ function App() {
 
   const handleDownloadTemplate = () => {
     const csvRows = [
-      '# ===================================================',
-      '# BIOASSAY LOD FITTER - IMPORT TEMPLATE',
-      '# ===================================================',
-      'Concentration,Replicate1,Replicate2,Replicate3',
-      '0,0.07,0.13,0.08',
-      '0.001,0.08,0.15,0.09',
-      '0.003,0.10,0.18,0.11',
-      '0.01,0.14,0.10,0.19',
-      '0.03,0.20,0.32,0.23',
-      '0.1,0.45,0.65,0.52',
-      '0.3,1.05,1.45,1.20',
-      '1,2.30,2.80,2.45',
-      '3,3.50,4.00,3.65',
-      '10,4.30,4.75,4.45',
-      '30,4.65,5.05,4.75',
-      '100,4.80,5.20,4.85',
-      '300,4.85,5.25,4.90'
+      "# ===================================================",
+      "# BIOASSAY LOD FITTER - MULTI-CURVE IMPORT TEMPLATE",
+      "# ===================================================",
+      "# Series: Wild-Type",
+      "Concentration,Replicate1,Replicate2,Replicate3",
+      "0,0.06,0.09,0.07",
+      "0.001,0.08,0.09,0.08",
+      "0.01,0.19,0.22,0.18",
+      "0.1,0.85,0.92,0.81",
+      "1,3.20,3.42,3.10",
+      "10,4.75,4.90,4.68",
+      "",
+      "# Series: Mutant K120A",
+      "Concentration,Replicate1,Replicate2,Replicate3",
+      "0,0.07,0.10,0.08",
+      "0.003,0.09,0.10,0.09",
+      "0.03,0.18,0.20,0.17",
+      "0.3,0.82,0.89,0.78",
+      "3,3.05,3.25,2.95",
+      "30,4.70,4.85,4.62"
     ];
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'bioassay_import_template.csv');
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "bioassay_multi_curve_template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -366,42 +521,55 @@ function App() {
   };
 
   const handleCopyMetrics = () => {
-    if (!results) return;
-    
-    let fitParamsText = '';
-    Object.entries(results.fit.parameters).forEach(([p, val]) => {
-      fitParamsText += `| **${p}** | ${val.toFixed(6)} |\n`;
+    if (!activeResults) return;
+
+    let leaderboardMarkdown = "";
+    if (leaderboardItems.length > 1) {
+      leaderboardMarkdown = `#### 🏆 Multi-Curve Sensitivity Comparison
+| Curve | Model | LOD (Concentration) | 95% CI | R² | vs Ref |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+`;
+      leaderboardItems.forEach(item => {
+        leaderboardMarkdown += `| **${item.name}** | ${item.results.fit.method.toUpperCase()} | **${item.results.lodConc.toExponential(3)}** | [${item.results.lodCI.low.toExponential(2)}, ${item.results.lodCI.high.toExponential(2)}] | ${item.results.fit.metrics.r2.toFixed(4)} | ${item.foldChangeVsRef} |
+`;
+      });
+      leaderboardMarkdown += "\n";
+    }
+
+    let fitParamsText = "";
+    Object.entries(activeResults.fit.parameters).forEach(([p, val]) => {
+      fitParamsText += `| **${p}** | ${val.toFixed(6)} |
+`;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.16)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.17)
 Generated: ${new Date().toLocaleDateString()}
 
-#### 📈 Primary Results
+${leaderboardMarkdown}#### 📈 Active Curve: ${activeSeries.name}
 | Parameter | Value |
 | :--- | :--- |
-| **Limit of Detection (LOD)** | **${results.lodConc.toExponential(4)}** |
-| **95% Confidence Interval** | [${results.lodCI.low.toExponential(4)}, ${results.lodCI.high.toExponential(4)}] |
-| **Model Fitted** | ${results.fit.method.toUpperCase()} |
-| **R² (Coefficient of Determination)** | ${results.fit.metrics.r2.toFixed(5)} |
-| **AICc Score** | ${results.fit.metrics.aicc.toFixed(2)} |
+| **Limit of Detection (LOD)** | **${activeResults.lodConc.toExponential(4)}** |
+| **95% Confidence Interval** | [${activeResults.lodCI.low.toExponential(4)}, ${activeResults.lodCI.high.toExponential(4)}] |
+| **Model Fitted** | ${activeResults.fit.method.toUpperCase()} |
+| **R² (Coefficient of Determination)** | ${activeResults.fit.metrics.r2.toFixed(5)} |
+| **AICc Score** | ${activeResults.fit.metrics.aicc.toFixed(2)} |
 
-#### 🧪 Statistical Assay Parameters (Currie 1968 / Holstein et al. 2015)
+#### 🧪 Statistical Limits (Currie 1968 / Holstein et al. 2015)
 | Parameter | Value | Description |
 | :--- | :--- | :--- |
-| **Blank Mean** | ${results.meanBlank.toFixed(4)} | Average background signal |
-| **Blank SD** | ${results.sdBlank.toFixed(4)} | Background standard deviation |
-| **Pooled SD** | ${results.sdPooled.toFixed(4)} | Standards pooled standard deviation |
-| **L_C (Decision Limit)** | ${results.lc.toFixed(4)} | Critical signal threshold (α=0.05) |
-| **L_D (Detection Limit)** | ${results.ld.toFixed(4)} | Minimal detectable signal level (β=0.05) |
+| **Blank Mean** | ${activeResults.meanBlank.toFixed(4)} | Average background signal |
+| **Blank SD** | ${activeResults.sdBlank.toFixed(4)} | Background standard deviation |
+| **Pooled SD** | ${activeResults.sdPooled.toFixed(4)} | Standards pooled standard deviation |
+| **L_C (Decision Limit)** | ${activeResults.lc.toFixed(4)} | Critical signal threshold (α=0.05) |
+| **L_D (Detection Limit)** | ${activeResults.ld.toFixed(4)} | Minimal detectable signal level (β=0.05) |
 
-#### ⚙️ Curve Fit Parameters
+#### ⚙️ Fitted Parameters (${activeSeries.name})
 | Parameter | Value |
 | :--- | :--- |
-${fitParamsText}
-*Copy-paste directly into your markdown lab notes, Slack, Teams, or report documents.*`;
+${fitParamsText}`;
 
     navigator.clipboard.writeText(report);
-    alert('Comprehensive Analytics Report copied to clipboard as Markdown!');
+    alert("Comparative Multi-Curve Report copied to clipboard as Markdown!");
   };
 
   return (
@@ -417,31 +585,53 @@ ${fitParamsText}
       />
       <main className="main-container">
         <Sidebar
+          seriesList={seriesList}
+          activeSeriesId={activeSeries.id}
+          setActiveSeriesId={setActiveSeriesId}
+          onAddSeries={handleAddSeries}
+          onRemoveSeries={handleRemoveSeries}
+          onToggleSeriesVisibility={handleToggleSeriesVisibility}
+          onUpdateSeriesName={handleUpdateSeriesName}
+
           plotTitle={plotTitle}
           setPlotTitle={setPlotTitle}
           xAxisLabel={xAxisLabel}
           setXAxisLabel={setXAxisLabel}
           yAxisLabel={yAxisLabel}
           setYAxisLabel={setYAxisLabel}
-          blankSignals={blankSignals}
-          setBlankSignals={setBlankSignals}
-          standardRows={standardRows}
-          setStandardRows={setStandardRows}
+
+          blankSignals={activeSeries.blankSignals}
+          setBlankSignals={val => updateActiveSeriesField("blankSignals", val)}
+          standardRows={activeSeries.standardRows}
+          setStandardRows={updater => {
+            if (typeof updater === "function") {
+              updateActiveSeriesField("standardRows", updater(activeSeries.standardRows));
+            } else {
+              updateActiveSeriesField("standardRows", updater);
+            }
+          }}
           updateRow={updateRow}
-          onAddRow={() => setStandardRows(prev => [...prev, { id: Math.random().toString(36), conc: '', signals: '' }])}
-          onRemoveLast={() => setStandardRows(prev => prev.slice(0, -1))}
-          onRemoveRow={id => setStandardRows(prev => prev.filter(r => r.id !== id))}
+          onAddRow={() => {
+            const newRow = { id: Math.random().toString(36), conc: "", signals: "" };
+            updateActiveSeriesField("standardRows", [...activeSeries.standardRows, newRow]);
+          }}
+          onRemoveRow={id => {
+            const newRows = activeSeries.standardRows.filter(r => r.id !== id);
+            updateActiveSeriesField("standardRows", newRows);
+          }}
           hoveredPoint={hoveredPoint}
           setTableHoveredRowId={setTableHoveredRowId}
-          results={results}
-          qualityChecks={qualityChecks}
+          results={activeResults}
+          qualityChecks={activeQualityChecks}
         />
         <section className="content-area">
-          {results ? (
+          {validVisibleSeries.length > 0 && activeResults ? (
             <div className="dashboard-grid">
               <ChartCard
                 plotTitle={plotTitle}
-                results={results}
+                activeResults={activeResults}
+                activeSeriesName={activeSeries.name}
+                curveSeriesList={curveSeriesList}
                 xAxisLabel={xAxisLabel}
                 yAxisLabel={yAxisLabel}
                 breakStart={breakStart}
@@ -451,26 +641,25 @@ ${fitParamsText}
                 yDomain={yDomain}
                 yTicks={yTicks}
                 yMajorTicks={yMajorTicks}
-                leftChartData={leftChartData}
-                rightChartData={rightChartData}
-                lcLeftData={lcLeftData}
-                lcRightData={lcRightData}
-                ldLeftData={ldLeftData}
-                ldRightData={ldRightData}
-                scatterData={scatterData}
                 leftAxisData={leftAxisData}
                 rightAxisData={rightAxisData}
                 hoveredPoint={hoveredPoint}
                 setHoveredPoint={setHoveredPoint}
                 tableHoveredRowId={tableHoveredRowId}
                 handleExportCSV={handleExportCSV}
+                hoveredSeriesId={hoveredSeriesId}
+                setHoveredSeriesId={setHoveredSeriesId}
+                onSelectSeries={id => setActiveSeriesId(id)}
               />
               <ResultsPanel
-                results={results}
+                activeSeries={activeSeries}
+                activeResults={activeResults}
+                leaderboardItems={leaderboardItems}
+                onSelectSeries={id => setActiveSeriesId(id)}
                 xAxisLabel={xAxisLabel}
+                fitMethod={activeSeries.fitMethod}
+                setFitMethod={method => updateActiveSeriesField("fitMethod", method)}
                 handleCopyMetrics={handleCopyMetrics}
-                fitMethod={fitMethod}
-                setFitMethod={setFitMethod}
                 handleExportCSV={handleExportCSV}
               />
             </div>

@@ -112,11 +112,44 @@ const testMetadataAndSpecialRows = () => {
   console.log("✓ testMetadataAndSpecialRows passed!");
 };
 
+
+const testMultiSeriesCSV = () => {
+  const multiContent = `
+# Series: Wild-Type
+Concentration,Signals
+0,0.06,0.09,0.07
+0.001,0.08,0.09
+1.0,3.2,3.4
+
+# Series: Mutant K120A
+Concentration,Signals
+0,0.08,0.10
+0.003,0.09,0.10
+3.0,3.05,3.25
+  `;
+
+  const result = parseCSVData(multiContent);
+  if (!result.multiSeries || result.multiSeries.length !== 2) {
+    throw new Error(`Expected 2 multiSeries, got ${result.multiSeries?.length}`);
+  }
+
+  if (result.multiSeries[0].name !== "Wild-Type" || result.multiSeries[1].name !== "Mutant K120A") {
+    throw new Error(`Unexpected series names: ${result.multiSeries[0].name}, ${result.multiSeries[1].name}`);
+  }
+
+  if (result.multiSeries[0].standardRows.length !== 2 || result.multiSeries[1].standardRows.length !== 2) {
+    throw new Error(`Unexpected standard counts in parsed series`);
+  }
+
+  console.log("✓ testMultiSeriesCSV passed!");
+};
+
 const runAllTests = () => {
   testSimpleCSV();
   testTSVExcelClipboard();
   testLongFormatCSV();
   testMetadataAndSpecialRows();
+  testMultiSeriesCSV();
   console.log("All CSV parser unit tests completed successfully!");
 };
 
