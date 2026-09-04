@@ -9,8 +9,8 @@ export interface ParsedCSVResult {
 
 export const parseCSVData = (text: string): ParsedCSVResult => {
   const lines = text.split(/\r?\n/);
-  const standards: { id: string; conc: string; signals: string }[] = [];
-  let blankSignals = '';
+  const blanks: number[] = [];
+  const standardMap = new Map<number, { concStr: string; signals: number[] }>();
 
   lines.forEach((line) => {
     const trimmed = line.trim();
@@ -33,24 +33,32 @@ export const parseCSVData = (text: string): ParsedCSVResult => {
     if (firstCol === 'blank' || firstCol === 'blanks' || parseFloat(parts[0]) === 0) {
       const signals = parts.slice(1).map(p => parseFloat(p)).filter(n => !isNaN(n));
       if (signals.length > 0) {
-        blankSignals = signals.join(', ');
+        blanks.push(...signals);
       }
     } else {
       const concVal = parseFloat(parts[0]);
       if (!isNaN(concVal)) {
         const signals = parts.slice(1).map(p => parseFloat(p)).filter(n => !isNaN(n));
         if (signals.length > 0) {
-          standards.push({
-            id: Math.random().toString(36).substring(2, 9),
-            conc: parts[0],
-            signals: signals.join(', ')
-          });
+          if (!standardMap.has(concVal)) {
+            standardMap.set(concVal, { concStr: parts[0], signals: [] });
+          }
+          standardMap.get(concVal)!.signals.push(...signals);
         }
       }
     }
   });
 
-  standards.sort((a, b) => parseFloat(a.conc) - parseFloat(b.conc));
+  const sortedStandards = Array.from(standardMap.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([_, data]) => ({
+      id: Math.random().toString(36).substring(2, 9),
+      conc: data.concStr,
+      signals: data.signals.join(', ')
+    }));
 
-  return { blankSignals, standards };
+  return {
+    blankSignals: blanks.join(', '),
+    standards: sortedStandards
+  };
 };

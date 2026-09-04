@@ -211,19 +211,54 @@ function App() {
 
   const { yDomain, yTicks, yMajorTicks } = useMemo(() => {
     if (!results) return { yDomain: [0, 1] as [number, number], yTicks: undefined, yMajorTicks: [] as number[] };
-    const maxData = Math.max(...results.fit.actualY, results.ld);
-    const minData = Math.min(...results.fit.actualY, 0);
-    const niceMax = Math.ceil(maxData * 1.1);
-    const niceMin = Math.floor(minData);
-    const majorTicks = [];
-    const step = niceMax <= 5 ? 1 : Math.ceil(niceMax / 5);
-    for (let i = niceMin; i <= niceMax; i += step) {
-      majorTicks.push(i);
+
+    const validSignals = results.fit.actualY.filter(v => isFinite(v));
+    const allKeyValues = [...validSignals];
+    if (isFinite(results.lc)) allKeyValues.push(results.lc);
+    if (isFinite(results.ld)) allKeyValues.push(results.ld);
+
+    const minData = allKeyValues.length > 0 ? Math.min(...allKeyValues) : 0;
+    const maxData = allKeyValues.length > 0 ? Math.max(...allKeyValues) : 1;
+    
+    // Ensure we have a non-zero range with modest padding
+    const span = maxData > minData ? maxData - minData : (Math.abs(maxData) || 1);
+    const targetMin = minData < 0 ? minData - span * 0.05 : Math.max(0, minData - span * 0.05);
+    const targetMax = maxData + span * 0.08;
+    const roughSpan = Math.max(1e-9, targetMax - targetMin);
+
+    // Determine "nice" step based on target tick count (5-6 intervals)
+    const rawStep = roughSpan / 5;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    const normalizedStep = rawStep / magnitude;
+
+    let multiplier = 1;
+    if (normalizedStep >= 1.5 && normalizedStep < 3.5) multiplier = 2;
+    else if (normalizedStep >= 3.5 && normalizedStep < 7.5) multiplier = 5;
+    else if (normalizedStep >= 7.5) multiplier = 10;
+
+    const niceStep = multiplier * magnitude;
+    const niceMin = Math.floor(targetMin / niceStep) * niceStep;
+    const niceMax = Math.ceil(targetMax / niceStep) * niceStep;
+
+    const numMajor = Math.max(1, Math.round((niceMax - niceMin) / niceStep));
+    const majorTicks: number[] = [];
+    for (let i = 0; i <= numMajor; i++) {
+      majorTicks.push(Number((niceMin + i * niceStep).toPrecision(10)));
     }
-    const allTicks = [];
-    for (let i = niceMin; i <= niceMax; i++) {
-      allTicks.push(i);
+
+    // Determine minor tick step (subdivide into 2 or 5 parts, capped at 40 ticks max)
+    const subDiv = multiplier === 2 ? 2 : 5;
+    const subStep = niceStep / subDiv;
+    const numMinor = Math.round((niceMax - niceMin) / subStep);
+    const allTicks: number[] = [];
+    if (numMinor <= 40) {
+      for (let i = 0; i <= numMinor; i++) {
+        allTicks.push(Number((niceMin + i * subStep).toPrecision(10)));
+      }
+    } else {
+      allTicks.push(...majorTicks);
     }
+
     return { yDomain: [niceMin, niceMax] as [number, number], yTicks: allTicks, yMajorTicks: majorTicks };
   }, [results]);
 
@@ -287,7 +322,7 @@ function App() {
       if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
     });
     csvRows.push('', '# ===================================================', '# ANALYSIS SUMMARY & STATISTICAL RESULTS', '# ===================================================', 'Parameter,Value');
-    csvRows.push('App Version,v0.6.8');
+    csvRows.push('App Version,v0.6.14');
     csvRows.push(`Requested Fit Method,${fitMethod}`, `Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
     csvRows.push(`LOD 95% Confidence Interval Low,${results.lodCI.low.toExponential(6)}`, `LOD 95% Confidence Interval High,${results.lodCI.high.toExponential(6)}`);
@@ -302,7 +337,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `bioassay_lod_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `bioassay_lod_report_v0.6.14_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -348,7 +383,7 @@ function App() {
       fitParamsText += `| **${p}** | ${val.toFixed(6)} |\n`;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.8)
+    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.14)
 Generated: ${new Date().toLocaleDateString()}
 
 #### 📈 Primary Results
@@ -454,7 +489,7 @@ ${fitParamsText}
             </div>
           ) : (
             <div className="empty-prompt">
-              <p>Loading Bioassay LOD Fitter v0.6.8...</p>
+              <p>Please provide at least 2 blank replicates and 3 concentration standards to calculate the Limit of Detection (LOD).</p>
             </div>
           )}
         </section>

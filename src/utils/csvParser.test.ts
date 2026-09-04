@@ -35,6 +35,36 @@ Concentration,Signals
   console.log('✓ testSimpleCSV passed!');
 };
 
+const testLongFormatCSV = () => {
+  const csvContent = `
+# Long format plate reader output
+Concentration,Signal
+0,0.07
+0,0.13
+0,0.08
+0.01,0.15
+0.01,0.17
+0.1,0.55
+0.1,0.60
+  `;
+
+  const result = parseCSVData(csvContent);
+
+  if (result.blankSignals !== '0.07, 0.13, 0.08') {
+    throw new Error(`Expected aggregated blanks "0.07, 0.13, 0.08", got "${result.blankSignals}"`);
+  }
+
+  if (result.standards.length !== 2) {
+    throw new Error(`Expected 2 standards, got ${result.standards.length}`);
+  }
+
+  if (result.standards[0].signals !== '0.15, 0.17') {
+    throw new Error(`Expected aggregated signals "0.15, 0.17", got "${result.standards[0].signals}"`);
+  }
+
+  console.log('✓ testLongFormatCSV passed!');
+};
+
 const testMetadataAndSpecialRows = () => {
   const csvContent = `
 # BIOASSAY REPORT EXPORT
@@ -67,6 +97,7 @@ const testMetadataAndSpecialRows = () => {
 
 const runAllTests = () => {
   testSimpleCSV();
+  testLongFormatCSV();
   testMetadataAndSpecialRows();
   console.log('All CSV parser unit tests completed successfully!');
 };

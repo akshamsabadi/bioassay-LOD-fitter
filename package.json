@@ -1,7 +1,7 @@
 {
   "name": "bioassay-lod-fitter",
   "private": true,
-  "version": "0.6.13",
+  "version": "0.6.14",
   "type": "module",
   "homepage": "https://akshamsabadi.github.io/bioassay-LOD-fitter/",
   "scripts": {
@@ -10,7 +10,7 @@
     "deploy": "gh-pages -d dist",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "tsc src/utils/csvParser.test.ts src/utils/calculations.test.ts --noEmit",
+    "test": "node scripts/runTests.js",
     "preview": "vite preview"
   },
   "dependencies": {

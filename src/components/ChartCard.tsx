@@ -80,11 +80,17 @@ interface YAxisTickProps {
 const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
   if (!payload) return null;
   const val = payload.value;
+  let label = val.toString();
+  if (Math.abs(val) >= 10000 || (Math.abs(val) > 0 && Math.abs(val) < 0.001)) {
+    label = val.toExponential(1);
+  } else if (Math.abs(val - Math.round(val)) > 1e-6) {
+    label = parseFloat(val.toFixed(4)).toString();
+  }
   return (
     <g>
       <line x1={x} y1={y} x2={x - 6} y2={y} stroke="var(--text)" />
       <text x={x - 10} y={y + 3} fill="var(--overlay2)" textAnchor="end" fontSize={10}>
-        {parseFloat(val.toFixed(2)).toString()}
+        {label}
       </text>
     </g>
   );
@@ -328,7 +334,14 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgElement = chartRef.current.querySelector('svg');
     if (!svgElement) return;
 
+    const rect = svgElement.getBoundingClientRect();
+    const width = rect.width || 800;
+    const height = rect.height || 500;
+
     const clone = svgElement.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute('width', width.toString());
+    clone.setAttribute('height', height.toString());
+    clone.setAttribute('viewBox', `0 0 ${width} ${height}`);
     clone.style.backgroundColor = 'transparent';
 
     const serializer = new XMLSerializer();
@@ -358,18 +371,18 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     img.onload = () => {
       const canvas = document.createElement('canvas');
       const scale = 300 / 96;
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
+      canvas.width = width * scale;
+      canvas.height = height * scale;
       
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.scale(scale, scale);
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, width, height);
         
         const pngUrl = canvas.toDataURL('image/png');
         const downloadLink = document.createElement('a');
         downloadLink.href = pngUrl;
-        downloadLink.download = 'bioassay_plot.png';
+        downloadLink.download = 'bioassay_plot_v0.6.14.png';
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);

@@ -1,4 +1,18 @@
-import { calculateAdvancedLoD } from './calculations';
+import { calculateAdvancedLoD, tinv } from './calculations';
+
+const testExactTinv = () => {
+  const t95_df2 = tinv(0.95, 2);
+  if (Math.abs(t95_df2 - 2.91999) > 1e-4) {
+    throw new Error(`Expected tinv(0.95, 2) to be 2.91999, got ${t95_df2}`);
+  }
+
+  const t975_df2 = tinv(0.975, 2);
+  if (Math.abs(t975_df2 - 4.30265) > 1e-4) {
+    throw new Error(`Expected tinv(0.975, 2) to be 4.30265, got ${t975_df2}`);
+  }
+
+  console.log('✓ testExactTinv passed!');
+};
 
 const testStandardLODCalculation = () => {
   const blanks = [0.07, 0.13, 0.08, 0.10];
@@ -40,6 +54,29 @@ const testStandardLODCalculation = () => {
   console.log('✓ testStandardLODCalculation passed!');
 };
 
+const testCompetitiveAssayCalculation = () => {
+  const blanks = [4.8, 4.9, 5.0]; // High background
+  const standards = [
+    { concentration: 0.1, readout: 4.5 },
+    { concentration: 1.0, readout: 2.5 },
+    { concentration: 10.0, readout: 0.8 },
+    { concentration: 50.0, readout: 0.2 }
+  ];
+
+  const result = calculateAdvancedLoD(blanks, standards, 'linear');
+  if (!result.isDecreasing) {
+    throw new Error('Expected assay to be recognized as decreasing (competitive)');
+  }
+  if (result.lc >= result.meanBlank) {
+    throw new Error(`Expected LC (${result.lc}) to be lower than meanBlank (${result.meanBlank}) in competitive assay`);
+  }
+  if (result.ld >= result.lc) {
+    throw new Error(`Expected LD (${result.ld}) to be lower than LC (${result.lc}) in competitive assay`);
+  }
+
+  console.log('✓ testCompetitiveAssayCalculation passed!');
+};
+
 const testSingleReplicateFallback = () => {
   const blanks = [0.08, 0.12, 0.10];
   // No replicates for standards
@@ -51,7 +88,6 @@ const testSingleReplicateFallback = () => {
 
   const result = calculateAdvancedLoD(blanks, standards, 'linear');
 
-  // Verify single-replicate fallback used fit RMSE
   if (result.sdPooled <= 0) {
     throw new Error(`Expected positive fallback pooled SD from fit RMSE, got ${result.sdPooled}`);
   }
@@ -63,17 +99,15 @@ const testSingleReplicateFallback = () => {
 };
 
 const testOutOfBoundsLOD = () => {
-  const blanks = [1.2, 1.3, 1.1]; // Extremely high blanks/L_D
+  const blanks = [1.2, 1.3, 1.1];
   const standards = [
     { concentration: 0.1, readout: 0.12 },
     { concentration: 1.0, readout: 0.15 },
     { concentration: 10.0, readout: 0.18 }
   ];
 
-  // Blanks are much higher than all standards' signal, meaning L_D will be way above model saturation (Top asymptote d ~ 0.18)
   const result = calculateAdvancedLoD(blanks, standards, '4pl');
 
-  // Verify that out-of-bounds LOD returns NaN and NaN CI
   if (!isNaN(result.lodConc)) {
     throw new Error(`Expected lodConc to be NaN for out-of-bounds mapping, got ${result.lodConc}`);
   }
@@ -85,7 +119,9 @@ const testOutOfBoundsLOD = () => {
 };
 
 const runAllTests = () => {
+  testExactTinv();
   testStandardLODCalculation();
+  testCompetitiveAssayCalculation();
   testSingleReplicateFallback();
   testOutOfBoundsLOD();
   console.log('All calculations and LOD statistical engine unit tests completed successfully!');

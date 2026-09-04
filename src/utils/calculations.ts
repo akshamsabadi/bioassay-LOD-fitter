@@ -1,10 +1,36 @@
 import { fitData, type FitResult } from './fitting';
 
+// Exact critical values for common quantiles for small degrees of freedom
+const T_INV_95: Record<number, number> = {
+  1: 6.31375, 2: 2.91999, 3: 2.35336, 4: 2.13185, 5: 2.01505,
+  6: 1.94318, 7: 1.89458, 8: 1.85955, 9: 1.83311, 10: 1.81246,
+  11: 1.79588, 12: 1.78229, 13: 1.77093, 14: 1.76131, 15: 1.75305,
+  16: 1.74588, 17: 1.73961, 18: 1.73406, 19: 1.72913, 20: 1.72472
+};
+
+const T_INV_975: Record<number, number> = {
+  1: 12.70620, 2: 4.30265, 3: 3.18245, 4: 2.77645, 5: 2.57058,
+  6: 2.44691, 7: 2.36462, 8: 2.30600, 9: 2.26216, 10: 2.22814,
+  11: 2.20099, 12: 2.17881, 13: 2.16037, 14: 2.14479, 15: 2.13145,
+  16: 2.11991, 17: 2.10982, 18: 2.10092, 19: 2.09302, 20: 2.08596
+};
+
 export const tinv = (p: number, df: number): number => {
   if (df <= 0) return 0;
   if (df === 1) return Math.tan(Math.PI * (p - 0.5));
+
+  const roundedDf = Math.round(df);
+  if (Math.abs(df - roundedDf) < 1e-6 && roundedDf >= 1 && roundedDf <= 20) {
+    if (Math.abs(p - 0.95) < 1e-4) return T_INV_95[roundedDf];
+    if (Math.abs(p - 0.975) < 1e-4) return T_INV_975[roundedDf];
+    if (Math.abs(p - 0.05) < 1e-4) return -T_INV_95[roundedDf];
+    if (Math.abs(p - 0.025) < 1e-4) return -T_INV_975[roundedDf];
+  }
+
   const x = normInv(p);
-  const t = x + (Math.pow(x, 3) + x) / (4 * df) + (5 * Math.pow(x, 5) + 16 * Math.pow(x, 3) + 3 * x) / (96 * Math.pow(df, 2));
+  const x3 = Math.pow(x, 3);
+  const x5 = Math.pow(x, 5);
+  const t = x + (x3 + x) / (4 * df) + (5 * x5 + 16 * x3 + 3 * x) / (96 * Math.pow(df, 2));
   return t;
 };
 
@@ -60,6 +86,7 @@ export interface AdvancedLoDResult {
   meanBlank: number;
   sdBlank: number;
   sdPooled: number;
+  isDecreasing: boolean;
   fit: FitResult;
   comparison: {
     fits: Record<string, FitResult>;
@@ -77,63 +104,112 @@ export const calculateAdvancedLoD = (
   const x = standards.map(s => s.concentration);
   const y = standards.map(s => s.readout);
   
-  const fits = {
+  const fits: Record<string, FitResult> = {
     linear: fitData(x, y, 'linear'),
     langmuir: fitData(x, y, 'langmuir'),
     '4pl': fitData(x, y, '4pl'),
     '5pl': fitData(x, y, '5pl')
   };
 
+  const availableMethods: Array<'linear' | 'langmuir' | '4pl' | '5pl'> = ['linear', 'langmuir', '4pl', '5pl'];
   let betterMethod: 'linear' | 'langmuir' | '4pl' | '5pl' = '4pl';
   let bestAicc = Infinity;
-  (Object.keys(fits) as Array<keyof typeof fits>).forEach(m => {
-    if (fits[m].metrics.aicc < bestAicc) {
-      bestAicc = fits[m].metrics.aicc;
+  availableMethods.forEach(m => {
+    const aicc = fits[m].metrics.aicc;
+    if (isFinite(aicc) && aicc < bestAicc) {
+      bestAicc = aicc;
       betterMethod = m;
     }
   });
+
+  // If all AICc are infinite (e.g. tiny sample size), select model by highest R^2
+  if (!isFinite(bestAicc)) {
+    let bestR2 = -Infinity;
+    availableMethods.forEach(m => {
+      const r2 = fits[m].metrics.r2;
+      if (isFinite(r2) && r2 > bestR2) {
+        bestR2 = r2;
+        betterMethod = m;
+      }
+    });
+  }
 
   let fit: FitResult;
   if (method === 'auto') {
     fit = fits[betterMethod];
   } else {
-    fit = fits[method];
+    fit = fits[method] || fits[betterMethod];
   }
 
   const meanBlank = blanks.reduce((a, b) => a + b, 0) / blanks.length;
   const sdBlank = Math.sqrt(blanks.reduce((a, b) => a + Math.pow(b - meanBlank, 2), 0) / (blanks.length - 1));
-  const lc = meanBlank + tinv(1 - alpha, blanks.length - 1) * sdBlank;
 
   const { sd: sdPooledRaw, df: dfPooledRaw } = calculatePooledSD(standards);
   const hasReplicates = dfPooledRaw > 0;
   
   // Fallback to fit RMSE if no replicates exist
-  const sdPooled = hasReplicates ? sdPooledRaw : fit.metrics.rmse;
+  const sdPooled = hasReplicates ? sdPooledRaw : (isFinite(fit.metrics.rmse) ? fit.metrics.rmse : sdBlank);
   const dfPooled = hasReplicates ? dfPooledRaw : Math.max(1, standards.length - fit.k);
 
-  const ld = lc + tinv(1 - beta, dfPooled) * sdPooled;
+  // Check curve directionality (increasing vs decreasing/competitive assay)
+  const minStdX = Math.min(...x.filter(val => val > 0));
+  const maxStdX = Math.max(...x);
+  const predMin = fit.predict(minStdX);
+  const predMax = fit.predict(maxStdX);
+  const isDecreasing = predMax < predMin;
+
+  const tAlpha = tinv(1 - alpha, blanks.length - 1);
+  const tBeta = tinv(1 - beta, dfPooled);
+
+  const lc = isDecreasing 
+    ? meanBlank - tAlpha * sdBlank
+    : meanBlank + tAlpha * sdBlank;
+
+  const ld = isDecreasing
+    ? lc - tBeta * sdPooled
+    : lc + tBeta * sdPooled;
 
   let lodConc = NaN;
   const p = fit.parameters;
   if (fit.method === 'linear') {
-    lodConc = (ld - p['Intercept (b)']) / p['Slope (m)'];
+    const m = p['Slope (m)'];
+    const b = p['Intercept (b)'];
+    if (Math.abs(m) > 1e-12) {
+      lodConc = (ld - b) / m;
+    }
   } else if (fit.method === 'langmuir') {
     const bmax = p['Bmax'];
     const kd = p['Kd'];
-    if (bmax - ld > 0 && ld > 0) lodConc = (ld * kd) / (bmax - ld);
+    if (bmax - ld > 0 && ld > 0) {
+      lodConc = (ld * kd) / (bmax - ld);
+    }
   } else if (fit.method === '4pl') {
-    const ratio = (p['Bottom (a)'] - ld) / (ld - p['Top (d)']);
-    if (ratio > 0) lodConc = p['EC50 (c)'] * Math.pow(ratio, 1 / p['Hill Slope (b)']);
+    const a = p['Bottom (a)'];
+    const d = p['Top (d)'];
+    const b = p['Hill Slope (b)'];
+    const c = p['EC50 (c)'];
+    // For 4PL, (a - ld)/(ld - d) is positive whenever ld is between asymptotes a and d
+    const ratio = (a - ld) / (ld - d);
+    if (ratio > 0 && Math.abs(b) > 1e-12 && c > 0) {
+      lodConc = c * Math.pow(ratio, 1 / b);
+    }
   } else if (fit.method === '5pl') {
-    const ratio = (p['Bottom (a)'] - p['Top (d)']) / (ld - p['Top (d)']);
-    if (ratio > 0) {
-      const inner = Math.pow(ratio, 1 / p['Asymmetry (g)']) - 1;
-      if (inner > 0) lodConc = p['EC50 (c)'] * Math.pow(inner, 1 / p['Hill Slope (b)']);
+    const a = p['Bottom (a)'];
+    const d = p['Top (d)'];
+    const b = p['Hill Slope (b)'];
+    const c = p['EC50 (c)'];
+    const g = p['Asymmetry (g)'];
+    const ratio = (a - d) / (ld - d);
+    if (ratio > 0 && Math.abs(g) > 1e-12 && Math.abs(b) > 1e-12 && c > 0) {
+      const inner = Math.pow(ratio, 1 / g) - 1;
+      if (inner > 0) {
+        lodConc = c * Math.pow(inner, 1 / b);
+      }
     }
   }
 
   // Ensure LOD is positive and physically meaningful
-  if (isNaN(lodConc) || lodConc <= 0) {
+  if (isNaN(lodConc) || !isFinite(lodConc) || lodConc <= 0) {
     lodConc = NaN;
   }
 
@@ -141,17 +217,11 @@ export const calculateAdvancedLoD = (
   let lodCI = { low: NaN, high: NaN };
   if (!isNaN(lodConc)) {
     const ciAtLOD = fit.getCI(lodConc);
-    // Standard Error of prediction at the LOD concentration
-    // (ciAtLOD.high - ciAtLOD.low) = 2 * 1.96 * SE_fit
-    const seFit = (ciAtLOD.high - ciAtLOD.low) / (2 * 1.96);
-    
-    // Model derivative (slope) at LOD
+    const seFit = Math.abs(ciAtLOD.high - ciAtLOD.low) / (2 * 1.96);
     const deriv = fit.predictDeriv(lodConc);
     
     if (Math.abs(deriv) > 1e-12) {
-      // SE_LOD = SE_fit / |df/dx|
       const seLOD = seFit / Math.abs(deriv);
-      
       const dfForLOD = dfPooled;
       const tCrit = tinv(0.975, dfForLOD) || 1.96;
       
@@ -160,13 +230,12 @@ export const calculateAdvancedLoD = (
         high: lodConc + tCrit * seLOD
       };
     } else {
-      // Fallback if derivative is flat
       lodCI = { low: lodConc * 0.85, high: lodConc * 1.15 };
     }
   }
 
   return { 
-    lc, ld, lodConc, lodCI, meanBlank, sdBlank, sdPooled, fit,
+    lc, ld, lodConc, lodCI, meanBlank, sdBlank, sdPooled, isDecreasing, fit,
     comparison: { fits, betterMethod }
   };
 };

@@ -96,6 +96,11 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 95% CI: [{results.lodCI.low.toExponential(2)}, {results.lodCI.high.toExponential(2)}]
               </span>
             )}
+            {isNaN(results.lodConc) && (
+              <span style={{ fontSize: '0.7rem', color: 'var(--red)', marginTop: '4px', marginBottom: '4px', display: 'block' }}>
+                L<sub>D</sub> signal ({results.ld.toFixed(4)}) is outside curve dynamic range
+              </span>
+            )}
             <span className="lod-hero-unit">{xAxisLabel.split('(')[0].trim()}</span>
           </div>
 
@@ -149,6 +154,12 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The pooled standard deviation of standard replicates, providing robust variance estimates."><span className="stat-label">Pooled SD</span></span><span className="stat-value">{results.sdPooled.toFixed(4)}</span></div>
                 <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Decision Limit (LC) is the signal threshold above which response is considered statistically distinct from noise (α=0.05)."><span className="stat-label">L<sub>C</sub></span></span><span className="stat-value" style={{color: 'var(--peach)'}}>{results.lc.toFixed(4)}</span></div>
                 <div className="stat-row"><span className="stat-label-wrap" data-tooltip="The Detection Limit Signal (LD) is the signal level at which there is a 95% probability that the response falls above LC (β=0.05)."><span className="stat-label">L<sub>D</sub></span></span><span className="stat-value" style={{color: 'var(--green)'}}>{results.ld.toFixed(4)}</span></div>
+                {results.isDecreasing && (
+                  <div className="stat-row">
+                    <span className="stat-label-wrap" data-tooltip="Negative concentration-response slope detected (e.g. competitive or inhibitory assay). LC and LD are evaluated below background."><span className="stat-label">Assay Mode</span></span>
+                    <span className="stat-value" style={{color: 'var(--mauve)', fontWeight: 'bold'}}>Competitive / Decreasing</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
