@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import {
   Scatter,
   XAxis,
@@ -10,6 +10,7 @@ import {
   ReferenceLine,
   ReferenceArea,
   Area,
+  Legend,
   Tooltip
 } from "recharts";
 import { type AdvancedLoDResult } from "../utils/calculations";
@@ -220,7 +221,6 @@ interface ChartCardProps {
   hoveredSeriesId: string | null;
   setHoveredSeriesId: (id: string | null) => void;
   onSelectSeries?: (id: string) => void;
-  onToggleSeriesVisibility?: (id: string) => void;
 }
 
 export const ChartCard: React.FC<ChartCardProps> = ({
@@ -246,15 +246,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   hoveredSeriesId,
   setHoveredSeriesId,
   onSelectSeries,
-  onToggleSeriesVisibility,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const activeSeries = curveSeriesList.find(s => s.isActive) || curveSeriesList[0];
-
-  const [showLOD, setShowLOD] = useState(true);
-  const [showLC, setShowLC] = useState(true);
-  const [showLD, setShowLD] = useState(true);
-  const [showCI, setShowCI] = useState(true);
 
   const handleDownloadPlot = () => {
     if (!chartRef.current) return;
@@ -309,7 +303,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.20.png";
+        downloadLink.download = "bioassay_plot_v0.6.21.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -319,221 +313,52 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     img.src = url;
   };
 
-  // Custom Interactive Multi-Curve Legend & Threshold Controls
+  // Custom Interactive Multi-Curve Legend
   const CustomLegend = () => {
     return (
       <div className="custom-chart-legend">
-        {/* Left: Curves Section */}
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--subtext0)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            Curves:
-          </span>
-          {curveSeriesList.map(s => {
-            const isHovered = hoveredSeriesId === s.id;
-            return (
-              <div 
-                key={s.id}
-                onClick={() => onSelectSeries && onSelectSeries(s.id)}
-                onMouseEnter={() => setHoveredSeriesId(s.id)}
-                onMouseLeave={() => setHoveredSeriesId(null)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  cursor: "pointer",
-                  padding: "3px 8px",
-                  borderRadius: "6px",
-                  backgroundColor: s.isActive ? "color-mix(in srgb, var(--surface1) 85%, var(--surface0))" : (isHovered ? "var(--surface1)" : "transparent"),
-                  border: s.isActive ? `1.5px solid ${s.color}` : "1px solid var(--surface1)",
-                  transition: "all 0.15s ease",
-                  userSelect: "none"
-                }}
-                title={`Click to focus ${s.name} (LOD: ${s.results.lodConc.toExponential(2)})`}
-              >
-                <span style={{ width: "12px", height: "3px", backgroundColor: s.color, borderRadius: "2px", flexShrink: 0 }} />
-                <span style={{
-                  fontSize: "0.72rem",
-                  fontWeight: s.isActive ? 700 : 500,
-                  color: s.isActive ? "var(--text)" : "var(--subtext1)",
-                  maxWidth: "140px",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis"
-                }}>
-                  {s.name}
-                </span>
-                {onToggleSeriesVisibility && (
-                  <span
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleSeriesVisibility(s.id);
-                    }}
-                    title={s.visible ? "Hide curve from plot" : "Show curve on plot"}
-                    style={{
-                      fontSize: "0.68rem",
-                      cursor: "pointer",
-                      opacity: s.visible ? 0.9 : 0.35,
-                      marginLeft: "2px",
-                      padding: "0 2px"
-                    }}
-                  >
-                    {s.visible ? "👁" : "👁‍🗨"}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {curveSeriesList.map(s => {
+          const isHovered = hoveredSeriesId === s.id;
+          return (
+            <div 
+              key={s.id}
+              onClick={() => onSelectSeries && onSelectSeries(s.id)}
+              onMouseEnter={() => setHoveredSeriesId(s.id)}
+              onMouseLeave={() => setHoveredSeriesId(null)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
+                padding: "2px 6px",
+                borderRadius: "6px",
+                backgroundColor: s.isActive ? "var(--surface1)" : (isHovered ? "var(--surface0)" : "transparent"),
+                border: s.isActive ? `1px solid ${s.color}` : "1px solid transparent",
+                transition: "all 0.15s"
+              }}
+              title={`Click to focus ${s.name} (LOD: ${s.results.lodConc.toExponential(2)})`}
+            >
+              <span style={{ width: "12px", height: "3px", backgroundColor: s.color, borderRadius: "2px" }} />
+              <span style={{ fontWeight: s.isActive ? "bold" : "normal", color: s.isActive ? "var(--text)" : "var(--subtext1)" }}>
+                {s.name}
+              </span>
+            </div>
+          );
+        })}
 
-        {/* Right: Color-Coded Statistical Threshold Toggles (LOD, LD, LC, 95% CI) */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--subtext0)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            Thresholds:
-          </span>
-
-          {/* LOD Toggle (Yellow / Gold) */}
-          <button
-            type="button"
-            onClick={() => setShowLOD(!showLOD)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              padding: "3px 8px",
-              borderRadius: "6px",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              backgroundColor: showLOD ? "color-mix(in srgb, var(--yellow) 15%, var(--surface0))" : "var(--surface0)",
-              border: `1.5px solid ${showLOD ? "var(--yellow)" : "var(--surface2)"}`,
-              color: showLOD ? "var(--yellow)" : "var(--overlay1)",
-              opacity: showLOD ? 1 : 0.55,
-              transition: "all 0.15s ease",
-              userSelect: "none"
-            }}
-            title="Toggle Limit of Detection (LOD) dashed vertical lines on/off"
-          >
-            <span style={{ width: "10px", height: "0", borderTop: "2px dashed var(--yellow)" }} />
-            <span>LOD</span>
-            <span style={{
-              fontSize: "0.6rem",
-              padding: "1px 4px",
-              borderRadius: "3px",
-              backgroundColor: showLOD ? "var(--yellow)" : "var(--surface2)",
-              color: showLOD ? "var(--base)" : "var(--subtext0)",
-              fontWeight: 800
-            }}>
-              {showLOD ? "ON" : "OFF"}
-            </span>
-          </button>
-
-          {/* LD Toggle (Green) */}
-          <button
-            type="button"
-            onClick={() => setShowLD(!showLD)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              padding: "3px 8px",
-              borderRadius: "6px",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              backgroundColor: showLD ? "color-mix(in srgb, var(--green) 15%, var(--surface0))" : "var(--surface0)",
-              border: `1.5px solid ${showLD ? "var(--green)" : "var(--surface2)"}`,
-              color: showLD ? "var(--green)" : "var(--overlay1)",
-              opacity: showLD ? 1 : 0.55,
-              transition: "all 0.15s ease",
-              userSelect: "none"
-            }}
-            title="Toggle Detection Limit Signal (LD) dashed horizontal line on/off"
-          >
-            <span style={{ width: "10px", height: "0", borderTop: "2px dashed var(--green)" }} />
-            <span>L<sub>D</sub></span>
-            <span style={{
-              fontSize: "0.6rem",
-              padding: "1px 4px",
-              borderRadius: "3px",
-              backgroundColor: showLD ? "var(--green)" : "var(--surface2)",
-              color: showLD ? "var(--base)" : "var(--subtext0)",
-              fontWeight: 800
-            }}>
-              {showLD ? "ON" : "OFF"}
-            </span>
-          </button>
-
-          {/* LC Toggle (Peach) */}
-          <button
-            type="button"
-            onClick={() => setShowLC(!showLC)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              padding: "3px 8px",
-              borderRadius: "6px",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              backgroundColor: showLC ? "color-mix(in srgb, var(--peach) 15%, var(--surface0))" : "var(--surface0)",
-              border: `1.5px solid ${showLC ? "var(--peach)" : "var(--surface2)"}`,
-              color: showLC ? "var(--peach)" : "var(--overlay1)",
-              opacity: showLC ? 1 : 0.55,
-              transition: "all 0.15s ease",
-              userSelect: "none"
-            }}
-            title="Toggle Critical Decision Level (LC) dashed horizontal line on/off"
-          >
-            <span style={{ width: "10px", height: "0", borderTop: "2px dashed var(--peach)" }} />
+        <div style={{ borderTop: "1px solid var(--surface1)", paddingTop: "6px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
+            <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--peach)" }} />
             <span>L<sub>C</sub></span>
-            <span style={{
-              fontSize: "0.6rem",
-              padding: "1px 4px",
-              borderRadius: "3px",
-              backgroundColor: showLC ? "var(--peach)" : "var(--surface2)",
-              color: showLC ? "var(--base)" : "var(--subtext0)",
-              fontWeight: 800
-            }}>
-              {showLC ? "ON" : "OFF"}
-            </span>
-          </button>
-
-          {/* 95% CI Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowCI(!showCI)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              padding: "3px 8px",
-              borderRadius: "6px",
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              backgroundColor: showCI ? "color-mix(in srgb, var(--yellow) 15%, var(--surface0))" : "var(--surface0)",
-              border: `1.5px solid ${showCI ? "var(--yellow)" : "var(--surface2)"}`,
-              color: showCI ? "var(--yellow)" : "var(--overlay1)",
-              opacity: showCI ? 1 : 0.55,
-              transition: "all 0.15s ease",
-              userSelect: "none"
-            }}
-            title="Toggle 95% Confidence Interval band on/off"
-          >
-            <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 30%, transparent)", border: "1px solid var(--yellow)", borderRadius: "2px" }} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
+            <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--green)" }} />
+            <span>L<sub>D</sub></span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
+            <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 25%, transparent)", border: "1px solid var(--yellow)" }} />
             <span>95% CI</span>
-            <span style={{
-              fontSize: "0.6rem",
-              padding: "1px 4px",
-              borderRadius: "3px",
-              backgroundColor: showCI ? "var(--yellow)" : "var(--surface2)",
-              color: showCI ? "var(--base)" : "var(--subtext0)",
-              fontWeight: 800
-            }}>
-              {showCI ? "ON" : "OFF"}
-            </span>
-          </button>
+          </div>
         </div>
       </div>
     );
@@ -657,9 +482,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         </div>
       </div>
       
-      {/* Interactive Legend & Threshold Control Bar */}
-      <CustomLegend />
-
       <div className="chart-frame" ref={chartRef} style={{ position: "relative" }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 20, right: 25, left: 15, bottom: 35 }}>
@@ -686,7 +508,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               tick={<CustomYAxisTick />}
               label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--overlay2)", fontSize: 11, offset: -5 }} 
             />
-            
+            <Legend verticalAlign="top" content={<CustomLegend />} />
             <Tooltip 
               content={<CustomTooltip />} 
               cursor={{ stroke: "var(--overlay1)", strokeDasharray: "4 4", strokeWidth: 1.5 }} 
@@ -704,29 +526,17 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             {/* Active Series Confidence Intervals & Limits */}
             {activeSeries && (
               <>
-                {showCI && (
-                  <>
-                    <Area data={activeSeries.leftChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <Area data={activeSeries.rightChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <ReferenceArea x1={activeSeries.results.lodCI.low} x2={activeSeries.results.lodCI.high} fill="var(--yellow)" fillOpacity={0.12} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: "none" }} />
-                  </>
-                )}
+                <Area data={activeSeries.leftChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                <Area data={activeSeries.rightChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                <ReferenceArea x1={activeSeries.results.lodCI.low} x2={activeSeries.results.lodCI.high} fill="var(--yellow)" fillOpacity={0.12} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: "none" }} />
 
-                {showLC && (
-                  <>
-                    <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeWidth={1.5} strokeOpacity={0.8} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeWidth={1.5} strokeOpacity={0.8} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <ReferenceLine y={activeSeries.results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: "none" }} />
-                  </>
-                )}
+                <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                <ReferenceLine y={activeSeries.results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: "none" }} />
                 
-                {showLD && (
-                  <>
-                    <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeWidth={1.5} strokeOpacity={0.8} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeWidth={1.5} strokeOpacity={0.8} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <ReferenceLine y={activeSeries.results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: "none" }} />
-                  </>
-                )}
+                <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                <ReferenceLine y={activeSeries.results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: "none" }} />
               </>
             )}
 
@@ -759,36 +569,20 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                     legendType="none" 
                     style={{ pointerEvents: "none" }} 
                   />
-                  {/* Render LOD Reference Lines only when showLOD is enabled */}
-                  {showLOD && (
-                    s.isActive ? (
-                      <ReferenceLine 
-                        x={s.results.lodConc} 
-                        stroke="var(--yellow)" 
-                        strokeWidth={2} 
-                        strokeDasharray="4 4" 
-                        strokeOpacity={isDimmed ? 0.3 : 0.95}
-                        label={{ 
-                          position: "top", 
-                          value: curveSeriesList.length > 1 ? `LOD (${s.name}): ${s.results.lodConc.toExponential(2)}` : `LOD: ${s.results.lodConc.toExponential(2)}`, 
-                          fill: "var(--yellow)", 
-                          fontSize: 10,
-                          fontWeight: 700
-                        }} 
-                        style={{ pointerEvents: "none" }} 
-                      />
-                    ) : (
-                      <ReferenceLine 
-                        key={`lod-${s.id}`} 
-                        x={s.results.lodConc} 
-                        stroke={s.color} 
-                        strokeWidth={1.2} 
-                        strokeDasharray="2 3" 
-                        strokeOpacity={isDimmed ? 0.15 : (hoveredSeriesId === s.id ? 0.85 : 0.45)}
-                        style={{ pointerEvents: "none" }} 
-                      />
-                    )
-                  )}
+                  <ReferenceLine 
+                    x={s.results.lodConc} 
+                    stroke={s.color} 
+                    strokeWidth={s.isActive ? 2 : 1.5} 
+                    strokeDasharray="3 3" 
+                    strokeOpacity={isDimmed ? 0.2 : 0.85}
+                    label={s.isActive || curveSeriesList.length === 1 ? { 
+                      position: "top", 
+                      value: curveSeriesList.length > 1 ? `LOD (${s.name})` : "LOD", 
+                      fill: s.color, 
+                      fontSize: 9 
+                    } : undefined} 
+                    style={{ pointerEvents: "none" }} 
+                  />
                 </React.Fragment>
               );
             })}

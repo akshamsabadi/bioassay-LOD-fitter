@@ -446,9 +446,9 @@ function App() {
     if (!activeResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.20)");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.21)");
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.6.20");
+    csvRows.push("App Version,v0.6.21");
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -479,7 +479,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.20_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.21_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -542,7 +542,7 @@ function App() {
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.20)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.21)
 Generated: ${new Date().toLocaleDateString()}
 
 ${leaderboardMarkdown}#### 📈 Active Curve: ${activeSeries.name}
@@ -650,7 +650,6 @@ ${fitParamsText}`;
                 hoveredSeriesId={hoveredSeriesId}
                 setHoveredSeriesId={setHoveredSeriesId}
                 onSelectSeries={id => setActiveSeriesId(id)}
-                onToggleSeriesVisibility={handleToggleSeriesVisibility}
               />
               <ResultsPanel
                 activeSeries={activeSeries}
