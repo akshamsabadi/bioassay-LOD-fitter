@@ -14,16 +14,21 @@ export interface AssaySeries {
   standardRows: StandardRow[];
 }
 
-export const SERIES_COLORS = [
-  "#4269d0", // 1. Observable Blue (Primary)
+// Official Observable10 categorical color palette (d3.schemeObservable10)
+export const OBSERVABLE10_COLORS = [
+  "#4269d0", // 0. Blue (Primary)
+  "#efb118", // 1. Amber / Orange
   "#ff725c", // 2. Coral / Red
-  "#3ca951", // 3. Green
-  "#efb118", // 4. Gold / Amber
-  "#a463f2", // 5. Mauve / Purple
-  "#6cc5b0", // 6. Teal
-  "#ff8ab7", // 7. Rose / Peach
-  "#97bbf5", // 8. Sky Blue
+  "#6cc5b0", // 3. Cyan / Teal
+  "#3ca951", // 4. Green
+  "#ff8ab7", // 5. Pink
+  "#a463f2", // 6. Purple
+  "#97bbf5", // 7. Light Blue
+  "#9c6b4e", // 8. Brown
+  "#9498a0", // 9. Gray
 ];
+
+export const SERIES_COLORS = OBSERVABLE10_COLORS;
 
 export interface DemoPreset {
   name: string;

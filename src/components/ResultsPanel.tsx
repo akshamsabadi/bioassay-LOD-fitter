@@ -60,11 +60,11 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             <table className="comparison-table" style={{ margin: 0, width: "100%", fontSize: "0.72rem" }}>
               <thead>
                 <tr>
-                  <th>Curve</th>
-                  <th>Model</th>
-                  <th>LOD</th>
-                  <th>R²</th>
-                  <th>vs Ref</th>
+                  <th style={{ whiteSpace: "nowrap" }}>Curve</th>
+                  <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>Model</th>
+                  <th style={{ whiteSpace: "nowrap" }}>LOD</th>
+                  <th style={{ whiteSpace: "nowrap" }}>R²</th>
+                  <th style={{ whiteSpace: "nowrap" }}>vs Ref</th>
                 </tr>
               </thead>
               <tbody>
@@ -79,17 +79,22 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                     }}
                     title={`Click to inspect ${item.name}`}
                   >
-                    <td style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "6px", height: "28px" }}>
-                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: item.color }} />
-                      <span style={{ color: item.isActive ? "var(--text)" : "var(--subtext1)" }}>{item.name}</span>
-                      {item.isActive && <span style={{ fontSize: "0.65rem", color: item.color }}>●</span>}
+                    <td style={{ fontWeight: 700, padding: "6px 8px", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: item.color, flexShrink: 0 }} />
+                        <span style={{ color: item.isActive ? "var(--text)" : "var(--subtext1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "115px" }} title={item.name}>
+                          {item.name}
+                        </span>
+                        {item.isActive && <span style={{ fontSize: "0.65rem", color: item.color, flexShrink: 0 }}>●</span>}
+                      </div>
                     </td>
-                    <td>{item.results.fit.method.toUpperCase()}</td>
-                    <td style={{ fontWeight: 700, color: "var(--yellow)", fontFamily: '"Google Sans Mono", monospace' }}>
+                    <td style={{ whiteSpace: "nowrap", textAlign: "center", fontSize: "0.68rem" }}>{item.results.fit.method.toUpperCase()}</td>
+                    <td style={{ whiteSpace: "nowrap", fontWeight: 700, color: "var(--yellow)", fontFamily: '"Google Sans Mono", monospace' }}>
                       {item.results.lodConc.toExponential(2)}
                     </td>
-                    <td>{item.results.fit.metrics.r2.toFixed(3)}</td>
+                    <td style={{ whiteSpace: "nowrap" }}>{item.results.fit.metrics.r2.toFixed(3)}</td>
                     <td style={{
+                      whiteSpace: "nowrap",
                       fontWeight: 600,
                       color: item.foldChangeVsRef.includes("higher") ? "var(--green)" : (item.foldChangeVsRef.includes("lower") ? "var(--peach)" : "var(--subtext0)")
                     }}>

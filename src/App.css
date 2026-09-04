@@ -857,19 +857,22 @@ select option {
 
 .custom-chart-legend {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
   font-size: 11px;
-  position: absolute;
-  top: 16px;
-  left: 80px;
-  background-color: var(--mantle);
-  padding: 12px;
+  position: static;
+  width: 100%;
+  background-color: var(--surface0);
+  padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid var(--surface1);
+  box-sizing: border-box;
+  margin-bottom: 8px;
   z-index: 10;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 /* ========================================== */
@@ -916,8 +919,7 @@ select option {
     padding-right: 0;
   }
   .custom-chart-legend {
-    left: 70px;
-    top: 12px;
+    position: static;
     padding: 8px 10px;
     gap: 6px;
     font-size: 10px;
