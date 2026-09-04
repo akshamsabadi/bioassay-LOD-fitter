@@ -446,9 +446,9 @@ function App() {
     if (!activeResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.18)");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.19)");
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.6.18");
+    csvRows.push("App Version,v0.6.19");
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -479,7 +479,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.18_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.19_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -491,7 +491,7 @@ function App() {
       "# ===================================================",
       "# BIOASSAY LOD FITTER - MULTI-CURVE IMPORT TEMPLATE",
       "# ===================================================",
-      "# Series: Wild-Type",
+      "# Series: Synthetic Ref (Construct A)",
       "Concentration,Replicate1,Replicate2,Replicate3",
       "0,0.06,0.09,0.07",
       "0.001,0.08,0.09,0.08",
@@ -500,7 +500,7 @@ function App() {
       "1,3.20,3.42,3.10",
       "10,4.75,4.90,4.68",
       "",
-      "# Series: Mutant K120A",
+      "# Series: Synthetic Construct B (Low Potency)",
       "Concentration,Replicate1,Replicate2,Replicate3",
       "0,0.07,0.10,0.08",
       "0.003,0.09,0.10,0.09",
@@ -542,7 +542,7 @@ function App() {
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.18)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.19)
 Generated: ${new Date().toLocaleDateString()}
 
 ${leaderboardMarkdown}#### 📈 Active Curve: ${activeSeries.name}

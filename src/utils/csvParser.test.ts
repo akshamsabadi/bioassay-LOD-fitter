@@ -115,13 +115,13 @@ const testMetadataAndSpecialRows = () => {
 
 const testMultiSeriesCSV = () => {
   const multiContent = `
-# Series: Wild-Type
+# Series: Synthetic Ref (Construct A)
 Concentration,Signals
 0,0.06,0.09,0.07
 0.001,0.08,0.09
 1.0,3.2,3.4
 
-# Series: Mutant K120A
+# Series: Synthetic Construct B (Low Potency)
 Concentration,Signals
 0,0.08,0.10
 0.003,0.09,0.10
@@ -133,7 +133,7 @@ Concentration,Signals
     throw new Error(`Expected 2 multiSeries, got ${result.multiSeries?.length}`);
   }
 
-  if (result.multiSeries[0].name !== "Wild-Type" || result.multiSeries[1].name !== "Mutant K120A") {
+  if (result.multiSeries[0].name !== "Synthetic Ref (Construct A)" || result.multiSeries[1].name !== "Synthetic Construct B (Low Potency)") {
     throw new Error(`Unexpected series names: ${result.multiSeries[0].name}, ${result.multiSeries[1].name}`);
   }
 

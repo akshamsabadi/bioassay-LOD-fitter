@@ -34,11 +34,11 @@ export interface DemoPreset {
 export const DEMO_PRESETS: DemoPreset[] = [
   {
     name: "Multi-Construct Panel (4 Curves)",
-    plotTitle: "Construct Sensitivity & Potency Comparison (4 Curves)",
+    plotTitle: "Synthetic Construct Panel (4 Curves)",
     series: [
       {
         id: "wt-series",
-        name: "Wild-Type",
+        name: "Synthetic Ref (Construct A)",
         color: SERIES_COLORS[0],
         visible: true,
         fitMethod: "auto",
@@ -58,7 +58,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
       },
       {
         id: "mut-k120a-series",
-        name: "Mutant K120A",
+        name: "Synthetic Construct B (Low Potency)",
         color: SERIES_COLORS[1],
         visible: true,
         fitMethod: "auto",
@@ -78,7 +78,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
       },
       {
         id: "mut-e85q-series",
-        name: "Mutant E85Q",
+        name: "Synthetic Construct C (High Sensitivity)",
         color: SERIES_COLORS[2],
         visible: true,
         fitMethod: "auto",
@@ -98,7 +98,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
       },
       {
         id: "var-d32a-series",
-        name: "Variant D32A",
+        name: "Synthetic Construct D (Partial Efficacy)",
         color: SERIES_COLORS[3],
         visible: true,
         fitMethod: "auto",

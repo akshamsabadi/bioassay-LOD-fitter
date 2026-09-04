@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://akshamsabadi.github.io/bioassay-LOD-fitter/"><img src="https://img.shields.io/badge/Live%20App-GitHub%20Pages-3ca951?style=for-the-badge&logo=github&logoColor=white" alt="Live Demo" /></a>
-  <img src="https://img.shields.io/badge/version-v0.6.18-4269d0?style=for-the-badge" alt="Version" />
+  <img src="https://img.shields.io/badge/version-v0.6.19-4269d0?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/tests-9%2F9%20passing-3ca951?style=for-the-badge" alt="Tests" />
   <img src="https://img.shields.io/badge/license-MIT-a463f2?style=for-the-badge" alt="License" />
 </p>
@@ -15,7 +15,7 @@ Bioassay LOD Fitter is a modern, responsive scientific web application built to 
 
 ## Key Features
 
-* **🔬 Multi-Curve Overlay & Panel Comparison:** Plot and compare multiple concentration-response curves simultaneously on a single unified chart with a shared broken logarithmic axis. Includes an interactive 4-curve panel demo (*Wild-Type*, *Mutant K120A*, *Mutant E85Q*, and *Variant D32A*) showcasing sensitivity shifts, efficacy modulation, and comparative potency.
+* **🔬 Multi-Curve Overlay & Panel Comparison:** Plot and compare multiple concentration-response curves simultaneously on a single unified chart with a shared broken logarithmic axis. Includes an interactive 4-curve panel demo (*Synthetic Ref*, *Synthetic Construct B (Low Potency)*, *Synthetic Construct C (High Sensitivity)*, and *Synthetic Construct D (Partial Efficacy)*) showcasing sensitivity shifts, efficacy modulation, and comparative potency.
 * **🏆 Comparative Sensitivity Leaderboard:** Automatically ranks all active curves by Limit of Detection (LOD), displays fitted models and $R^2$, and computes relative sensitivity fold-changes against the reference construct (e.g. $12.4\times$ higher sensitivity vs WT).
 * **🎨 Clean Editorial Horizontal Top-Split Design:** Professional, uncluttered interface featuring clean card containers with colored top horizontal accent splits, removing distracting vertical left borders for maximum readability.
 * **📋 Direct Spreadsheet Clipboard Paste:** Copy rows and columns directly from **Microsoft Excel** or **Google Sheets** (`Ctrl+V` / `Cmd+V`) into the application for instant table parsing into blanks and standard concentrations.
