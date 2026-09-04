@@ -1,6 +1,6 @@
 # Bioassay LOD Fitter
 
-![Version](https://img.shields.io/badge/version-v0.6.15-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-v0.6.16-blue?style=for-the-badge)
 
 Bioassay LOD Fitter is a web application built to analyse concentration-response data, perform advanced sigmoidal curve fitting, and rigorously calculate the Limit of Detection (LOD) for diagnostic assays using validated statistical frameworks.
 
@@ -11,10 +11,12 @@ Bioassay LOD Fitter is a web application built to analyse concentration-response
 This tool provides an interface for inputting experimental data (blanks and standard concentrations with their corresponding signal readouts) and visualising the fitted concentration-response curve.
 
 ### Key Features
-* **Interactive Data Entry:** Add, edit, or remove calibration standards and blank measurements.
-* **Advanced Curve Fitting:** Automatically selects between 4-Parameter Logistic (4PL) and 5-Parameter Logistic (5PL) curve models using the Akaike Information Criterion (AICc) to ensure the most statistically sound fit, while still allowing the user to manually force a specific model.
-* **Rich Visualisation:** A responsive, interactive logarithmic plot displays the data points, the modelled curve, the 95% confidence interval (CI) for the fit, and visually highlights the critical limits ($L_C$, $L_D$, and LOD).
-* **High-Resolution Export:** Download the generated plot as a publication-ready, 300 DPI transparent PNG.
+* **Direct Clipboard Paste:** Copy data directly from Microsoft Excel or Google Sheets (`Ctrl+V` / `Cmd+V`) into the sidebar for instant table parsing.
+* **Interactive Data Entry:** Add, edit, or remove calibration standards and blank measurements with real-time responsive validation.
+* **Advanced Curve Fitting:** Automatically selects between Linear, Langmuir, 4-Parameter Logistic (4PL), and 5-Parameter Logistic (5PL) models using the Akaike Information Criterion (AICc) to prevent overfitting.
+* **Unified Single-View Analytics:** View LOD Hero cards, fitted parameters, AICc comparison table, and noise limits in a cohesive single view without tab-hopping.
+* **Rich Publication Visualisation:** A responsive, interactive broken logarithmic plot displays data points, fitted curves, 95% confidence bands, and subdued critical limits ($L_C$, $L_D$, and LOD).
+* **High-Resolution & CSV Export:** Download the generated plot as a publication-ready 300 DPI PNG, or export detailed statistical audits to CSV / Markdown.
 
 ## LOD Calculation Methodology
 

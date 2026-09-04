@@ -14,38 +14,36 @@ export const parseCSVData = (text: string): ParsedCSVResult => {
 
   lines.forEach((line) => {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) return;
+    if (!trimmed || trimmed.startsWith("#")) return;
 
-    const parts = trimmed.split(',').map(part => part.trim().replace(/^["']|["']$/g, ''));
+    // Detect delimiter: tab (Excel/Google Sheets), semicolon (European CSV), or comma
+    const delimiter = trimmed.includes("\t") ? "\t" : (trimmed.includes(";") ? ";" : ",");
+    const parts = trimmed.split(delimiter).map(part => part.trim().replace(/^["']|["']$/g, ""));
     if (parts.length < 2) return;
 
     const firstCol = parts[0].toLowerCase();
-    if (
-      firstCol === 'parameter' ||
-      firstCol === 'concentration' ||
-      firstCol === 'signals' ||
-      firstCol === 'concentration/parameter' ||
-      firstCol === 'model parameter'
-    ) {
-      return;
-    }
-
-    if (firstCol === 'blank' || firstCol === 'blanks' || parseFloat(parts[0]) === 0) {
+    
+    // Check for blanks
+    if (firstCol === "blank" || firstCol === "blanks" || parseFloat(parts[0]) === 0) {
       const signals = parts.slice(1).map(p => parseFloat(p)).filter(n => !isNaN(n));
       if (signals.length > 0) {
         blanks.push(...signals);
       }
-    } else {
-      const concVal = parseFloat(parts[0]);
-      if (!isNaN(concVal)) {
-        const signals = parts.slice(1).map(p => parseFloat(p)).filter(n => !isNaN(n));
-        if (signals.length > 0) {
-          if (!standardMap.has(concVal)) {
-            standardMap.set(concVal, { concStr: parts[0], signals: [] });
-          }
-          standardMap.get(concVal)!.signals.push(...signals);
-        }
+      return;
+    }
+
+    const concVal = parseFloat(parts[0]);
+    // Skip non-numeric header lines (e.g. "Concentration", "Dose", "Parameter")
+    if (isNaN(concVal)) {
+      return;
+    }
+
+    const signals = parts.slice(1).map(p => parseFloat(p)).filter(n => !isNaN(n));
+    if (signals.length > 0) {
+      if (!standardMap.has(concVal)) {
+        standardMap.set(concVal, { concStr: parts[0], signals: [] });
       }
+      standardMap.get(concVal)!.signals.push(...signals);
     }
   });
 
@@ -54,11 +52,11 @@ export const parseCSVData = (text: string): ParsedCSVResult => {
     .map(([_, data]) => ({
       id: Math.random().toString(36).substring(2, 9),
       conc: data.concStr,
-      signals: data.signals.join(', ')
+      signals: data.signals.join(", ")
     }));
 
   return {
-    blankSignals: blanks.join(', '),
+    blankSignals: blanks.join(", "),
     standards: sortedStandards
   };
 };

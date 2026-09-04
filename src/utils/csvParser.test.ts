@@ -1,4 +1,4 @@
-import { parseCSVData } from './csvParser';
+import { parseCSVData } from "./csvParser";
 
 const testSimpleCSV = () => {
   const csvContent = `
@@ -12,27 +12,44 @@ Concentration,Signals
 
   const result = parseCSVData(csvContent);
 
-  // Assert blank signals
-  if (result.blankSignals !== '0.07, 0.13, 0.08') {
+  if (result.blankSignals !== "0.07, 0.13, 0.08") {
     throw new Error(`Expected blankSignals to be "0.07, 0.13, 0.08", got "${result.blankSignals}"`);
   }
 
-  // Assert standard count
   if (result.standards.length !== 3) {
     throw new Error(`Expected 3 standards, got ${result.standards.length}`);
   }
 
-  // Assert sorted order (0.001, then 0.1, then 3.0)
-  if (result.standards[0].conc !== '0.001' || result.standards[1].conc !== '0.1' || result.standards[2].conc !== '3.0') {
+  if (result.standards[0].conc !== "0.001" || result.standards[1].conc !== "0.1" || result.standards[2].conc !== "3.0") {
     throw new Error(`Expected sorted concentration order "0.001, 0.1, 3.0", got "${result.standards[0].conc}, ${result.standards[1].conc}, ${result.standards[2].conc}"`);
   }
 
-  // Assert signal mapping
-  if (result.standards[0].signals !== '0.08, 0.15, 0.09') {
+  if (result.standards[0].signals !== "0.08, 0.15, 0.09") {
     throw new Error(`Expected signals for 0.001 to be "0.08, 0.15, 0.09", got "${result.standards[0].signals}"`);
   }
 
-  console.log('✓ testSimpleCSV passed!');
+  console.log("✓ testSimpleCSV passed!");
+};
+
+const testTSVExcelClipboard = () => {
+  // Direct TSV copied from Excel or Google Sheets
+  const tsvContent = "Concentration (ug/mL)\tRep1\tRep2\tRep3\n0\t0.08\t0.12\t0.10\n0.1\t0.15\t0.17\t0.16\n1.0\t1.05\t1.12\t1.08";
+
+  const result = parseCSVData(tsvContent);
+
+  if (result.blankSignals !== "0.08, 0.12, 0.1") {
+    throw new Error(`Expected blankSignals to be "0.08, 0.12, 0.1", got "${result.blankSignals}"`);
+  }
+
+  if (result.standards.length !== 2) {
+    throw new Error(`Expected 2 standards, got ${result.standards.length}`);
+  }
+
+  if (result.standards[0].conc !== "0.1" || result.standards[0].signals !== "0.15, 0.17, 0.16") {
+    throw new Error(`Unexpected standard 0: ${JSON.stringify(result.standards[0])}`);
+  }
+
+  console.log("✓ testTSVExcelClipboard passed!");
 };
 
 const testLongFormatCSV = () => {
@@ -50,7 +67,7 @@ Concentration,Signal
 
   const result = parseCSVData(csvContent);
 
-  if (result.blankSignals !== '0.07, 0.13, 0.08') {
+  if (result.blankSignals !== "0.07, 0.13, 0.08") {
     throw new Error(`Expected aggregated blanks "0.07, 0.13, 0.08", got "${result.blankSignals}"`);
   }
 
@@ -58,11 +75,11 @@ Concentration,Signal
     throw new Error(`Expected 2 standards, got ${result.standards.length}`);
   }
 
-  if (result.standards[0].signals !== '0.15, 0.17') {
+  if (result.standards[0].signals !== "0.15, 0.17") {
     throw new Error(`Expected aggregated signals "0.15, 0.17", got "${result.standards[0].signals}"`);
   }
 
-  console.log('✓ testLongFormatCSV passed!');
+  console.log("✓ testLongFormatCSV passed!");
 };
 
 const testMetadataAndSpecialRows = () => {
@@ -80,7 +97,7 @@ const testMetadataAndSpecialRows = () => {
 
   const result = parseCSVData(csvContent);
 
-  if (result.blankSignals !== '0.07, 0.13, 0.08') {
+  if (result.blankSignals !== "0.07, 0.13, 0.08") {
     throw new Error(`Expected blankSignals to be "0.07, 0.13, 0.08", got "${result.blankSignals}"`);
   }
 
@@ -88,18 +105,19 @@ const testMetadataAndSpecialRows = () => {
     throw new Error(`Expected 1 standard, got ${result.standards.length}`);
   }
 
-  if (result.standards[0].conc !== '1.5' || result.standards[0].signals !== '1.25, 1.35') {
+  if (result.standards[0].conc !== "1.5" || result.standards[0].signals !== "1.25, 1.35") {
     throw new Error(`Expected standard "1.5" with signals "1.25, 1.35", got "${result.standards[0].conc}" with "${result.standards[0].signals}"`);
   }
 
-  console.log('✓ testMetadataAndSpecialRows passed!');
+  console.log("✓ testMetadataAndSpecialRows passed!");
 };
 
 const runAllTests = () => {
   testSimpleCSV();
+  testTSVExcelClipboard();
   testLongFormatCSV();
   testMetadataAndSpecialRows();
-  console.log('All CSV parser unit tests completed successfully!');
+  console.log("All CSV parser unit tests completed successfully!");
 };
 
 runAllTests();

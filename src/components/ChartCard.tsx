@@ -368,7 +368,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL('image/png');
         const downloadLink = document.createElement('a');
         downloadLink.href = pngUrl;
-        downloadLink.download = 'bioassay_plot_v0.6.15.png';
+        downloadLink.download = 'bioassay_plot_v0.6.16.png';
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -512,12 +512,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               shape={renderScatterDot}
             />
             
-            <Line data={lcLeftData} dataKey="y" stroke="var(--peach)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
-            <Line data={lcRightData} dataKey="y" stroke="var(--peach)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+            <Line data={lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+            <Line data={lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
             <ReferenceLine y={results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: 'none' }} />
             
-            <Line data={ldLeftData} dataKey="y" stroke="var(--green)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
-            <Line data={ldRightData} dataKey="y" stroke="var(--green)" strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+            <Line data={ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
+            <Line data={ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: 'none' }} />
             <ReferenceLine y={results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: 'none' }} />
             
             <ReferenceLine x={results.lodConc} stroke="var(--yellow)" strokeWidth={2} label={{ position: 'top', value: 'LOD', fill: 'var(--yellow)', fontSize: 10 }} style={{ pointerEvents: 'none' }} />

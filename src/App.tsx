@@ -20,11 +20,6 @@ function App() {
   const [blankSignals, setBlankSignals] = useState(DEFAULT_BLANKS);
   const [standardRows, setStandardRows] = useState<StandardRow[]>(DEFAULT_STANDARDS);
   const [demoIndex, setDemoIndex] = useState(1);
-  const [subtheme, setSubtheme] = useState<string>(() => {
-    const saved = localStorage.getItem('app-subtheme');
-    if (saved) return saved;
-    return theme === 'dark' ? 'near-midnight' : 'air';
-  });
   const [fitMethod, setFitMethod] = useState<'linear' | 'langmuir' | '4pl' | '5pl' | 'auto'>('auto');
   const [plotTitle, setPlotTitle] = useState('Concentration-Response Fitting');
   const [xAxisLabel, setXAxisLabel] = useState('Concentration (mM)');
@@ -34,17 +29,12 @@ function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    document.documentElement.setAttribute('data-subtheme', subtheme);
+    document.documentElement.setAttribute('data-subtheme', theme === 'dark' ? 'near-midnight' : 'air');
     localStorage.setItem('app-theme', theme);
-    localStorage.setItem('app-subtheme', subtheme);
-  }, [theme, subtheme]);
+  }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      setSubtheme(next === 'dark' ? 'near-midnight' : 'air');
-      return next;
-    });
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
   const results = useMemo((): AdvancedLoDResult | null => {
@@ -322,7 +312,7 @@ function App() {
       if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
     });
     csvRows.push('', '# ===================================================', '# ANALYSIS SUMMARY & STATISTICAL RESULTS', '# ===================================================', 'Parameter,Value');
-    csvRows.push('App Version,v0.6.15');
+    csvRows.push('App Version,v0.6.16');
     csvRows.push(`Requested Fit Method,${fitMethod}`, `Best/Selected Model,${results.fit.method.toUpperCase()}`);
     csvRows.push(`Limit of Detection (LOD),${results.lodConc.toExponential(6)}`);
     csvRows.push(`LOD 95% Confidence Interval Low,${results.lodCI.low.toExponential(6)}`, `LOD 95% Confidence Interval High,${results.lodCI.high.toExponential(6)}`);
@@ -337,7 +327,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `bioassay_lod_report_v0.6.15_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `bioassay_lod_report_v0.6.16_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -383,7 +373,7 @@ function App() {
       fitParamsText += `| **${p}** | ${val.toFixed(6)} |\n`;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.15)
+    const report = `### 🔬 Bioassay LOD Fitter Analysis Report (v0.6.16)
 Generated: ${new Date().toLocaleDateString()}
 
 #### 📈 Primary Results
@@ -418,8 +408,6 @@ ${fitParamsText}
     <div className="app-wrapper">
       <Header
         theme={theme}
-        subtheme={subtheme}
-        setSubtheme={setSubtheme}
         toggleTheme={toggleTheme}
         handleClearData={handleClearData}
         handleLoadDemo={handleLoadDemo}
@@ -429,8 +417,6 @@ ${fitParamsText}
       />
       <main className="main-container">
         <Sidebar
-          fitMethod={fitMethod}
-          setFitMethod={setFitMethod}
           plotTitle={plotTitle}
           setPlotTitle={setPlotTitle}
           xAxisLabel={xAxisLabel}
@@ -440,6 +426,7 @@ ${fitParamsText}
           blankSignals={blankSignals}
           setBlankSignals={setBlankSignals}
           standardRows={standardRows}
+          setStandardRows={setStandardRows}
           updateRow={updateRow}
           onAddRow={() => setStandardRows(prev => [...prev, { id: Math.random().toString(36), conc: '', signals: '' }])}
           onRemoveLast={() => setStandardRows(prev => prev.slice(0, -1))}

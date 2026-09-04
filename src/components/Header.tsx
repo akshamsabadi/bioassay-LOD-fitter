@@ -1,9 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef } from "react";
 
 interface HeaderProps {
-  theme: 'dark' | 'light';
-  subtheme: string;
-  setSubtheme: (subtheme: string) => void;
+  theme: "dark" | "light";
   toggleTheme: () => void;
   handleClearData: () => void;
   handleLoadDemo: () => void;
@@ -14,8 +12,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   theme,
-  subtheme,
-  setSubtheme,
   toggleTheme,
   handleClearData,
   handleLoadDemo,
@@ -28,85 +24,57 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="app-header">
       <div className="header-content">
-        <h1 style={{ margin: 0, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h1 style={{ margin: 0, fontSize: "1.25rem", display: "flex", alignItems: "center", gap: "8px" }}>
           Bioassay LOD Fitter
-          <span style={{ fontSize: '0.65rem', padding: '2px 6px', backgroundColor: 'var(--surface2)', borderRadius: '10px', color: 'var(--subtext1)', fontWeight: 'normal', fontFamily: 'monospace' }}>v0.6.15</span>
+          <span style={{ fontSize: "0.65rem", padding: "2px 6px", backgroundColor: "var(--surface2)", borderRadius: "10px", color: "var(--subtext1)", fontWeight: "normal", fontFamily: "monospace" }}>v0.6.16</span>
         </h1>
-        <p className="header-description" style={{ margin: 0, display: 'none' }}>Sigmoidal fitting with LOD validation.</p>
       </div>
       
       <div className="toolbar-container">
         {/* SECTION 1: DATA PRESETS */}
         <div className="toolbar-section" title="Data Presets">
-          <button className="toolbar-btn" onClick={handleClearData} title="Clear all input standard and blank data" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Clear Data</button>
-          <button className="toolbar-btn primary-btn" onClick={handleLoadDemo} title={"Load the next experimental dataset preset: " + demoName} style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Load Demo</button>
+          <button className="toolbar-btn" onClick={handleClearData} title="Clear all input standard and blank data" style={{ padding: "6px 12px", fontSize: "0.75rem" }}>Clear Data</button>
+          <button className="toolbar-btn primary-btn" onClick={handleLoadDemo} title={"Load next experimental dataset: " + demoName} style={{ padding: "6px 12px", fontSize: "0.75rem" }}>Load Demo</button>
         </div>
 
         {/* SECTION 2: CSV ACTIONS */}
-        <div className="toolbar-section" title="CSV Actions">
+        <div className="toolbar-section" title="CSV & Spreadsheet Actions">
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleImportCSV}
-            style={{ display: 'none' }}
-            accept=".csv"
+            style={{ display: "none" }}
+            accept=".csv,.tsv,.txt"
           />
-          <button className="toolbar-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Template ↓</button>
-          <button className="toolbar-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV file" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>Import ↑</button>
+          <button className="toolbar-btn" onClick={handleDownloadTemplate} title="Download a pre-formatted CSV template with demo data" style={{ padding: "6px 12px", fontSize: "0.75rem" }}>Template ↓</button>
+          <button className="toolbar-btn" onClick={() => fileInputRef.current?.click()} title="Import standards and blanks from CSV or TSV file" style={{ padding: "6px 12px", fontSize: "0.75rem" }}>Import ↑</button>
           <div
             className="help-tooltip"
-            data-tooltip="CSV IMPORT FORMAT RULES:&#10;1. First column must be the Concentration (numeric value).&#10;2. Use 0, 'blank', or 'blanks' to specify blank rows.&#10;3. Subsequent columns are your measured signal replicates.&#10;4. Any row starting with '#' is ignored as a comment.&#10;&#10;Click 'Template' to download an example!"
+            data-tooltip="SPREADSHEET / CSV IMPORT RULES:&#10;1. Column 1: Concentration (numeric).&#10;2. Use 0, 'blank', or 'blanks' for blanks.&#10;3. Columns 2+: Replicate signal readings.&#10;4. You can also paste directly from Excel or Google Sheets (Ctrl+V / Cmd+V) into the sidebar!&#10;&#10;Click 'Template' to download an example."
             style={{
-              fontSize: '11px',
-              color: 'var(--subtext0)',
-              justifyContent: 'center',
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              border: '1px solid var(--surface2)',
-              backgroundColor: 'var(--surface0)',
-              fontWeight: 'bold',
-              userSelect: 'none',
-              cursor: 'help'
+              fontSize: "11px",
+              color: "var(--subtext0)",
+              justifyContent: "center",
+              width: "18px",
+              height: "18px",
+              borderRadius: "50%",
+              border: "1px solid var(--surface2)",
+              backgroundColor: "var(--surface0)",
+              fontWeight: "bold",
+              userSelect: "none",
+              cursor: "help"
             }}
           >
             ?
           </div>
         </div>
 
-        {/* SECTION 3: THEME SETTINGS */}
-        <div className="toolbar-section" title="Theme Settings">
-          <select
-            value={subtheme}
-            onChange={e => setSubtheme(e.target.value)}
-            className="toolbar-select"
-            title="Choose your preferred Observable theme style"
-          >
-            {theme === 'dark' ? (
-              <>
-                <option value="near-midnight">Near Midnight (Default)</option>
-                <option value="slate">Slate</option>
-                <option value="midnight">Midnight</option>
-                <option value="deep-space">Deep Space</option>
-                <option value="ink">Ink</option>
-                <option value="coffee">Coffee</option>
-                <option value="ocean-floor">Ocean Floor</option>
-                <option value="stark">Stark</option>
-                <option value="sun-faded">Sun Faded</option>
-              </>
-            ) : (
-              <>
-                <option value="air">Air (Default)</option>
-                <option value="cotton">Cotton</option>
-                <option value="glacier">Glacier</option>
-                <option value="parchment">Parchment</option>
-              </>
-            )}
-          </select>
-          <div className="theme-toggle-pill" onClick={toggleTheme} title="Toggle Light/Dark Mode">
+        {/* SECTION 3: THEME TOGGLE */}
+        <div className="toolbar-section" title="Toggle Light/Dark Theme">
+          <div className="theme-toggle-pill" onClick={toggleTheme} title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}>
             <span className={`toggle-track ${theme}`}>
               <span className="toggle-thumb">
-                {theme === 'dark' ? '🌙' : '☀️'}
+                {theme === "dark" ? "🌙" : "☀️"}
               </span>
             </span>
           </div>
