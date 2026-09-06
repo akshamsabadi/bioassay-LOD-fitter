@@ -66,11 +66,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       
       {/* SECTION 0: MULTI-CURVE COMPARATIVE LEADERBOARD (Shown when multiple curves exist) */}
       {isMultiCurve && (
-        <div className="stats-card" style={{ margin: 0, padding: 0, overflow: "hidden", border: "1px solid var(--surface1)", borderRadius: "10px", background: "var(--surface0)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div className="stats-card" style={{ margin: 0, padding: 0, overflow: "visible", border: "1px solid var(--surface1)", borderRadius: "10px", background: "var(--surface0)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
           {/* Top header banner */}
           <div style={{
             backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
             borderBottom: "1px solid var(--surface1)",
+            borderTopLeftRadius: "9px",
+            borderTopRightRadius: "9px",
             padding: "8px 12px",
             display: "flex",
             justifyContent: "space-between",
@@ -148,7 +150,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       <div className="stats-card hero-card" style={{
         margin: 0,
         padding: 0,
-        overflow: "hidden",
+        overflow: "visible",
         border: "1px solid var(--surface1)",
         borderRadius: "10px",
         background: "var(--surface0)",
@@ -158,6 +160,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         <div style={{
           backgroundColor: isMultiCurve ? `color-mix(in srgb, ${activeSeries.color} 12%, var(--surface0))` : "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
           borderBottom: "1px solid var(--surface1)",
+          borderTopLeftRadius: "9px",
+          borderTopRightRadius: "9px",
           padding: "10px 14px",
           display: "flex",
           justifyContent: "space-between",
@@ -304,7 +308,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       <div className="stats-card model-comparison-card" style={{
         margin: 0,
         padding: 0,
-        overflow: "hidden",
+        overflow: "visible",
         border: "1px solid var(--surface1)",
         borderRadius: "10px",
         background: "var(--surface0)",
@@ -314,6 +318,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         <div style={{
           backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
           borderBottom: "1px solid var(--surface1)",
+          borderTopLeftRadius: "9px",
+          borderTopRightRadius: "9px",
           padding: "10px 14px",
           display: "flex",
           justifyContent: "space-between",
@@ -412,7 +418,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       <div className="stats-card" style={{
         margin: 0,
         padding: 0,
-        overflow: "hidden",
+        overflow: "visible",
         border: "1px solid var(--surface1)",
         borderRadius: "10px",
         background: "var(--surface0)",
@@ -423,6 +429,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           style={{
             backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
             borderBottom: showStats ? "1px solid var(--surface1)" : "none",
+            borderTopLeftRadius: "9px",
+            borderTopRightRadius: "9px",
+            borderBottomLeftRadius: showStats ? "0" : "9px",
+            borderBottomRightRadius: showStats ? "0" : "9px",
             padding: "10px 14px",
             display: "flex",
             justifyContent: "space-between",
@@ -445,13 +455,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         {showStats && (
           <div className="fade-in" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
             <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-              <span className="stat-label-wrap" data-tooltip="Decision Limit (LC): Signal threshold above which response is statistically distinct from noise (α=0.05).">
+              <span className="stat-label-wrap" data-tooltip="Decision Limit (LC): Signal threshold above which response is statistically distinct from noise (α=0.05)." title="Decision Limit (LC): Signal threshold above which response is statistically distinct from noise (α=0.05).">
                 <span className="stat-label" style={{ color: "var(--subtext1)" }}>Critical Level (L<sub>C</sub>)</span>
               </span>
               <span className="stat-value" style={{ color: "var(--peach)", fontWeight: 700, fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.lc.toFixed(4)}</span>
             </div>
             <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-              <span className="stat-label-wrap" data-tooltip="Detection Limit Signal (LD): Signal level ensuring 95% detection probability above LC (β=0.05).">
+              <span className="stat-label-wrap" data-tooltip="Detection Limit Signal (LD): Signal level ensuring 95% detection probability above LC (β=0.05)." title="Detection Limit Signal (LD): Signal level ensuring 95% detection probability above LC (β=0.05).">
                 <span className="stat-label" style={{ color: "var(--subtext1)" }}>Signal Limit (L<sub>D</sub>)</span>
               </span>
               <span className="stat-value" style={{ color: "var(--green)", fontWeight: 700, fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.ld.toFixed(4)}</span>

@@ -43,7 +43,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
     series: [
       {
         id: "single-4pl",
-        name: "Reference Assay",
+        name: "Ref",
         color: SERIES_COLORS[0],
         visible: true,
         fitMethod: "auto",
@@ -71,7 +71,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
     series: [
       {
         id: "wt-series",
-        name: "Synthetic Ref (Construct A)",
+        name: "Ref",
         color: SERIES_COLORS[0],
         visible: true,
         fitMethod: "auto",
@@ -91,7 +91,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
       },
       {
         id: "mut-k120a-series",
-        name: "Synthetic Construct B (Low Potency)",
+        name: "Sample 1",
         color: SERIES_COLORS[1],
         visible: true,
         fitMethod: "auto",
@@ -111,7 +111,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
       },
       {
         id: "mut-e85q-series",
-        name: "Synthetic Construct C (High Sensitivity)",
+        name: "Sample 2",
         color: SERIES_COLORS[2],
         visible: true,
         fitMethod: "auto",
@@ -131,7 +131,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
       },
       {
         id: "var-d32a-series",
-        name: "Synthetic Construct D (Partial Efficacy)",
+        name: "Sample 3",
         color: SERIES_COLORS[3],
         visible: true,
         fitMethod: "auto",
@@ -158,7 +158,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
     series: [
       {
         id: "single-linear",
-        name: "Standard Curve",
+        name: "Ref",
         color: SERIES_COLORS[0],
         visible: true,
         fitMethod: "auto",
@@ -180,7 +180,7 @@ export const DEMO_PRESETS: DemoPreset[] = [
     series: [
       {
         id: "single-5pl",
-        name: "Assay Data",
+        name: "Ref",
         color: SERIES_COLORS[0],
         visible: true,
         fitMethod: "auto",

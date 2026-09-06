@@ -366,7 +366,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.6.27.svg";
+    downloadLink.download = "bioassay_plot_v0.6.28.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -430,7 +430,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.27.png";
+        downloadLink.download = "bioassay_plot_v0.6.28.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -738,12 +738,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         </div>
       </div>
       
-      {/* Interactive Legend Bar (rendered outside the SVG canvas so it never overlaps curves or data points) */}
-      <div className="chart-legend-bar">
-        <CustomLegend />
-      </div>
-
       <div className="chart-frame" ref={chartRef} style={{ position: "relative" }}>
+        <CustomLegend />
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />}

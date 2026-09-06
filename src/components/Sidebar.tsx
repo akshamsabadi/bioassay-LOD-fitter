@@ -203,9 +203,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            overflowX: "auto",
-            paddingBottom: "4px",
-            scrollbarWidth: "thin"
+            flexWrap: "wrap",
+            paddingBottom: "4px"
           }}>
             {seriesList.map(s => {
               const isActive = s.id === activeSeriesId;
