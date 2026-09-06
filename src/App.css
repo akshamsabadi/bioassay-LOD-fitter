@@ -422,18 +422,24 @@ body {
 .remove-row-btn {
   background: transparent;
   border: none;
-  color: var(--overlay0);
+  color: var(--subtext0);
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: normal;
   padding: 0 4px;
   line-height: 1;
   transition: all 0.15s ease-in-out;
   border-radius: 4px;
+  opacity: 0.35;
 }
+
+.data-row:hover .remove-row-btn {
+  opacity: 1;
+}
+
 .remove-row-btn:hover {
-  color: var(--red);
-  background: color-mix(in srgb, var(--red) 12%, transparent);
+  color: var(--red) !important;
+  background: color-mix(in srgb, var(--red) 14%, transparent);
 }
 
 .add-row-btn {
@@ -1155,56 +1161,10 @@ select option {
 }
 
 /* ========================================== */
-/* REPLICATE INLINE STATS & ROW SUB-BARS      */
+/* DATA TABLE ROW STYLES                      */
 /* ========================================== */
-.data-row-container {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-bottom: 6px;
-}
-
-.data-row-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 4px 0 6px;
-  font-size: 0.65rem;
-  color: var(--subtext0);
-  font-family: 'Google Sans Mono', monospace;
-  animation: fadeIn 0.15s ease-out;
-}
-
-.row-meta-stat {
-  color: var(--subtext0);
-  font-size: 0.64rem;
-}
-
-.replicate-stat-badge {
-  font-size: 0.62rem;
-  font-family: 'Google Sans Mono', monospace;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background-color: var(--surface1);
-  color: var(--subtext0);
-  white-space: nowrap;
-  user-select: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-
-.replicate-stat-badge.cv-warning {
-  background-color: color-mix(in srgb, var(--peach) 16%, transparent);
-  border: 1px solid var(--peach);
-  color: var(--peach);
-  font-weight: 700;
-}
-
 .data-row.has-warning .signals-input {
-  border-color: color-mix(in srgb, var(--peach) 60%, var(--surface1));
+  border-color: color-mix(in srgb, var(--peach) 70%, var(--surface1));
 }
 
 /* ========================================== */

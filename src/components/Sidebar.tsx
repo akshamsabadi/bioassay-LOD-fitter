@@ -370,105 +370,129 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </details>
         </section>
 
-        {/* SECTION 2: BLANKS DATA ENTRY */}
-        <section className="sidebar-section" style={{ margin: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color, flexShrink: 0 }} />
-              <span className="section-title" style={{ color: "var(--peach)", margin: 0 }}>
-                {seriesList.length > 1 ? `${activeSeries.name} Blanks (0 Conc)` : "Assay Blanks (0 Conc)"}
-              </span>
-            </div>
-          </div>
-          <div className="data-row-container" style={{ paddingRight: "16px" }}>
-            <div className={`data-row ${blankStats && blankStats.cv > 15 ? "has-warning" : ""}`}
-                 onMouseEnter={() => setTableHoveredRowId("blank")}
-                 onMouseLeave={() => setTableHoveredRowId(null)}>
-              <div className="conc-input disabled" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--overlay0)" }}>0</div>
-              <input
-                type="text"
-                className="signals-input"
-                placeholder="e.g. 0.08, 0.12, 0.10"
-                value={blankSignals}
-                onChange={e => setBlankSignals(e.target.value)}
-                onPaste={handleBlankPaste}
-                style={{ color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--text)", borderColor: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined }}
-              />
-            </div>
-            {blankStats && (
-              <div className="data-row-meta">
-                <span className="row-meta-stat">n={blankStats.n} · μ={blankStats.mean.toFixed(3)}</span>
-                <span
-                  className={`replicate-stat-badge ${blankStats.cv > 15 ? "cv-warning" : ""}`}
-                  title={`Blanks: n=${blankStats.n}\nMean: ${blankStats.mean.toFixed(4)}\nSD: ${blankStats.sd.toFixed(4)}\nCV: ${blankStats.cv.toFixed(1)}%`}
-                >
-                  {blankStats.n >= 2 ? `CV ${blankStats.cv.toFixed(1)}%` : `n=${blankStats.n}`}
-                  {blankStats.cv > 15 && " ⚠️ High Variance"}
-                </span>
-              </div>
-            )}
-          </div>
-        </section>
-        
-        {/* SECTION 3: STANDARDS DATA ENTRY */}
+        {/* UNIFIED DATA ENTRY TABLE */}
         <section className="sidebar-section" style={{ margin: 0, display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color, flexShrink: 0 }} />
-              <span className="section-title" style={{ color: "var(--green)", margin: 0 }}>
-                {seriesList.length > 1 ? `${activeSeries.name} Standards` : "Assay Standards"}
+              <span className="section-title" style={{ color: "var(--teal)", margin: 0 }}>
+                {seriesList.length > 1 ? `${activeSeries.name} Data` : "Calibration Data"}
               </span>
             </div>
-            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }} title="Paste from Excel or Google Sheets (Ctrl+V)">
+            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)", cursor: "help" }} title="Paste table from Excel or Google Sheets (Ctrl+V into any cell)">
               📋 Excel paste
             </span>
           </div>
+
+          {/* Table Column Headers */}
+          <div style={{ display: "flex", gap: "6px", alignItems: "center", paddingRight: "16px", marginBottom: "4px" }}>
+            <span style={{ width: "58px", fontSize: "0.68rem", fontWeight: 600, color: "var(--subtext0)", textAlign: "center", letterSpacing: "0.04em", userSelect: "none" }}>
+              CONC
+            </span>
+            <span style={{ flex: 1, fontSize: "0.68rem", fontWeight: 600, color: "var(--subtext0)", paddingLeft: "4px", letterSpacing: "0.04em", userSelect: "none" }}>
+              REPLICATES (SIGNALS)
+            </span>
+            <span style={{ width: "20px" }} />
+          </div>
           
           <div className="rows-container" style={{ flex: 1, overflowY: "auto", marginBottom: "8px", paddingRight: "16px" }}>
+            {/* Blank Row (Conc = 0) */}
+            <div
+              className={`data-row ${blankStats && blankStats.cv > 15 ? "has-warning" : ""}`}
+              onMouseEnter={() => setTableHoveredRowId("blank")}
+              onMouseLeave={() => setTableHoveredRowId(null)}
+              title={blankStats ? `Blank (0 conc): n=${blankStats.n}, Mean=${blankStats.mean.toFixed(4)}, SD=${blankStats.sd.toFixed(4)}, CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Assay Blank (Conc = 0)"}
+            >
+              <div
+                className="conc-input disabled"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--overlay0)",
+                  cursor: "default"
+                }}
+                title="Blank (0 Conc)"
+              >
+                0
+              </div>
+              <input
+                type="text"
+                className="signals-input"
+                placeholder="Blank signals (e.g. 0.08, 0.12)"
+                value={blankSignals}
+                onChange={e => setBlankSignals(e.target.value)}
+                onPaste={handleBlankPaste}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    document.getElementById("conc-input-0")?.focus();
+                  }
+                }}
+                style={{
+                  color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--text)",
+                  borderColor: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined
+                }}
+                title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
+              />
+              <div style={{ width: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {blankStats && blankStats.cv > 15 && (
+                  <span title={`High Variance: Blank CV is ${blankStats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
+                )}
+              </div>
+            </div>
+
+            {/* Standard Concentration Rows */}
             {standardRows.map((r, idx) => {
               const stats = computeRowStats(r.signals);
               const hasHighCV = stats && stats.cv > 15;
               const isHovered = hoveredPoint?.id === r.id;
+              const rowTooltip = stats
+                ? `Conc: ${r.conc || "—"} | n=${stats.n}, Mean=${stats.mean.toFixed(4)}, SD=${stats.sd.toFixed(4)}, CV=${stats.cv.toFixed(1)}%${hasHighCV ? ' (⚠️ High Variance)' : ''}`
+                : undefined;
+
               return (
-                <div key={r.id} className="data-row-container">
-                  <div className={`data-row ${hasHighCV ? "has-warning" : ""}`}
-                       onMouseEnter={() => setTableHoveredRowId(r.id)}
-                       onMouseLeave={() => setTableHoveredRowId(null)}>
-                    <input
-                      id={`conc-input-${idx}`}
-                      type="text"
-                      className="conc-input"
-                      placeholder="Conc"
-                      value={r.conc}
-                      onChange={e => updateRow(r.id, "conc", e.target.value)}
-                      onKeyDown={e => handleKeyDown(idx, e)}
-                      style={{ color: isHovered ? "var(--pink)" : "var(--text)", borderColor: isHovered ? "var(--pink)" : undefined }}
-                    />
-                    <input
-                      id={`signals-input-${idx}`}
-                      type="text"
-                      className="signals-input"
-                      placeholder="Replicates (e.g. 0.15, 0.17, 0.16)"
-                      value={r.signals}
-                      onChange={e => updateRow(r.id, "signals", e.target.value)}
-                      onPaste={e => handleSignalPaste(r.id, e)}
-                      onKeyDown={e => handleKeyDown(idx, e)}
-                      style={{ color: isHovered ? "var(--pink)" : "var(--text)", borderColor: isHovered ? "var(--pink)" : undefined }}
-                    />
+                <div
+                  key={r.id}
+                  className={`data-row ${hasHighCV ? "has-warning" : ""}`}
+                  onMouseEnter={() => setTableHoveredRowId(r.id)}
+                  onMouseLeave={() => setTableHoveredRowId(null)}
+                  title={rowTooltip}
+                >
+                  <input
+                    id={`conc-input-${idx}`}
+                    type="text"
+                    className="conc-input"
+                    placeholder="Conc"
+                    value={r.conc}
+                    onChange={e => updateRow(r.id, "conc", e.target.value)}
+                    onKeyDown={e => handleKeyDown(idx, e)}
+                    style={{
+                      color: isHovered ? "var(--pink)" : "var(--text)",
+                      borderColor: isHovered ? "var(--pink)" : undefined
+                    }}
+                  />
+                  <input
+                    id={`signals-input-${idx}`}
+                    type="text"
+                    className="signals-input"
+                    placeholder="Replicates (e.g. 0.15, 0.17, 0.16)"
+                    value={r.signals}
+                    onChange={e => updateRow(r.id, "signals", e.target.value)}
+                    onPaste={e => handleSignalPaste(r.id, e)}
+                    onKeyDown={e => handleKeyDown(idx, e)}
+                    style={{
+                      color: isHovered ? "var(--pink)" : "var(--text)",
+                      borderColor: isHovered ? "var(--pink)" : undefined
+                    }}
+                    title={rowTooltip}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: "2px", width: "20px", justifyContent: "flex-end" }}>
+                    {hasHighCV && (
+                      <span title={`High Variance: CV is ${stats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
+                    )}
                     <button className="remove-row-btn" onClick={() => onRemoveRow(r.id)} title="Delete row">×</button>
                   </div>
-                  {stats && (
-                    <div className="data-row-meta">
-                      <span className="row-meta-stat">n={stats.n} · μ={stats.mean.toFixed(3)}</span>
-                      <span
-                        className={`replicate-stat-badge ${hasHighCV ? "cv-warning" : ""}`}
-                        title={`n=${stats.n}\nMean: ${stats.mean.toFixed(4)}\nSD: ${stats.sd.toFixed(4)}\nCV: ${stats.cv.toFixed(1)}%`}
-                      >
-                        {stats.n >= 2 ? `CV ${stats.cv.toFixed(1)}%` : `n=${stats.n}`}
-                        {hasHighCV && " ⚠️ High Variance"}
-                      </span>
-                    </div>
-                  )}
                 </div>
               );
             })}
