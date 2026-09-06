@@ -231,8 +231,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }}
                   title={`Click to edit ${s.name}`}
                 >
-                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: s.color, display: "inline-block" }} />
-                  <span>{s.name}</span>
+                  <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: s.color, display: "inline-block", flexShrink: 0 }} />
+                  <span style={{ maxWidth: "110px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); onToggleSeriesVisibility(s.id); }}
                     style={{
@@ -374,27 +374,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <section className="sidebar-section" style={{ margin: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color }} />
+              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color, flexShrink: 0 }} />
               <span className="section-title" style={{ color: "var(--peach)", margin: 0 }}>
                 {seriesList.length > 1 ? `${activeSeries.name} Blanks (0 Conc)` : "Assay Blanks (0 Conc)"}
               </span>
             </div>
-            {blankStats && (
-              <span
-                className={`replicate-stat-badge ${blankStats.cv > 15 ? "cv-warning" : ""}`}
-                title={`Blanks: n=${blankStats.n}\nMean: ${blankStats.mean.toFixed(4)}\nSD: ${blankStats.sd.toFixed(4)}\nCV: ${blankStats.cv.toFixed(1)}%`}
-              >
-                {blankStats.n >= 2 ? `CV ${blankStats.cv.toFixed(1)}%` : `n=${blankStats.n}`}
-                {blankStats.cv > 15 && " ⚠️"}
-              </span>
-            )}
           </div>
-          <div className={`data-row ${blankStats && blankStats.cv > 15 ? "has-warning" : ""}`}
-               onMouseEnter={() => setTableHoveredRowId("blank")}
-               onMouseLeave={() => setTableHoveredRowId(null)}
-               style={{ paddingRight: "16px" }}>
-            <div className="conc-input disabled" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--overlay0)" }}>0</div>
-            <div style={{ position: "relative", flex: 1 }}>
+          <div className="data-row-container" style={{ paddingRight: "16px" }}>
+            <div className={`data-row ${blankStats && blankStats.cv > 15 ? "has-warning" : ""}`}
+                 onMouseEnter={() => setTableHoveredRowId("blank")}
+                 onMouseLeave={() => setTableHoveredRowId(null)}>
+              <div className="conc-input disabled" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--overlay0)" }}>0</div>
               <input
                 type="text"
                 className="signals-input"
@@ -402,18 +392,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 value={blankSignals}
                 onChange={e => setBlankSignals(e.target.value)}
                 onPaste={handleBlankPaste}
-                style={{ width: "100%", color: hoveredPoint?.id === "blank" ? "transparent" : "var(--text)" }}
+                style={{ color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--text)", borderColor: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined }}
               />
-              {hoveredPoint?.id === "blank" && (
-                <div className="signals-input" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "transparent", borderColor: "transparent", pointerEvents: "none", whiteSpace: "pre", overflow: "hidden" }}>
-                  {blankSignals.split(/(,)/).map((part, i) => {
-                    if (part === ",") return <span key={i} style={{ color: "var(--text)" }}>,</span>;
-                    const isTarget = !isNaN(parseFloat(part)) && Math.abs(parseFloat(part.trim()) - hoveredPoint.y) < 1e-8;
-                    return <span key={i} style={{ color: isTarget ? "var(--pink)" : "var(--text)", fontWeight: isTarget ? "bold" : "normal" }}>{part}</span>;
-                  })}
-                </div>
-              )}
             </div>
+            {blankStats && (
+              <div className="data-row-meta">
+                <span className="row-meta-stat">n={blankStats.n} · μ={blankStats.mean.toFixed(3)}</span>
+                <span
+                  className={`replicate-stat-badge ${blankStats.cv > 15 ? "cv-warning" : ""}`}
+                  title={`Blanks: n=${blankStats.n}\nMean: ${blankStats.mean.toFixed(4)}\nSD: ${blankStats.sd.toFixed(4)}\nCV: ${blankStats.cv.toFixed(1)}%`}
+                >
+                  {blankStats.n >= 2 ? `CV ${blankStats.cv.toFixed(1)}%` : `n=${blankStats.n}`}
+                  {blankStats.cv > 15 && " ⚠️ High Variance"}
+                </span>
+              </div>
+            )}
           </div>
         </section>
         
@@ -421,7 +414,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <section className="sidebar-section" style={{ margin: 0, display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color }} />
+              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color, flexShrink: 0 }} />
               <span className="section-title" style={{ color: "var(--green)", margin: 0 }}>
                 {seriesList.length > 1 ? `${activeSeries.name} Standards` : "Assay Standards"}
               </span>
@@ -435,11 +428,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {standardRows.map((r, idx) => {
               const stats = computeRowStats(r.signals);
               const hasHighCV = stats && stats.cv > 15;
+              const isHovered = hoveredPoint?.id === r.id;
               return (
-                <div key={r.id} className={`data-row ${hasHighCV ? "has-warning" : ""}`}
-                     onMouseEnter={() => setTableHoveredRowId(r.id)}
-                     onMouseLeave={() => setTableHoveredRowId(null)}>
-                  <div style={{ position: "relative" }}>
+                <div key={r.id} className="data-row-container">
+                  <div className={`data-row ${hasHighCV ? "has-warning" : ""}`}
+                       onMouseEnter={() => setTableHoveredRowId(r.id)}
+                       onMouseLeave={() => setTableHoveredRowId(null)}>
                     <input
                       id={`conc-input-${idx}`}
                       type="text"
@@ -448,10 +442,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       value={r.conc}
                       onChange={e => updateRow(r.id, "conc", e.target.value)}
                       onKeyDown={e => handleKeyDown(idx, e)}
-                      style={{ color: hoveredPoint?.id === r.id ? "var(--pink)" : "var(--text)" }}
+                      style={{ color: isHovered ? "var(--pink)" : "var(--text)", borderColor: isHovered ? "var(--pink)" : undefined }}
                     />
-                  </div>
-                  <div style={{ position: "relative", flex: 1 }}>
                     <input
                       id={`signals-input-${idx}`}
                       type="text"
@@ -461,31 +453,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onChange={e => updateRow(r.id, "signals", e.target.value)}
                       onPaste={e => handleSignalPaste(r.id, e)}
                       onKeyDown={e => handleKeyDown(idx, e)}
-                      style={{ width: "100%", color: hoveredPoint?.id === r.id ? "transparent" : "var(--text)", paddingRight: stats ? "55px" : "8px" }}
+                      style={{ color: isHovered ? "var(--pink)" : "var(--text)", borderColor: isHovered ? "var(--pink)" : undefined }}
                     />
-                    {/* Inline Replicate Stats Pill */}
-                    {stats && (
-                      <div style={{ position: "absolute", right: "6px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-                        <span
-                          className={`replicate-stat-badge ${hasHighCV ? "cv-warning" : ""}`}
-                          title={`n=${stats.n}\nMean: ${stats.mean.toFixed(4)}\nSD: ${stats.sd.toFixed(4)}\nCV: ${stats.cv.toFixed(1)}%`}
-                        >
-                          {stats.n >= 2 ? `CV ${stats.cv.toFixed(1)}%` : `n=${stats.n}`}
-                          {hasHighCV && " ⚠️"}
-                        </span>
-                      </div>
-                    )}
-                    {hoveredPoint?.id === r.id && (
-                      <div className="signals-input" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "transparent", borderColor: "transparent", pointerEvents: "none", whiteSpace: "pre", overflow: "hidden" }}>
-                        {r.signals.split(/(,)/).map((part, i) => {
-                          if (part === ",") return <span key={i} style={{ color: "var(--text)" }}>,</span>;
-                          const isTarget = !isNaN(parseFloat(part)) && Math.abs(parseFloat(part.trim()) - hoveredPoint.y) < 1e-8;
-                          return <span key={i} style={{ color: isTarget ? "var(--pink)" : "var(--text)", fontWeight: isTarget ? "bold" : "normal" }}>{part}</span>;
-                        })}
-                      </div>
-                    )}
+                    <button className="remove-row-btn" onClick={() => onRemoveRow(r.id)} title="Delete row">×</button>
                   </div>
-                  <button className="remove-row-btn" onClick={() => onRemoveRow(r.id)} title="Delete row">×</button>
+                  {stats && (
+                    <div className="data-row-meta">
+                      <span className="row-meta-stat">n={stats.n} · μ={stats.mean.toFixed(3)}</span>
+                      <span
+                        className={`replicate-stat-badge ${hasHighCV ? "cv-warning" : ""}`}
+                        title={`n=${stats.n}\nMean: ${stats.mean.toFixed(4)}\nSD: ${stats.sd.toFixed(4)}\nCV: ${stats.cv.toFixed(1)}%`}
+                      >
+                        {stats.n >= 2 ? `CV ${stats.cv.toFixed(1)}%` : `n=${stats.n}`}
+                        {hasHighCV && " ⚠️ High Variance"}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}

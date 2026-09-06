@@ -10,7 +10,6 @@ import {
   ReferenceLine,
   ReferenceArea,
   Area,
-  Legend,
   Tooltip
 } from "recharts";
 import { type AdvancedLoDResult } from "../utils/calculations";
@@ -108,18 +107,22 @@ interface ViewBoxProps {
 const CustomLcLabel = ({ viewBox }: ViewBoxProps) => {
   if (!viewBox) return null;
   return (
-    <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 4} fill="var(--peach)" fontSize={10}>
-      L<tspan dy="0.3em" fontSize={7.5}>C</tspan>
-    </text>
+    <g style={{ pointerEvents: "none" }}>
+      <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 8} fill="var(--peach)" fontSize={10} fontWeight={600}>
+        L<tspan dy="0.3em" fontSize={7.5}>C</tspan>
+      </text>
+    </g>
   );
 };
 
 const CustomLdLabel = ({ viewBox }: ViewBoxProps) => {
   if (!viewBox) return null;
   return (
-    <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 4} fill="var(--green)" fontSize={10}>
-      L<tspan dy="0.3em" fontSize={7.5}>D</tspan>
-    </text>
+    <g style={{ pointerEvents: "none" }}>
+      <text x={viewBox.x + viewBox.width + 5} y={viewBox.y - 2} fill="var(--green)" fontSize={10} fontWeight={600}>
+        L<tspan dy="0.3em" fontSize={7.5}>D</tspan>
+      </text>
+    </g>
   );
 };
 
@@ -138,11 +141,20 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)" }:
   if (!viewBox || typeof viewBox.x !== "number" || isNaN(viewBox.x) || typeof viewBox.y !== "number" || isNaN(viewBox.y)) {
     return null;
   }
-  const x = viewBox.x;
-  const y = viewBox.y + 6;
+  // Truncate long labels so pills don't span excessively across the plot
+  const displayLabel = labelText.length > 18 ? labelText.slice(0, 15) + "…" : labelText;
   const charWidth = 6.2;
-  const pillWidth = Math.max(labelText.length * charWidth + 14, 38);
+  const pillWidth = Math.min(Math.max(displayLabel.length * charWidth + 14, 38), 130);
   const halfWidth = pillWidth / 2;
+
+  // Clamp x to avoid spilling over chart borders
+  let x = viewBox.x;
+  if (typeof viewBox.width === "number" && viewBox.width > 0) {
+    const minX = halfWidth + 5;
+    const maxX = viewBox.width - halfWidth - 5;
+    x = Math.max(minX, Math.min(x, maxX));
+  }
+  const y = viewBox.y + 6;
 
   return (
     <g style={{ pointerEvents: "none" }}>
@@ -166,7 +178,7 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)" }:
         textAnchor="middle"
         fontFamily="'Google Sans', -apple-system, sans-serif"
       >
-        {labelText}
+        {displayLabel}
       </text>
     </g>
   );
@@ -354,7 +366,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.6.24.svg";
+    downloadLink.download = "bioassay_plot_v0.6.26.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -418,7 +430,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.24.png";
+        downloadLink.download = "bioassay_plot_v0.6.26.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -726,9 +738,14 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         </div>
       </div>
       
+      {/* Interactive Legend Bar (rendered outside the SVG canvas so it never overlaps curves or data points) */}
+      <div className="chart-legend-bar">
+        <CustomLegend />
+      </div>
+
       <div className="chart-frame" ref={chartRef} style={{ position: "relative" }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart margin={{ top: 20, right: 25, left: 15, bottom: 35 }}>
+          <ComposedChart margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />}
             <ReferenceArea x1={breakStart} x2={breakEnd} y1={yDomain[0]} y2={yDomain[1]} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: "none" }} />
             
@@ -752,7 +769,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               tick={<CustomYAxisTick />}
               label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--overlay2)", fontSize: 11, offset: -5 }} 
             />
-            <Legend verticalAlign="top" content={<CustomLegend />} />
             <Tooltip 
               content={<CustomTooltip />} 
               cursor={{ stroke: "var(--overlay1)", strokeDasharray: "4 4", strokeWidth: 1.5 }} 
@@ -872,40 +888,46 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </ComposedChart>
         </ResponsiveContainer>
         
-        {hoveredPoint && hoveredPoint.cx && hoveredPoint.cy && (
-          <div style={{
-            position: "absolute",
-            left: hoveredPoint.cx + 15,
-            top: hoveredPoint.cy - 15,
-            backgroundColor: "var(--crust)",
-            border: "1px solid var(--pink)",
-            borderRadius: "8px",
-            padding: "8px 12px",
-            fontSize: "0.78rem",
-            color: "var(--text)",
-            pointerEvents: "none",
-            zIndex: 100,
-            boxShadow: "0 8px 16px rgba(0,0,0,0.4)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px"
-          }}>
-            {hoveredPoint.seriesName && (
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", borderBottom: "1px solid var(--surface1)", paddingBottom: "2px" }}>
-                <span style={{ color: "var(--subtext0)" }}>Curve</span>
-                <span style={{ fontWeight: "bold", color: "var(--text)" }}>{hoveredPoint.seriesName}</span>
+        {hoveredPoint && hoveredPoint.cx && hoveredPoint.cy && (() => {
+          const frameWidth = chartRef.current?.clientWidth || 700;
+          const isRight = hoveredPoint.cx > frameWidth - 190;
+          const left = isRight ? hoveredPoint.cx - 175 : hoveredPoint.cx + 15;
+          const top = Math.max(8, hoveredPoint.cy - 15);
+          return (
+            <div style={{
+              position: "absolute",
+              left,
+              top,
+              backgroundColor: "var(--crust)",
+              border: "1px solid var(--pink)",
+              borderRadius: "8px",
+              padding: "8px 12px",
+              fontSize: "0.78rem",
+              color: "var(--text)",
+              pointerEvents: "none",
+              zIndex: 100,
+              boxShadow: "0 8px 16px rgba(0,0,0,0.4)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px"
+            }}>
+              {hoveredPoint.seriesName && (
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", borderBottom: "1px solid var(--surface1)", paddingBottom: "2px" }}>
+                  <span style={{ color: "var(--subtext0)" }}>Curve</span>
+                  <span style={{ fontWeight: "bold", color: "var(--text)" }}>{hoveredPoint.seriesName}</span>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+                <span style={{ color: "var(--subtext0)" }}>Concentration</span>
+                <span style={{ fontWeight: "bold", color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.conc}</span>
               </div>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
-              <span style={{ color: "var(--subtext0)" }}>Concentration</span>
-              <span style={{ fontWeight: "bold", color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.conc}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+                <span style={{ color: "var(--subtext0)" }}>Signal</span>
+                <span style={{ fontWeight: "bold", color: "var(--pink)", fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.y.toFixed(4)}</span>
+              </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
-              <span style={{ color: "var(--subtext0)" }}>Signal</span>
-              <span style={{ fontWeight: "bold", color: "var(--pink)", fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.y.toFixed(4)}</span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

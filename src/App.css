@@ -375,7 +375,8 @@ body {
 }
 
 .conc-input {
-  width: 55px;
+  width: 58px;
+  min-width: 48px;
   height: 32px;
   background: var(--surface0);
   border: 1px solid var(--surface1);
@@ -387,6 +388,7 @@ body {
   text-align: center;
   line-height: 18px;
   margin: 0;
+  box-sizing: border-box;
 }
 
 .conc-input.disabled {
@@ -397,6 +399,7 @@ body {
 
 .signals-input {
   flex: 1;
+  min-width: 0;
   height: 32px;
   background: var(--surface0);
   border: 1px solid var(--surface1);
@@ -407,6 +410,7 @@ body {
   font-size: 0.8rem;
   line-height: 18px;
   margin: 0;
+  box-sizing: border-box;
 }
 
 .signals-input:focus, .conc-input:focus {
@@ -907,24 +911,32 @@ select option {
 /* CHART LEGEND & COMPONENT RESPONSIVE RULES  */
 /* ========================================== */
 
+.chart-legend-bar {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+
 .custom-chart-legend {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
   font-size: 11px;
-  position: absolute;
-  top: 16px;
-  left: 80px;
-  background-color: color-mix(in srgb, var(--mantle) 88%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 10px 12px;
+  position: static;
+  background-color: var(--surface0);
+  padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid var(--surface1);
   z-index: 10;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   user-select: none;
+  max-width: 100%;
 }
 
 /* ========================================== */
@@ -971,16 +983,17 @@ select option {
     padding-right: 0;
   }
   .custom-chart-legend {
-    left: 70px;
-    top: 12px;
-    padding: 8px 10px;
-    gap: 6px;
+    padding: 6px 8px;
+    gap: 4px 8px;
     font-size: 10px;
   }
 }
 
 /* Portrait Tablets & Small Screens (640px to 860px) */
 @media (max-width: 860px) {
+  .sidebar-toggle-btn {
+    display: none !important;
+  }
   body, #root, .app-wrapper {
     height: auto;
     min-height: 100vh;
@@ -1142,12 +1155,35 @@ select option {
 }
 
 /* ========================================== */
-/* REPLICATE INLINE STATS BADGES              */
+/* REPLICATE INLINE STATS & ROW SUB-BARS      */
 /* ========================================== */
+.data-row-container {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.data-row-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 0 6px;
+  font-size: 0.65rem;
+  color: var(--subtext0);
+  font-family: 'Google Sans Mono', monospace;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.row-meta-stat {
+  color: var(--subtext0);
+  font-size: 0.64rem;
+}
+
 .replicate-stat-badge {
   font-size: 0.62rem;
   font-family: 'Google Sans Mono', monospace;
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 4px;
   background-color: var(--surface1);
   color: var(--subtext0);

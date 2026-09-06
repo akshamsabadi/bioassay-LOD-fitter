@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="header-content">
           <h1 style={{ margin: 0, fontSize: "1.25rem", display: "flex", alignItems: "center", gap: "8px" }}>
             Bioassay LOD Fitter
-            <span style={{ fontSize: "0.65rem", padding: "2px 6px", backgroundColor: "var(--surface2)", borderRadius: "10px", color: "var(--subtext1)", fontWeight: "normal", fontFamily: "monospace" }}>v0.6.25</span>
+            <span style={{ fontSize: "0.65rem", padding: "2px 6px", backgroundColor: "var(--surface2)", borderRadius: "10px", color: "var(--subtext1)", fontWeight: "normal", fontFamily: "monospace" }}>v0.6.26</span>
           </h1>
         </div>
         
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
               value={selectedPresetIndex}
               onChange={(e) => onSelectPreset(Number(e.target.value))}
               title="Select a preconfigured standard curve or multi-curve panel"
-              style={{ maxWidth: "200px" }}
+              style={{ maxWidth: "210px", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
             >
               {presets.map((preset, idx) => (
                 <option key={idx} value={idx}>
