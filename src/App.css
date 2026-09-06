@@ -631,18 +631,19 @@ body {
 .stat-label-wrap::after {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 6px);
   left: 0;
+  box-sizing: border-box;
   background: var(--crust);
   color: var(--text);
   border: 1px solid var(--mauve);
-  padding: 8px 12px;
+  padding: 8px 11px;
   border-radius: 8px;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  white-space: pre-wrap;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  white-space: normal;
   width: max-content;
-  max-width: 250px;
+  max-width: min(210px, 80vw);
   text-align: left;
   z-index: 9999;
   opacity: 0;
@@ -651,6 +652,8 @@ body {
   pointer-events: none;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   font-weight: 500;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .stat-label-wrap:hover::after {
@@ -679,6 +682,7 @@ sub {
   top: calc(100% + 8px);
   right: 0;
   transform: none;
+  box-sizing: border-box;
   background: linear-gradient(135deg, var(--surface1), var(--surface0));
   color: var(--text);
   border: 1px solid var(--mauve);
@@ -688,7 +692,7 @@ sub {
   line-height: 1.45;
   white-space: pre-wrap;
   width: max-content;
-  max-width: min(300px, 90vw);
+  max-width: min(280px, 85vw);
   text-align: left;
   z-index: 1000;
   opacity: 0;

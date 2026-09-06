@@ -139,7 +139,7 @@ interface LodLabelProps {
   opacity?: number;
 }
 
-const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", offsetY = 0, opacity = 0.96 }: LodLabelProps) => {
+const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", offsetY = 0, opacity = 1 }: LodLabelProps) => {
   if (!viewBox || typeof viewBox.x !== "number" || isNaN(viewBox.x) || typeof viewBox.y !== "number" || isNaN(viewBox.y)) {
     return null;
   }
@@ -168,8 +168,9 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
         rx={5}
         fill="var(--surface0)"
         stroke={color}
-        strokeWidth={1.3}
-        opacity={0.96}
+        strokeWidth={1.4}
+        opacity={1}
+        style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))" }}
       />
       <text
         x={x}
@@ -405,7 +406,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.6.32.svg";
+    downloadLink.download = "bioassay_plot_v0.7.0.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -469,7 +470,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.32.png";
+        downloadLink.download = "bioassay_plot_v0.7.0.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -911,16 +912,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               </>
             )}
 
-            {/* Render Curves for Every Visible Series */}
+            {/* 1. Render Fitted Curves for Every Series */}
             {curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
-              const isMulti = curveSeriesList.length > 1;
-              const lodColor = isMulti ? s.color : "var(--yellow)";
-              const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
-              const offsetY = isMulti ? tier * 24 : 0;
-
               return (
-                <React.Fragment key={`series-lines-${s.id}`}>
+                <React.Fragment key={`series-trend-${s.id}`}>
                   <Line 
                     data={s.leftChartData} 
                     dataKey="trend" 
@@ -945,23 +941,48 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                     legendType="none" 
                     style={{ pointerEvents: "none" }} 
                   />
-                  <ReferenceLine 
-                    x={s.results.lodConc} 
-                    stroke={lodColor} 
-                    strokeWidth={s.isActive ? 2.2 : 1.4} 
-                    strokeDasharray="4 4" 
-                    strokeOpacity={isDimmed ? 0.2 : (s.isActive ? 1 : 0.75)}
-                    label={(
-                      <CustomLodLabel 
-                        labelText={isMulti ? `LOD (${s.name})` : "LOD"} 
-                        color={lodColor} 
-                        offsetY={offsetY}
-                        opacity={isDimmed ? 0.25 : 0.96}
-                      />
-                    )} 
-                    style={{ pointerEvents: "none" }} 
-                  />
                 </React.Fragment>
+              );
+            })}
+
+            {/* 2. Render Vertical LOD Dashed Lines (connecting bottom axis up to each curve's LOD badge) */}
+            {curveSeriesList.map(s => {
+              const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+              const isMulti = curveSeriesList.length > 1;
+              const lodColor = isMulti ? s.color : "var(--yellow)";
+              const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
+              const offsetY = isMulti ? tier * 24 : 0;
+
+              return (
+                <ReferenceLine 
+                  key={`lod-line-${s.id}`} 
+                  x={s.results.lodConc} 
+                  stroke={lodColor} 
+                  strokeWidth={s.isActive ? 2.2 : 1.4} 
+                  strokeDasharray="4 4" 
+                  strokeOpacity={isDimmed ? 0.2 : (s.isActive ? 1 : 0.75)}
+                  shape={(lineProps: any) => {
+                    if (!lineProps || typeof lineProps.x1 !== "number" || typeof lineProps.y1 !== "number" || typeof lineProps.y2 !== "number") {
+                      return <line stroke="none" />;
+                    }
+                    // Top of line stops at the bottom of the LOD label pill so the label sits completely above the line
+                    const topY = lineProps.y1 + 6 + offsetY + 18;
+                    return (
+                      <line
+                        x1={lineProps.x1}
+                        y1={Math.min(topY, lineProps.y2)}
+                        x2={lineProps.x2}
+                        y2={lineProps.y2}
+                        stroke={lineProps.stroke}
+                        strokeWidth={lineProps.strokeWidth}
+                        strokeDasharray={lineProps.strokeDasharray || "4 4"}
+                        strokeOpacity={lineProps.strokeOpacity}
+                        style={{ pointerEvents: "none" }}
+                      />
+                    );
+                  }}
+                  style={{ pointerEvents: "none" }} 
+                />
               );
             })}
 
@@ -985,7 +1006,33 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                       isDimmed={isDimmed}
                       isSingleCurve={curveSeriesList.length === 1}
                     />
-                  )}
+                  )} 
+                />
+              );
+            })}
+
+            {/* 3. Render All LOD Labels on TOP of all lines, scatters, and curves */}
+            {curveSeriesList.map(s => {
+              const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+              const isMulti = curveSeriesList.length > 1;
+              const lodColor = isMulti ? s.color : "var(--yellow)";
+              const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
+              const offsetY = isMulti ? tier * 24 : 0;
+
+              return (
+                <ReferenceLine 
+                  key={`lod-label-${s.id}`} 
+                  x={s.results.lodConc} 
+                  stroke="none" 
+                  label={(
+                    <CustomLodLabel 
+                      labelText={isMulti ? `LOD (${s.name})` : "LOD"} 
+                      color={lodColor} 
+                      offsetY={offsetY}
+                      opacity={isDimmed ? 0.25 : 1}
+                    />
+                  )} 
+                  style={{ pointerEvents: "none" }} 
                 />
               );
             })}
