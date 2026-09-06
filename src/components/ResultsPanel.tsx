@@ -14,6 +14,7 @@ export interface SeriesLeaderboardItem {
 interface ResultsPanelProps {
   activeSeries: AssaySeries;
   activeResults: AdvancedLoDResult;
+  pendingSeriesName?: string;
   leaderboardItems: SeriesLeaderboardItem[];
   onSelectSeries: (id: string) => void;
   xAxisLabel: string;
@@ -26,6 +27,7 @@ interface ResultsPanelProps {
 export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   activeSeries,
   activeResults,
+  pendingSeriesName,
   leaderboardItems,
   onSelectSeries,
   xAxisLabel,
@@ -63,6 +65,25 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
   return (
     <div className="results-side-panel" style={{ display: "flex", flexDirection: "column", gap: "12px", height: "100%", overflowY: "auto", paddingRight: "4px" }}>
+      
+      {pendingSeriesName && (
+        <div style={{
+          padding: "8px 12px",
+          borderRadius: "8px",
+          backgroundColor: "color-mix(in srgb, var(--surface1) 60%, var(--surface0))",
+          border: "1px dashed var(--mauve)",
+          fontSize: "0.72rem",
+          color: "var(--subtext1)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }}>
+          <span style={{ fontSize: "0.85rem" }}>✏️</span>
+          <span>
+            Entering <strong>{pendingSeriesName}</strong> in sidebar · Showing <strong>{activeSeries.name}</strong>
+          </span>
+        </div>
+      )}
       
       {/* SECTION 0: MULTI-CURVE COMPARATIVE LEADERBOARD (Shown when multiple curves exist) */}
       {isMultiCurve && (

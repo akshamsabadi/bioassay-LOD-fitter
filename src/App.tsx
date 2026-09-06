@@ -192,6 +192,15 @@ function App() {
     return seriesFitMap.filter(item => item.series.visible && item.results !== null);
   }, [seriesFitMap]);
 
+  // When adding a new curve that has no data yet, fallback to the first valid series for display
+  const displayFitItem = useMemo(() => {
+    if (activeResults) return activeFitItem;
+    return validVisibleSeries[0] || activeFitItem;
+  }, [activeResults, activeFitItem, validVisibleSeries]);
+
+  const displayResults = displayFitItem?.results || null;
+  const displaySeries = displayFitItem?.series || activeSeries;
+
   // Unified global logarithmic X domain
   const { xTicks, xDomain, breakStart, breakEnd } = useMemo(() => {
     if (validVisibleSeries.length === 0) {
@@ -300,7 +309,7 @@ function App() {
     return validVisibleSeries.map(item => {
       const res = item.results!;
       const s = item.series;
-      const isActive = s.id === activeSeries.id;
+      const isActive = s.id === (activeResults ? activeSeries.id : displaySeries.id);
 
       // Left chart data (zero break)
       const leftData = [];
@@ -384,7 +393,7 @@ function App() {
         ldRightData: ldRight
       };
     });
-  }, [validVisibleSeries, breakStart, breakEnd, xDomain, activeSeries.id]);
+  }, [validVisibleSeries, breakStart, breakEnd, xDomain, activeSeries.id, activeResults, displaySeries.id]);
 
   // Comparative Leaderboard Items
   const leaderboardItems = useMemo((): SeriesLeaderboardItem[] => {
@@ -399,12 +408,12 @@ function App() {
         id: s.id,
         name: s.name,
         color: s.color,
-        isActive: s.id === activeSeries.id,
+        isActive: s.id === (activeResults ? activeSeries.id : displaySeries.id),
         results: res,
         foldChangeVsRef: fold
       };
     });
-  }, [validVisibleSeries, activeSeries.id]);
+  }, [validVisibleSeries, activeSeries.id, activeResults, displaySeries.id]);
 
   // Handlers for active series data editing
   const updateRow = (id: string, field: "conc" | "signals", value: string) => {
@@ -485,12 +494,12 @@ function App() {
   };
 
   const handleExportCSV = () => {
-    if (!activeResults) return;
+    if (!displayResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.1)");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.2)");
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.7.1");
+    csvRows.push("App Version,v0.7.2");
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -521,7 +530,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.1_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.2_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -563,7 +572,10 @@ function App() {
   };
 
   const handleCopyMetrics = () => {
-    if (!activeResults) return;
+    if (!displayResults) return;
+
+    const targetResults = activeResults || displayResults;
+    const targetSeries = activeResults ? activeSeries : displaySeries;
 
     let leaderboardMarkdown = "";
     if (leaderboardItems.length > 1) {
@@ -579,33 +591,33 @@ function App() {
     }
 
     let fitParamsText = "";
-    Object.entries(activeResults.fit.parameters).forEach(([p, val]) => {
+    Object.entries(targetResults.fit.parameters).forEach(([p, val]) => {
       fitParamsText += `| **${p}** | ${val.toFixed(6)} |
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.1)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.2)
 Generated: ${new Date().toLocaleDateString()}
 
-${leaderboardMarkdown}#### 📈 Active Curve: ${activeSeries.name}
+${leaderboardMarkdown}#### 📈 Active Curve: ${targetSeries.name}
 | Parameter | Value |
 | :--- | :--- |
-| **Limit of Detection (LOD)** | **${activeResults.lodConc.toExponential(4)}** |
-| **95% Confidence Interval** | [${activeResults.lodCI.low.toExponential(4)}, ${activeResults.lodCI.high.toExponential(4)}] |
-| **Model Fitted** | ${activeResults.fit.method.toUpperCase()} |
-| **R² (Coefficient of Determination)** | ${activeResults.fit.metrics.r2.toFixed(5)} |
-| **AICc Score** | ${activeResults.fit.metrics.aicc.toFixed(2)} |
+| **Limit of Detection (LOD)** | **${targetResults.lodConc.toExponential(4)}** |
+| **95% Confidence Interval** | [${targetResults.lodCI.low.toExponential(4)}, ${targetResults.lodCI.high.toExponential(4)}] |
+| **Model Fitted** | ${targetResults.fit.method.toUpperCase()} |
+| **R² (Coefficient of Determination)** | ${targetResults.fit.metrics.r2.toFixed(5)} |
+| **AICc Score** | ${targetResults.fit.metrics.aicc.toFixed(2)} |
 
 #### 🧪 Statistical Limits (Currie 1968 / Holstein et al. 2015)
 | Parameter | Value | Description |
 | :--- | :--- | :--- |
-| **Blank Mean** | ${activeResults.meanBlank.toFixed(4)} | Average background signal |
-| **Blank SD** | ${activeResults.sdBlank.toFixed(4)} | Background standard deviation |
-| **Pooled SD** | ${activeResults.sdPooled.toFixed(4)} | Standards pooled standard deviation |
-| **L_C (Decision Limit)** | ${activeResults.lc.toFixed(4)} | Critical signal threshold (α=0.05) |
-| **L_D (Detection Limit)** | ${activeResults.ld.toFixed(4)} | Minimal detectable signal level (β=0.05) |
+| **Blank Mean** | ${targetResults.meanBlank.toFixed(4)} | Average background signal |
+| **Blank SD** | ${targetResults.sdBlank.toFixed(4)} | Background standard deviation |
+| **Pooled SD** | ${targetResults.sdPooled.toFixed(4)} | Standards pooled standard deviation |
+| **L_C (Decision Limit)** | ${targetResults.lc.toFixed(4)} | Critical signal threshold (α=0.05) |
+| **L_D (Detection Limit)** | ${targetResults.ld.toFixed(4)} | Minimal detectable signal level (β=0.05) |
 
-#### ⚙️ Fitted Parameters (${activeSeries.name})
+#### ⚙️ Fitted Parameters (${targetSeries.name})
 | Parameter | Value |
 | :--- | :--- |
 ${fitParamsText}`;
@@ -693,12 +705,12 @@ ${fitParamsText}`;
           qualityChecks={activeQualityChecks}
         />
         <section className="content-area">
-          {validVisibleSeries.length > 0 && activeResults ? (
+          {validVisibleSeries.length > 0 && displayResults ? (
             <div className="dashboard-grid">
               <ChartCard
                 plotTitle={plotTitle}
-                activeResults={activeResults}
-                activeSeriesName={activeSeries.name}
+                activeResults={displayResults}
+                activeSeriesName={displaySeries.name}
                 curveSeriesList={curveSeriesList}
                 xAxisLabel={xAxisLabel}
                 yAxisLabel={yAxisLabel}
@@ -720,13 +732,20 @@ ${fitParamsText}`;
                 onSelectSeries={id => setActiveSeriesId(id)}
               />
               <ResultsPanel
-                activeSeries={activeSeries}
-                activeResults={activeResults}
+                activeSeries={displaySeries}
+                activeResults={displayResults}
+                pendingSeriesName={!activeResults && seriesList.length > 1 ? activeSeries.name : undefined}
                 leaderboardItems={leaderboardItems}
                 onSelectSeries={id => setActiveSeriesId(id)}
                 xAxisLabel={xAxisLabel}
-                fitMethod={activeSeries.fitMethod}
-                setFitMethod={method => updateActiveSeriesField("fitMethod", method)}
+                fitMethod={displaySeries.fitMethod}
+                setFitMethod={method => {
+                  if (activeResults) {
+                    updateActiveSeriesField("fitMethod", method);
+                  } else {
+                    setSeriesList(prev => prev.map(s => s.id === displaySeries.id ? { ...s, fitMethod: method } : s));
+                  }
+                }}
                 handleCopyMetrics={handleCopyMetrics}
                 handleExportCSV={handleExportCSV}
               />
