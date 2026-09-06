@@ -300,6 +300,62 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const chartRef = useRef<HTMLDivElement>(null);
   const activeSeries = curveSeriesList.find(s => s.isActive) || curveSeriesList[0];
 
+  const handleDownloadSVG = () => {
+    if (!chartRef.current) return;
+    const svgElement = chartRef.current.querySelector("svg");
+    if (!svgElement) return;
+
+    const rect = svgElement.getBoundingClientRect();
+    const width = rect.width || 800;
+    const height = rect.height || 500;
+
+    const clone = svgElement.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    clone.setAttribute("width", width.toString());
+    clone.setAttribute("height", height.toString());
+    clone.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    clone.setAttribute("font-family", "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+
+    const docStyle = getComputedStyle(document.documentElement);
+    const currentBg = docStyle.getPropertyValue("--base").trim() || "#ffffff";
+
+    // Add background rect as first child so SVG renders nicely standalone
+    const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    bgRect.setAttribute("width", "100%");
+    bgRect.setAttribute("height", "100%");
+    bgRect.setAttribute("fill", currentBg);
+    clone.insertBefore(bgRect, clone.firstChild);
+
+    const serializer = new XMLSerializer();
+    let svgString = serializer.serializeToString(clone);
+
+    const varNames = [
+      "--rosewater", "--flamingo", "--pink", "--mauve", "--red", "--maroon", 
+      "--peach", "--yellow", "--green", "--teal", "--sky", "--sapphire", 
+      "--blue", "--lavender", "--text", "--subtext1", "--subtext0", 
+      "--overlay2", "--overlay1", "--overlay0", "--surface2", "--surface1", 
+      "--surface0", "--base", "--mantle", "--crust"
+    ];
+    
+    for (const v of varNames) {
+      const c = docStyle.getPropertyValue(v).trim();
+      if (c) {
+        svgString = svgString.split(`var(${v})`).join(c);
+      }
+    }
+
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const downloadLink = document.createElement("a");
+    downloadLink.download = "bioassay_plot_v0.6.24.svg";
+    downloadLink.href = url;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(url);
+  };
+
   const handleDownloadPlot = () => {
     if (!chartRef.current) return;
     const svgElement = chartRef.current.querySelector("svg");
@@ -348,12 +404,15 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.scale(scale, scale);
+        const currentBg = docStyle.getPropertyValue("--base").trim() || "#ffffff";
+        ctx.fillStyle = currentBg;
+        ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
         
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.23.png";
+        downloadLink.download = "bioassay_plot_v0.6.24.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -538,6 +597,34 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             }}
           >
             <span>CSV</span>
+            <span style={{ fontSize: "0.8rem", marginTop: "2px", lineHeight: "1" }}>↓</span>
+          </button>
+
+          <button 
+            className="action-btn" 
+            onClick={handleDownloadSVG} 
+            title="Download Multi-Curve Plot (Vector SVG, Publication Quality)"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "44px",
+              height: "44px",
+              padding: "4px",
+              borderRadius: "8px",
+              fontSize: "0.65rem",
+              fontWeight: "bold",
+              lineHeight: "1.2",
+              backgroundColor: "var(--surface0)",
+              border: "1px solid var(--surface1)",
+              color: "var(--text)",
+              cursor: "pointer",
+              transition: "all 0.15s ease-in-out",
+              userSelect: "none"
+            }}
+          >
+            <span>SVG</span>
             <span style={{ fontSize: "0.8rem", marginTop: "2px", lineHeight: "1" }}>↓</span>
           </button>
           

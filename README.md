@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://akshamsabadi.github.io/bioassay-LOD-fitter/"><img src="https://img.shields.io/badge/Live%20App-GitHub%20Pages-3ca951?style=for-the-badge&logo=github&logoColor=white" alt="Live Demo" /></a>
-  <img src="https://img.shields.io/badge/version-v0.6.23-4269d0?style=for-the-badge" alt="Version" />
+  <img src="https://img.shields.io/badge/version-v0.6.24-4269d0?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/tests-9%2F9%20passing-3ca951?style=for-the-badge" alt="Tests" />
   <img src="https://img.shields.io/badge/license-MIT-a463f2?style=for-the-badge" alt="License" />
 </p>
@@ -22,8 +22,8 @@ Bioassay LOD Fitter is a modern, responsive scientific web application built to 
 * **🤖 Automatic AICc Model Selection:** Automatically selects the optimal statistical model among **Linear**, **Langmuir**, **4-Parameter Logistic (4PL)**, and **5-Parameter Logistic (5PL)** based on the corrected Akaike Information Criterion (AICc) to guard against overfitting, with the flexibility to manually select any specific model.
 * **📊 Unified Analytics Single-View:** View the prominent LOD Hero Card, fitted parameter micro-grid, interactive AICc model comparison table, and collapsible statistical noise limits ($L_C, L_D$, blank SD, pooled SD) in one scrollable panel without tab-hopping.
 * **📈 Publication-Grade Broken Logarithmic Visualization:** An interactive logarithmic plot with a calibrated broken-axis for zero-concentration blanks, 95% confidence intervals, and subdued guideline opacities highlighting the true LOD.
-* **⚡ Responsive Multi-Device Design:** Optimized layouts across desktop monitors, laptops, landscape/portrait tablets, and mobile screens.
-* **💾 High-Resolution & Audit Export:** One-click download of publication-ready 300 DPI transparent PNG plots, or export complete statistical and mathematical audits to multi-series CSV and Markdown.
+* **⚡ Responsive Multi-Device Design & Optimized Bundling:** Code-split vendor chunking and responsive layouts optimized across desktop monitors, laptops, tablets, and mobile screens.
+* **💾 Publication Vector SVG, 300 DPI PNG & Audit CSV Export:** One-click download of publication-ready lossless Vector SVG plots (for Illustrator, Inkscape, or LaTeX/Overleaf), high-res 300 DPI PNG images, and complete multi-series audit CSV and Markdown reports.
 
 ---
 
