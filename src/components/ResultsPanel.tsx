@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { type AdvancedLoDResult } from "../utils/calculations";
 import { type AssaySeries } from "../constants";
 
@@ -35,7 +35,31 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   handleExportCSV,
 }) => {
   const [showStats, setShowStats] = useState(false);
+  const [sortField, setSortField] = useState<"name" | "model" | "lod" | "r2" | "fold" | null>("lod");
+  const [sortAsc, setSortAsc] = useState(true);
   const isMultiCurve = leaderboardItems.length > 1;
+
+  const handleSort = (field: "name" | "model" | "lod" | "r2" | "fold") => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(true);
+    }
+  };
+
+  const sortedLeaderboard = useMemo(() => {
+    if (!sortField) return leaderboardItems;
+    return [...leaderboardItems].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "name") cmp = a.name.localeCompare(b.name);
+      else if (sortField === "model") cmp = a.results.fit.method.localeCompare(b.results.fit.method);
+      else if (sortField === "lod") cmp = (a.results.lodConc || Infinity) - (b.results.lodConc || Infinity);
+      else if (sortField === "r2") cmp = a.results.fit.metrics.r2 - b.results.fit.metrics.r2;
+      else if (sortField === "fold") cmp = (a.results.lodConc || 0) - (b.results.lodConc || 0);
+      return sortAsc ? cmp : -cmp;
+    });
+  }, [leaderboardItems, sortField, sortAsc]);
 
   return (
     <div className="results-side-panel" style={{ display: "flex", flexDirection: "column", gap: "12px", height: "100%", overflowY: "auto", paddingRight: "4px" }}>
@@ -55,22 +79,32 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.76rem", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
               <span>🏆</span> SENSITIVITY LEADERBOARD
             </h3>
-            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }}>Click row to inspect</span>
+            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }}>Click headers to sort</span>
           </div>
 
           <div style={{ overflowX: "auto" }}>
             <table className="comparison-table" style={{ margin: 0, width: "100%", fontSize: "0.72rem" }}>
               <thead>
                 <tr>
-                  <th style={{ whiteSpace: "nowrap" }}>Curve</th>
-                  <th style={{ whiteSpace: "nowrap", textAlign: "center" }}>Model</th>
-                  <th style={{ whiteSpace: "nowrap" }}>LOD</th>
-                  <th style={{ whiteSpace: "nowrap" }}>R²</th>
-                  <th style={{ whiteSpace: "nowrap" }}>vs Ref</th>
+                  <th onClick={() => handleSort("name")} style={{ whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }} title="Sort by curve name">
+                    Curve {sortField === "name" && (sortAsc ? "▲" : "▼")}
+                  </th>
+                  <th onClick={() => handleSort("model")} style={{ whiteSpace: "nowrap", textAlign: "center", cursor: "pointer", userSelect: "none" }} title="Sort by model">
+                    Model {sortField === "model" && (sortAsc ? "▲" : "▼")}
+                  </th>
+                  <th onClick={() => handleSort("lod")} style={{ whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }} title="Sort by LOD">
+                    LOD {sortField === "lod" && (sortAsc ? "▲" : "▼")}
+                  </th>
+                  <th onClick={() => handleSort("r2")} style={{ whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }} title="Sort by R²">
+                    R² {sortField === "r2" && (sortAsc ? "▲" : "▼")}
+                  </th>
+                  <th onClick={() => handleSort("fold")} style={{ whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }} title="Sort by Sensitivity">
+                    vs Ref {sortField === "fold" && (sortAsc ? "▲" : "▼")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {leaderboardItems.map((item) => (
+                {sortedLeaderboard.map((item) => (
                   <tr
                     key={item.id}
                     onClick={() => onSelectSeries(item.id)}

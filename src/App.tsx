@@ -29,13 +29,15 @@ function App() {
   const [activeSeriesId, setActiveSeriesId] = useState<string>(() => {
     return DEMO_PRESETS[0].series[0].id;
   });
-  const [demoIndex, setDemoIndex] = useState(1);
+  const [demoIndex, setDemoIndex] = useState(0);
   const [plotTitle, setPlotTitle] = useState(DEMO_PRESETS[0].plotTitle);
   const [xAxisLabel, setXAxisLabel] = useState("Concentration (mM)");
   const [yAxisLabel, setYAxisLabel] = useState("Signal Intensity");
   const [hoveredPoint, setHoveredPoint] = useState<{ id: string; y: number; cx: number; cy: number; conc: number | string; seriesName?: string } | null>(null);
   const [tableHoveredRowId, setTableHoveredRowId] = useState<string | null>(null);
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -418,20 +420,19 @@ function App() {
     setHoveredSeriesId(null);
   };
 
-  const handleLoadDemo = () => {
-    const preset = DEMO_PRESETS[demoIndex];
+  const handleSelectPreset = (index: number) => {
+    if (index < 0 || index >= DEMO_PRESETS.length) return;
+    const preset = DEMO_PRESETS[index];
     setSeriesList(preset.series);
     setActiveSeriesId(preset.series[0].id);
     setPlotTitle(preset.plotTitle);
-    setDemoIndex(prev => (prev + 1) % DEMO_PRESETS.length);
+    setDemoIndex(index);
     setHoveredPoint(null);
     setTableHoveredRowId(null);
     setHoveredSeriesId(null);
   };
 
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleProcessFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -450,16 +451,46 @@ function App() {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    handleProcessFile(file);
     e.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget === e.target) {
+      setIsDraggingOver(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleProcessFile(file);
+    }
   };
 
   const handleExportCSV = () => {
     if (!activeResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.24)");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.6.25)");
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.6.24");
+    csvRows.push("App Version,v0.6.25");
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -490,7 +521,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.24_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.6.25_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -553,7 +584,7 @@ function App() {
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.24)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.6.25)
 Generated: ${new Date().toLocaleDateString()}
 
 ${leaderboardMarkdown}#### 📈 Active Curve: ${activeSeries.name}
@@ -584,18 +615,44 @@ ${fitParamsText}`;
   };
 
   return (
-    <div className="app-wrapper">
+    <div
+      className="app-wrapper"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDraggingOver && (
+        <div className="drag-drop-overlay" onDragLeave={() => setIsDraggingOver(false)}>
+          <div className="drag-drop-modal">
+            <span style={{ fontSize: "3rem" }}>📂</span>
+            <h2 style={{ margin: "0.5rem 0", color: "var(--text)" }}>Drop CSV / TSV File Here</h2>
+            <p style={{ margin: 0, color: "var(--subtext1)", fontSize: "0.9rem" }}>
+              Instant multi-curve & replicate data import
+            </p>
+          </div>
+        </div>
+      )}
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
         handleClearData={handleClearData}
-        handleLoadDemo={handleLoadDemo}
-        demoName={DEMO_PRESETS[demoIndex].name}
+        presets={DEMO_PRESETS}
+        selectedPresetIndex={demoIndex}
+        onSelectPreset={handleSelectPreset}
         handleImportCSV={handleImportCSV}
         handleDownloadTemplate={handleDownloadTemplate}
       />
       <main className="main-container">
+        <button
+          className={`sidebar-toggle-btn ${isSidebarCollapsed ? "collapsed" : ""}`}
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isSidebarCollapsed ? "▶" : "◀"}
+        </button>
         <Sidebar
+          isCollapsed={isSidebarCollapsed}
           seriesList={seriesList}
           activeSeriesId={activeSeries.id}
           setActiveSeriesId={setActiveSeriesId}

@@ -55,11 +55,11 @@
 
   /* Default Light Subtheme: Air */
   --text: #1b1e23;
-  --subtext1: #424851;
-  --subtext0: #737c8c;
-  --overlay2: #737c8c;
-  --overlay1: #a9aeb9;
-  --overlay0: #bdc1cb;
+  --subtext1: #363d47;
+  --subtext0: #4f5765;
+  --overlay2: #4f5765;
+  --overlay1: #959aa5;
+  --overlay0: #b0b5be;
   --surface2: #d1d5da;
   --surface1: #e1e4e8;
   --surface0: #f5f6f8;
@@ -232,6 +232,7 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 /* Sidebar */
@@ -246,6 +247,51 @@ body {
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--surface1) transparent;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border-right: none !important;
+  overflow: hidden !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 14px;
+  left: 320px;
+  z-index: 90;
+  width: 22px;
+  height: 32px;
+  background: var(--surface1);
+  border: 1px solid var(--surface2);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--subtext0);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.12);
+}
+
+.sidebar-toggle-btn.collapsed {
+  left: 0;
+  border-left: 1px solid var(--surface2);
+  border-radius: 0 8px 8px 0;
+  background: var(--surface2);
+  color: var(--blue);
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
 }
 
 .action-btn {
@@ -1094,3 +1140,213 @@ select option {
     font-size: 0.75rem;
   }
 }
+
+/* ========================================== */
+/* REPLICATE INLINE STATS BADGES              */
+/* ========================================== */
+.replicate-stat-badge {
+  font-size: 0.62rem;
+  font-family: 'Google Sans Mono', monospace;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background-color: var(--surface1);
+  color: var(--subtext0);
+  white-space: nowrap;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.replicate-stat-badge.cv-warning {
+  background-color: color-mix(in srgb, var(--peach) 16%, transparent);
+  border: 1px solid var(--peach);
+  color: var(--peach);
+  font-weight: 700;
+}
+
+.data-row.has-warning .signals-input {
+  border-color: color-mix(in srgb, var(--peach) 60%, var(--surface1));
+}
+
+/* ========================================== */
+/* DRAG AND DROP FULLSCREEN OVERLAY           */
+/* ========================================== */
+.drag-drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: overlayFadeIn 0.15s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.drag-drop-card {
+  background: var(--base);
+  border: 2px dashed var(--blue);
+  border-radius: 16px;
+  padding: 36px 48px;
+  text-align: center;
+  color: var(--text);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 440px;
+}
+
+/* ========================================== */
+/* MODALS (Dilution Generator & Clear Guard)  */
+/* ========================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: overlayFadeIn 0.15s ease-out;
+}
+
+.modal-dialog {
+  background: var(--base);
+  border: 1px solid var(--surface2);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface0);
+  border-bottom: 1px solid var(--surface1);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--subtext0);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close-btn:hover { color: var(--text); }
+
+.modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-footer {
+  padding: 12px 16px;
+  background: var(--surface0);
+  border-top: 1px solid var(--surface1);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ========================================== */
+/* CHART LAYER TOGGLES                        */
+/* ========================================== */
+.layer-toggles-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.layer-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  background-color: var(--surface0);
+  border: 1px solid var(--surface1);
+  color: var(--subtext0);
+  transition: all 0.15s ease;
+}
+
+.layer-toggle-pill:hover {
+  background-color: var(--surface1);
+  color: var(--text);
+}
+
+.layer-toggle-pill.active {
+  background-color: color-mix(in srgb, var(--blue) 12%, var(--surface0));
+  border-color: var(--blue);
+  color: var(--text);
+}
+
+/* ========================================== */
+/* PRINT / PDF AUDIT STYLES                   */
+/* ========================================== */
+@media print {
+  body, #root, .app-wrapper, .main-container, .content-area {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+  .app-header, .sidebar, .sidebar-toggle-btn, .action-btn, .layer-toggles-bar, .modal-overlay, .drag-drop-overlay {
+    display: none !important;
+  }
+  .dashboard-grid {
+    display: block !important;
+    width: 100% !important;
+  }
+  .chart-card {
+    border: 1px solid #ccc !important;
+    background: #ffffff !important;
+    page-break-inside: avoid !important;
+    margin-bottom: 20px !important;
+    height: 480px !important;
+    box-shadow: none !important;
+  }
+  .results-side-panel {
+    display: block !important;
+    overflow: visible !important;
+    page-break-inside: avoid !important;
+  }
+  .stats-card {
+    background: #ffffff !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 14px !important;
+    box-shadow: none !important;
+  }
+}
+

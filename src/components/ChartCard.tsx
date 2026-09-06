@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   Scatter,
   XAxis,
@@ -300,6 +300,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const chartRef = useRef<HTMLDivElement>(null);
   const activeSeries = curveSeriesList.find(s => s.isActive) || curveSeriesList[0];
 
+  // Layer Visibility Toggles
+  const [showCI, setShowCI] = useState(true);
+  const [showLimits, setShowLimits] = useState(true);
+  const [showLodZone, setShowLodZone] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
+
   const handleDownloadSVG = () => {
     if (!chartRef.current) return;
     const svgElement = chartRef.current.querySelector("svg");
@@ -561,15 +567,49 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
   return (
     <div className="chart-card">
-      <div className="chart-header">
-        <h2 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text)", display: "flex", alignItems: "center", gap: "8px" }}>
-          {plotTitle}
-          {curveSeriesList.length > 1 && (
-            <span style={{ fontSize: "0.65rem", padding: "2px 6px", backgroundColor: "var(--surface1)", borderRadius: "6px", color: "var(--subtext0)", fontWeight: "normal" }}>
-              {curveSeriesList.length} curves overlaid
-            </span>
-          )}
-        </h2>
+      <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text)", display: "flex", alignItems: "center", gap: "8px" }}>
+            {plotTitle}
+            {curveSeriesList.length > 1 && (
+              <span style={{ fontSize: "0.65rem", padding: "2px 6px", backgroundColor: "var(--surface1)", borderRadius: "6px", color: "var(--subtext0)", fontWeight: "normal" }}>
+                {curveSeriesList.length} curves overlaid
+              </span>
+            )}
+          </h2>
+
+          {/* LAYER TOGGLE PILLS */}
+          <div className="layer-toggles-bar">
+            <button 
+              className={`layer-toggle-pill ${showCI ? "active" : ""}`}
+              onClick={() => setShowCI(!showCI)}
+              title="Toggle 95% Confidence Interval band"
+            >
+              <span style={{ color: showCI ? "var(--blue)" : "inherit" }}>{showCI ? "✓" : "○"}</span> 95% CI
+            </button>
+            <button 
+              className={`layer-toggle-pill ${showLimits ? "active" : ""}`}
+              onClick={() => setShowLimits(!showLimits)}
+              title="Toggle Critical Limit (LC) and Detection Limit (LD) Lines"
+            >
+              <span style={{ color: showLimits ? "var(--green)" : "inherit" }}>{showLimits ? "✓" : "○"}</span> L<sub>C</sub> / L<sub>D</sub>
+            </button>
+            <button 
+              className={`layer-toggle-pill ${showLodZone ? "active" : ""}`}
+              onClick={() => setShowLodZone(!showLodZone)}
+              title="Toggle Shaded Limit of Detection Range"
+            >
+              <span style={{ color: showLodZone ? "var(--yellow)" : "inherit" }}>{showLodZone ? "✓" : "○"}</span> LOD Zone
+            </button>
+            <button 
+              className={`layer-toggle-pill ${showGrid ? "active" : ""}`}
+              onClick={() => setShowGrid(!showGrid)}
+              title="Toggle Cartesian Grid"
+            >
+              <span style={{ color: showGrid ? "var(--blue)" : "inherit" }}>{showGrid ? "✓" : "○"}</span> Grid
+            </button>
+          </div>
+        </div>
         
         <div style={{ display: "flex", gap: "8px" }}>
           <button 
@@ -655,13 +695,41 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             <span>PNG</span>
             <span style={{ fontSize: "0.8rem", marginTop: "2px", lineHeight: "1" }}>↓</span>
           </button>
+
+          <button 
+            className="action-btn" 
+            onClick={() => window.print()} 
+            title="Print or Save Laboratory Calibration Audit Report as PDF"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "44px",
+              height: "44px",
+              padding: "4px",
+              borderRadius: "8px",
+              fontSize: "0.65rem",
+              fontWeight: "bold",
+              lineHeight: "1.2",
+              backgroundColor: "var(--surface0)",
+              border: "1px solid var(--surface1)",
+              color: "var(--text)",
+              cursor: "pointer",
+              transition: "all 0.15s ease-in-out",
+              userSelect: "none"
+            }}
+          >
+            <span>PDF</span>
+            <span style={{ fontSize: "0.8rem", marginTop: "2px", lineHeight: "1" }}>🖨️</span>
+          </button>
         </div>
       </div>
       
       <div className="chart-frame" ref={chartRef} style={{ position: "relative" }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 20, right: 25, left: 15, bottom: 35 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />}
             <ReferenceArea x1={breakStart} x2={breakEnd} y1={yDomain[0]} y2={yDomain[1]} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: "none" }} />
             
             <XAxis 
@@ -702,17 +770,27 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             {/* Active Series Confidence Intervals & Limits */}
             {activeSeries && (
               <>
-                <Area data={activeSeries.leftChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                <Area data={activeSeries.rightChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                <ReferenceArea x1={activeSeries.results.lodCI.low} x2={activeSeries.results.lodCI.high} fill="var(--yellow)" fillOpacity={0.12} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: "none" }} />
+                {showCI && (
+                  <>
+                    <Area data={activeSeries.leftChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                    <Area data={activeSeries.rightChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                  </>
+                )}
+                {showLodZone && (
+                  <ReferenceArea x1={activeSeries.results.lodCI.low} x2={activeSeries.results.lodCI.high} fill="var(--yellow)" fillOpacity={0.12} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: "none" }} />
+                )}
 
-                <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                <ReferenceLine y={activeSeries.results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: "none" }} />
-                
-                <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                <ReferenceLine y={activeSeries.results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: "none" }} />
+                {showLimits && (
+                  <>
+                    <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                    <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                    <ReferenceLine y={activeSeries.results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: "none" }} />
+                    
+                    <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                    <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                    <ReferenceLine y={activeSeries.results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: "none" }} />
+                  </>
+                )}
               </>
             )}
 

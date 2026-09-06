@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://akshamsabadi.github.io/bioassay-LOD-fitter/"><img src="https://img.shields.io/badge/Live%20App-GitHub%20Pages-3ca951?style=for-the-badge&logo=github&logoColor=white" alt="Live Demo" /></a>
-  <img src="https://img.shields.io/badge/version-v0.6.24-4269d0?style=for-the-badge" alt="Version" />
+  <img src="https://img.shields.io/badge/version-v0.6.25-4269d0?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/tests-9%2F9%20passing-3ca951?style=for-the-badge" alt="Tests" />
   <img src="https://img.shields.io/badge/license-MIT-a463f2?style=for-the-badge" alt="License" />
 </p>
@@ -15,15 +15,18 @@ Bioassay LOD Fitter is a modern, responsive scientific web application built to 
 
 ## Key Features
 
-* **🔬 Multi-Curve Overlay & Panel Comparison:** Plot and compare multiple concentration-response curves simultaneously on a single unified chart with a shared broken logarithmic axis. Includes an interactive 4-curve panel demo (*Synthetic Ref*, *Synthetic Construct B (Low Potency)*, *Synthetic Construct C (High Sensitivity)*, and *Synthetic Construct D (Partial Efficacy)*) showcasing sensitivity shifts, efficacy modulation, and comparative potency.
-* **🏆 Comparative Sensitivity Leaderboard:** Automatically ranks all active curves by Limit of Detection (LOD), displays fitted models and $R^2$, and computes relative sensitivity fold-changes against the reference construct (e.g. $12.4\times$ higher sensitivity vs WT).
-* **🎨 Clean Editorial Horizontal Top-Split Design:** Professional, uncluttered interface featuring clean card containers with colored top horizontal accent splits, removing distracting vertical left borders for maximum readability.
+* **🔬 Multi-Curve Overlay & Panel Comparison:** Plot and compare multiple concentration-response curves simultaneously on a single unified chart with a shared broken logarithmic axis. Includes an interactive multi-curve panel demo showcasing sensitivity shifts, efficacy modulation, and comparative potency.
+* **🏆 Sortable Comparative Sensitivity Leaderboard:** Automatically ranks all active curves by Limit of Detection (LOD), displays fitted models and $R^2$, and computes relative sensitivity fold-changes against the reference construct. Clickable column headers allow instant sorting by curve, model, LOD, $R^2$, or fold change.
+* **📊 Inline Replicate Statistics & Quality Badges:** Real-time calculation of replicate count ($n$), mean, standard deviation, and coefficient of variation ($CV\%$) directly next to each concentration row, with automated amber alerts when replicate variance exceeds 15%.
+* **⚡ Serial Dilution Auto-Generator:** Quick-configure standard dilution series with automated concentration calculation (start concentration, dilution factor, and replicate count).
+* **🎛️ Interactive Chart Layer Toggles:** Custom toggle pills for `95% CI`, `LC / LD Lines`, `LOD Zone`, and `Grid` to inspect raw curves without visual clutter.
+* **◀ / ▶ Collapsible Sidebar Layout:** Maximize chart viewport width and presentation footprint at the click of a button.
+* **📂 Fullscreen Drag-and-Drop Import:** Drag and drop any CSV or TSV file directly onto the window for instantaneous multi-curve and replicate data ingestion.
+* **🖨️ Printable Lab & PDF Reports:** Dedicated `@media print` layout formatting the active curve, leaderboard, noise limits, and parameters into a clean laboratory notebook report.
 * **📋 Direct Spreadsheet Clipboard Paste:** Copy rows and columns directly from **Microsoft Excel** or **Google Sheets** (`Ctrl+V` / `Cmd+V`) into the application for instant table parsing into blanks and standard concentrations.
 * **🤖 Automatic AICc Model Selection:** Automatically selects the optimal statistical model among **Linear**, **Langmuir**, **4-Parameter Logistic (4PL)**, and **5-Parameter Logistic (5PL)** based on the corrected Akaike Information Criterion (AICc) to guard against overfitting, with the flexibility to manually select any specific model.
-* **📊 Unified Analytics Single-View:** View the prominent LOD Hero Card, fitted parameter micro-grid, interactive AICc model comparison table, and collapsible statistical noise limits ($L_C, L_D$, blank SD, pooled SD) in one scrollable panel without tab-hopping.
 * **📈 Publication-Grade Broken Logarithmic Visualization:** An interactive logarithmic plot with a calibrated broken-axis for zero-concentration blanks, 95% confidence intervals, and subdued guideline opacities highlighting the true LOD.
-* **⚡ Responsive Multi-Device Design & Optimized Bundling:** Code-split vendor chunking and responsive layouts optimized across desktop monitors, laptops, tablets, and mobile screens.
-* **💾 Publication Vector SVG, 300 DPI PNG & Audit CSV Export:** One-click download of publication-ready lossless Vector SVG plots (for Illustrator, Inkscape, or LaTeX/Overleaf), high-res 300 DPI PNG images, and complete multi-series audit CSV and Markdown reports.
+* **💾 Vector SVG, 300 DPI PNG & Audit CSV Export:** One-click download of publication-ready lossless Vector SVG plots (for Illustrator, Inkscape, or LaTeX/Overleaf), high-res 300 DPI PNG images, and complete multi-series audit CSV and Markdown reports.
 
 ---
 
