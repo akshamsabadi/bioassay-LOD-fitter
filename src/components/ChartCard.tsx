@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import {
   Scatter,
   XAxis,
@@ -136,9 +136,10 @@ interface LodLabelProps {
   labelText?: string;
   color?: string;
   offsetY?: number;
+  opacity?: number;
 }
 
-const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", offsetY = 0 }: LodLabelProps) => {
+const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", offsetY = 0, opacity = 0.96 }: LodLabelProps) => {
   if (!viewBox || typeof viewBox.x !== "number" || isNaN(viewBox.x) || typeof viewBox.y !== "number" || isNaN(viewBox.y)) {
     return null;
   }
@@ -158,7 +159,7 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
   const y = viewBox.y + 6 + offsetY;
 
   return (
-    <g style={{ pointerEvents: "none" }}>
+    <g style={{ pointerEvents: "none", opacity }}>
       <rect
         x={x - halfWidth}
         y={y}
@@ -167,8 +168,8 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
         rx={5}
         fill="var(--surface0)"
         stroke={color}
-        strokeWidth={1.2}
-        opacity={0.95}
+        strokeWidth={1.3}
+        opacity={0.96}
       />
       <text
         x={x}
@@ -320,6 +321,42 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const [showLodZone, setShowLodZone] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
 
+  // Compute collision-free vertical tiers for LOD badges
+  const lodTierMap = useMemo(() => {
+    if (curveSeriesList.length <= 1) {
+      return new Map<string, number>();
+    }
+    // Sort curves by lodConc ascending (left-to-right along X axis)
+    const sorted = [...curveSeriesList].sort((a, b) => a.results.lodConc - b.results.lodConc);
+    
+    // Each tier tracks the last log10(x) placed on it
+    const tierLastLogX: number[] = [];
+    const map = new Map<string, number>();
+
+    for (const s of sorted) {
+      const logX = Math.log10(Math.max(s.results.lodConc, 1e-12));
+      let assignedTier = -1;
+
+      // Safe threshold: at least 1.0 log10 decades apart (~110-120px on screen)
+      for (let t = 0; t < tierLastLogX.length; t++) {
+        if (logX - tierLastLogX[t] >= 1.0) {
+          assignedTier = t;
+          tierLastLogX[t] = logX;
+          break;
+        }
+      }
+
+      if (assignedTier === -1) {
+        assignedTier = tierLastLogX.length;
+        tierLastLogX.push(logX);
+      }
+
+      map.set(s.id, assignedTier);
+    }
+
+    return map;
+  }, [curveSeriesList]);
+
   const handleDownloadSVG = () => {
     if (!chartRef.current) return;
     const svgElement = chartRef.current.querySelector("svg");
@@ -368,7 +405,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.6.30.svg";
+    downloadLink.download = "bioassay_plot_v0.6.31.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -432,7 +469,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.30.png";
+        downloadLink.download = "bioassay_plot_v0.6.31.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -777,7 +814,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         </div>
       </div>
       
-      <div style={{ position: "relative", width: "100%", height: "450px" }} ref={chartRef}>
+      <div className="chart-frame" ref={chartRef} style={{ position: "relative", width: "100%", height: "100%", flex: 1, minHeight: 0 }}>
         <CustomLegend />
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
@@ -853,8 +890,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const isMulti = curveSeriesList.length > 1;
               const lodColor = isMulti ? s.color : "var(--yellow)";
-              const seriesIndex = curveSeriesList.findIndex(c => c.id === s.id);
-              const offsetY = isMulti ? (seriesIndex % 3) * 22 : 0;
+              const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
+              const offsetY = isMulti ? tier * 24 : 0;
 
               return (
                 <React.Fragment key={`series-lines-${s.id}`}>
@@ -893,6 +930,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                         labelText={isMulti ? `LOD (${s.name})` : "LOD"} 
                         color={lodColor} 
                         offsetY={offsetY}
+                        opacity={isDimmed ? 0.25 : 0.96}
                       />
                     )} 
                     style={{ pointerEvents: "none" }} 
