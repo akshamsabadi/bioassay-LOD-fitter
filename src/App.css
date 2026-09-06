@@ -922,8 +922,8 @@ select option {
   gap: 5px;
   font-size: 11px;
   position: absolute;
-  top: 16px;
-  left: 80px;
+  top: 20px;
+  left: 108px;
   background-color: color-mix(in srgb, var(--base) 88%, transparent);
   backdrop-filter: blur(8px);
   padding: 8px 12px;
