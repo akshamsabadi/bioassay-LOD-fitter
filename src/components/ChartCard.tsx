@@ -156,7 +156,7 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
     const maxX = viewBox.width - halfWidth - 5;
     x = Math.max(minX, Math.min(x, maxX));
   }
-  const y = viewBox.y + 6 + offsetY;
+  const y = viewBox.y + 2 + offsetY;
 
   return (
     <g style={{ pointerEvents: "none", opacity }}>
@@ -406,7 +406,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.7.0.svg";
+    downloadLink.download = "bioassay_plot_v0.7.1.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -470,7 +470,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.7.0.png";
+        downloadLink.download = "bioassay_plot_v0.7.1.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -491,7 +491,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </div>
           {showLodZone && (
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: `color-mix(in srgb, ${activeSeries?.color || "var(--yellow)"} 25%, transparent)`, border: `1px solid ${activeSeries?.color || "var(--yellow)"}`, borderRadius: "2px" }} />
+              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 25%, transparent)", border: "1px dashed var(--yellow)", borderRadius: "2px" }} />
               <span>95% CI LOD</span>
             </div>
           )}
@@ -874,16 +874,18 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               );
             })}
 
-            {/* 95% CI LOD Range Areas for Every Series (in Curve Color) */}
+            {/* 95% CI LOD Range Areas for Every Series (matches the LOD Line color) */}
             {showLodZone && curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.13 : 0.07);
+              const isMulti = curveSeriesList.length > 1;
+              const lodColor = isMulti ? s.color : "var(--yellow)";
               return (
                 <ReferenceArea 
                   key={`lod-zone-${s.id}`}
                   x1={s.results.lodCI.low} 
                   x2={s.results.lodCI.high} 
-                  fill={s.color} 
+                  fill={lodColor} 
                   fillOpacity={fillOp} 
                   strokeOpacity={0} 
                   ifOverflow="hidden" 
@@ -965,14 +967,17 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                     if (!lineProps || typeof lineProps.x1 !== "number" || typeof lineProps.y1 !== "number" || typeof lineProps.y2 !== "number") {
                       return <line stroke="none" />;
                     }
-                    // Top of line stops at the bottom of the LOD label pill so the label sits completely above the line
-                    const topY = lineProps.y1 + 6 + offsetY + 18;
+                    // Calculate top and bottom of plot area correctly regardless of Recharts coordinate orientation
+                    const chartTop = Math.min(lineProps.y1, lineProps.y2);
+                    const chartBottom = Math.max(lineProps.y1, lineProps.y2);
+                    // Line starts at the bottom edge of the LOD badge and connects down to the bottom axis
+                    const pillBottom = chartTop + 2 + offsetY + 18;
                     return (
                       <line
                         x1={lineProps.x1}
-                        y1={Math.min(topY, lineProps.y2)}
+                        y1={Math.min(pillBottom, chartBottom)}
                         x2={lineProps.x2}
-                        y2={lineProps.y2}
+                        y2={chartBottom}
                         stroke={lineProps.stroke}
                         strokeWidth={lineProps.strokeWidth}
                         strokeDasharray={lineProps.strokeDasharray || "4 4"}

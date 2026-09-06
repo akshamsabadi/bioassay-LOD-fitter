@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="header-content">
           <h1 style={{ margin: 0, fontSize: "1.25rem", display: "flex", alignItems: "center", gap: "8px" }}>
             Bioassay LOD Fitter
-            <span style={{ fontSize: "0.65rem", padding: "2px 6px", backgroundColor: "var(--surface2)", borderRadius: "10px", color: "var(--subtext1)", fontWeight: "normal", fontFamily: "monospace" }}>v0.7.0</span>
+            <span style={{ fontSize: "0.65rem", padding: "2px 6px", backgroundColor: "var(--surface2)", borderRadius: "10px", color: "var(--subtext1)", fontWeight: "normal", fontFamily: "monospace" }}>v0.7.1</span>
           </h1>
         </div>
         
