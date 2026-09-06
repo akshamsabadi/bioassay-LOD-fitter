@@ -434,7 +434,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
               />
-              <div style={{ width: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "32px", minWidth: "32px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {blankStats && blankStats.cv > 15 && (
                   <span title={`High Variance: Blank CV is ${blankStats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
                 )}
@@ -486,9 +486,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }}
                     title={rowTooltip}
                   />
-                  <div style={{ display: "flex", alignItems: "center", gap: "2px", width: "20px", justifyContent: "flex-end" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "3px", width: "32px", minWidth: "32px", flexShrink: 0, justifyContent: "flex-end" }}>
                     {hasHighCV && (
-                      <span title={`High Variance: CV is ${stats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
+                      <span title={`High Variance: CV is ${stats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1, flexShrink: 0 }}>⚠️</span>
                     )}
                     <button className="remove-row-btn" onClick={() => onRemoveRow(r.id)} title="Delete row">×</button>
                   </div>

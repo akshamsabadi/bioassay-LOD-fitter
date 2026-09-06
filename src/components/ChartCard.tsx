@@ -405,7 +405,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.6.31.svg";
+    downloadLink.download = "bioassay_plot_v0.6.32.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -469,7 +469,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.6.31.png";
+        downloadLink.download = "bioassay_plot_v0.6.32.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -490,7 +490,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </div>
           {showLodZone && (
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 25%, transparent)", border: "1px solid var(--yellow)", borderRadius: "2px" }} />
+              <span style={{ width: "10px", height: "10px", backgroundColor: `color-mix(in srgb, ${activeSeries?.color || "var(--yellow)"} 25%, transparent)`, border: `1px solid ${activeSeries?.color || "var(--yellow)"}`, borderRadius: "2px" }} />
               <span>95% CI LOD</span>
             </div>
           )}
@@ -556,7 +556,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           );
         })}
 
-        {(showLc || showLd || showLodZone) && (
+        {(showLc || showLd || showLodZone || showCI) && (
           <div style={{ borderTop: "1px solid var(--surface1)", paddingTop: "6px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "6px" }}>
             {showLc && (
               <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
@@ -570,10 +570,16 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                 <span>L<sub>D</sub></span>
               </div>
             )}
+            {showCI && (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
+                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 25%, transparent)", border: "1px solid var(--overlay1)", borderRadius: "2px" }} />
+                <span>95% CI Fit</span>
+              </div>
+            )}
             {showLodZone && (
               <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
-                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 25%, transparent)", border: "1px solid var(--yellow)" }} />
-                <span>95% CI (Active)</span>
+                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 25%, transparent)", border: "1px dashed var(--overlay1)", borderRadius: "2px" }} />
+                <span>95% CI LOD</span>
               </div>
             )}
           </div>
@@ -855,19 +861,39 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               />
             ))}
 
-            {/* Active Series Confidence Intervals & Limits */}
+            {/* 95% CI Fit Bands for Every Series */}
+            {showCI && curveSeriesList.map(s => {
+              const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+              const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.14 : 0.08);
+              return (
+                <React.Fragment key={`ci-band-${s.id}`}>
+                  <Area data={s.leftChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                  <Area data={s.rightChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                </React.Fragment>
+              );
+            })}
+
+            {/* 95% CI LOD Range Areas for Every Series (in Curve Color) */}
+            {showLodZone && curveSeriesList.map(s => {
+              const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+              const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.13 : 0.07);
+              return (
+                <ReferenceArea 
+                  key={`lod-zone-${s.id}`}
+                  x1={s.results.lodCI.low} 
+                  x2={s.results.lodCI.high} 
+                  fill={s.color} 
+                  fillOpacity={fillOp} 
+                  strokeOpacity={0} 
+                  ifOverflow="hidden" 
+                  style={{ pointerEvents: "none" }} 
+                />
+              );
+            })}
+
+            {/* Active Series Statistical Decision Limits (LC / LD) */}
             {activeSeries && (
               <>
-                {showCI && (
-                  <>
-                    <Area data={activeSeries.leftChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <Area data={activeSeries.rightChartData} dataKey="ciRange" stroke="none" fill={activeSeries.color} fillOpacity={0.12} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                  </>
-                )}
-                {showLodZone && (
-                  <ReferenceArea x1={activeSeries.results.lodCI.low} x2={activeSeries.results.lodCI.high} fill="var(--yellow)" fillOpacity={0.12} strokeOpacity={0} ifOverflow="hidden" style={{ pointerEvents: "none" }} />
-                )}
-
                 {showLc && (
                   <>
                     <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />

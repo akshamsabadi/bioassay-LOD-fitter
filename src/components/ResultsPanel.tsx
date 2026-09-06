@@ -455,13 +455,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         {showStats && (
           <div className="fade-in" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
             <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-              <span className="stat-label-wrap" data-tooltip="Decision Limit (LC): Signal threshold above which response is statistically distinct from noise (α=0.05)." title="Decision Limit (LC): Signal threshold above which response is statistically distinct from noise (α=0.05).">
+              <span className="stat-label-wrap" data-tooltip="Decision Limit (LC): Signal threshold above which response is statistically distinct from noise (α=0.05).">
                 <span className="stat-label" style={{ color: "var(--subtext1)" }}>Critical Level (L<sub>C</sub>)</span>
               </span>
               <span className="stat-value" style={{ color: "var(--peach)", fontWeight: 700, fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.lc.toFixed(4)}</span>
             </div>
             <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-              <span className="stat-label-wrap" data-tooltip="Detection Limit Signal (LD): Signal level ensuring 95% detection probability above LC (β=0.05)." title="Detection Limit Signal (LD): Signal level ensuring 95% detection probability above LC (β=0.05).">
+              <span className="stat-label-wrap" data-tooltip="Detection Limit Signal (LD): Signal level ensuring 95% detection probability above LC (β=0.05).">
                 <span className="stat-label" style={{ color: "var(--subtext1)" }}>Signal Limit (L<sub>D</sub>)</span>
               </span>
               <span className="stat-value" style={{ color: "var(--green)", fontWeight: 700, fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.ld.toFixed(4)}</span>
