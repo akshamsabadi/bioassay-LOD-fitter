@@ -32,8 +32,8 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
   if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
     return (
       <g>
-        {/* Publication-standard angled break slash */}
-        <line x1={x - 3} y1={y + 5} x2={x + 3} y2={y - 6} stroke="var(--subtext1)" strokeWidth={1.8} strokeLinecap="round" />
+        {/* Extended vertical break tick */}
+        <line x1={x} y1={y - 16} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
       </g>
     );
   }
@@ -427,7 +427,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.7.7.svg";
+    downloadLink.download = "bioassay_plot_v0.7.8.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -491,7 +491,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.7.7.png";
+        downloadLink.download = "bioassay_plot_v0.7.8.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
