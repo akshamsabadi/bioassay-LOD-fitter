@@ -1,9 +1,109 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { type AdvancedLoDResult } from "../utils/calculations";
 import { parseCSVData } from "../utils/csvParser";
 import { type AssaySeries, type StandardRow, BLANK_CV_WARNING_THRESHOLD, STANDARD_CV_WARNING_THRESHOLD } from "../constants";
+import { type HoveredPointData } from "./ChartCard";
 
 export { type StandardRow };
+
+interface ReplicateToken {
+  text: string;
+  isReplicate: boolean;
+  repIndex?: number;
+}
+
+function parseReplicateTokens(raw: string): ReplicateToken[] {
+  const tokens: ReplicateToken[] = [];
+  const parts = raw.split(/([,;\t]+)/);
+  let repCount = 0;
+  for (const part of parts) {
+    if (!part) continue;
+    if (/^[,;\t]+$/.test(part)) {
+      tokens.push({ text: part, isReplicate: false });
+    } else {
+      const leading = part.match(/^\s*/)?.[0] || "";
+      const trailing = part.match(/\s*$/)?.[0] || "";
+      const core = part.slice(leading.length, part.length - trailing.length);
+      if (leading) tokens.push({ text: leading, isReplicate: false });
+      if (core) {
+        tokens.push({ text: core, isReplicate: true, repIndex: repCount++ });
+      }
+      if (trailing) tokens.push({ text: trailing, isReplicate: false });
+    }
+  }
+  return tokens;
+}
+
+interface HighlightedSignalsInputProps {
+  id?: string;
+  className?: string;
+  placeholder?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  title?: string;
+  isHovered?: boolean;
+  highlightRepIndex?: number;
+}
+
+const HighlightedSignalsInput: React.FC<HighlightedSignalsInputProps> = ({
+  id,
+  className = "signals-input",
+  placeholder,
+  value,
+  onChange,
+  onPaste,
+  onKeyDown,
+  title,
+  isHovered,
+  highlightRepIndex,
+}) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const showHighlight = !isFocused && highlightRepIndex !== undefined && highlightRepIndex >= 0;
+
+  const tokens = useMemo(() => {
+    if (!showHighlight) return [];
+    return parseReplicateTokens(value);
+  }, [showHighlight, value]);
+
+  return (
+    <div className="signals-input-container">
+      <input
+        id={id}
+        type="text"
+        className={className}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        onPaste={onPaste}
+        onKeyDown={onKeyDown}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        title={title}
+        style={{
+          color: showHighlight ? "transparent" : undefined,
+          borderColor: isHovered ? "var(--pink)" : undefined,
+          caretColor: "var(--text)"
+        }}
+      />
+      {showHighlight && (
+        <div className="signals-input-overlay" aria-hidden="true">
+          {tokens.map((token, idx) => {
+            if (token.isReplicate && token.repIndex === highlightRepIndex) {
+              return (
+                <span key={idx} className="replicate-highlight-pill">
+                  {token.text}
+                </span>
+              );
+            }
+            return <span key={idx} style={{ color: "var(--text)" }}>{token.text}</span>;
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface SidebarProps {
   seriesList: AssaySeries[];
@@ -29,7 +129,7 @@ interface SidebarProps {
   onAddRow: () => void;
   onRemoveRow: (id: string) => void;
 
-  hoveredPoint: { id: string; y: number; cx: number; cy: number; conc: number | string } | null;
+  hoveredPoint: HoveredPointData | null;
   setTableHoveredRowId: (id: string | null) => void;
   results: AdvancedLoDResult | null;
   qualityChecks: string[] | null;
@@ -391,8 +491,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="rows-container" style={{ flex: 1, overflowY: "auto", marginBottom: "8px", paddingRight: "6px" }}>
             {/* Blank Row (Conc = 0) */}
             {(() => {
-              const isBlankHovered = hoveredPoint?.id === "blank" || hoveredPoint?.id?.endsWith("-blank") || hoveredPoint?.conc === 0;
+              const isBlankHovered = hoveredPoint?.rowId === "blank" || hoveredPoint?.id === "blank" || hoveredPoint?.id?.endsWith("-blank") || hoveredPoint?.conc === 0;
               const hasBlankWarning = blankStats && blankStats.cv > BLANK_CV_WARNING_THRESHOLD;
+              const blankHighlightRepIndex = isBlankHovered ? hoveredPoint?.repIndex : undefined;
               return (
                 <div
                   className={`data-row ${isBlankHovered ? "row-hovered" : ""} ${hasBlankWarning ? "has-warning" : ""}`}
@@ -406,16 +507,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: isBlankHovered ? "var(--pink)" : undefined,
                       cursor: "default"
                     }}
                     title="Blank (0 Conc)"
                   >
                     0
                   </div>
-                  <input
-                    type="text"
-                    className="signals-input"
+                  <HighlightedSignalsInput
                     placeholder="Blank signals (e.g. 0.08, 0.12)"
                     value={blankSignals}
                     onChange={e => setBlankSignals(e.target.value)}
@@ -426,10 +524,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         document.getElementById("conc-input-0")?.focus();
                       }
                     }}
-                    style={{
-                      color: isBlankHovered ? "var(--pink)" : undefined,
-                      borderColor: isBlankHovered ? "var(--pink)" : undefined
-                    }}
+                    isHovered={isBlankHovered}
+                    highlightRepIndex={blankHighlightRepIndex}
                     title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${hasBlankWarning ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
                   />
                   <div style={{ width: "24px", minWidth: "24px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -445,7 +541,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {standardRows.map((r, idx) => {
               const stats = computeRowStats(r.signals);
               const hasHighCV = stats && stats.cv > STANDARD_CV_WARNING_THRESHOLD;
-              const isHovered = hoveredPoint?.id === r.id;
+              const isRowHovered = hoveredPoint?.rowId === r.id || hoveredPoint?.id === r.id;
+              const repHighlightIndex = isRowHovered ? hoveredPoint?.repIndex : undefined;
               const rowTooltip = stats
                 ? `Conc: ${r.conc || "—"} | n=${stats.n}, Mean=${stats.mean.toFixed(4)}, SD=${stats.sd.toFixed(4)}, CV=${stats.cv.toFixed(1)}%${hasHighCV ? ' (⚠️ High Variance)' : ''}`
                 : undefined;
@@ -453,7 +550,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <div
                   key={r.id}
-                  className={`data-row ${hasHighCV ? "has-warning" : ""}`}
+                  className={`data-row ${isRowHovered ? "row-hovered" : ""} ${hasHighCV ? "has-warning" : ""}`}
                   onMouseEnter={() => setTableHoveredRowId(r.id)}
                   onMouseLeave={() => setTableHoveredRowId(null)}
                   title={rowTooltip}
@@ -466,24 +563,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     value={r.conc}
                     onChange={e => updateRow(r.id, "conc", e.target.value)}
                     onKeyDown={e => handleConcKeyDown(idx, e)}
-                    style={{
-                      color: isHovered ? "var(--pink)" : undefined,
-                      borderColor: isHovered ? "var(--pink)" : undefined
-                    }}
                   />
-                  <input
+                  <HighlightedSignalsInput
                     id={`signals-input-${idx}`}
-                    type="text"
-                    className="signals-input"
                     placeholder="Replicates (e.g. 0.15, 0.17, 0.16)"
                     value={r.signals}
                     onChange={e => updateRow(r.id, "signals", e.target.value)}
                     onPaste={e => handleSignalPaste(r.id, e)}
                     onKeyDown={e => handleSignalKeyDown(idx, e)}
-                    style={{
-                      color: isHovered ? "var(--pink)" : undefined,
-                      borderColor: isHovered ? "var(--pink)" : undefined
-                    }}
+                    isHovered={isRowHovered}
+                    highlightRepIndex={repHighlightIndex}
                     title={rowTooltip}
                   />
                   <div style={{ display: "flex", alignItems: "center", gap: "2px", width: "24px", minWidth: "24px", flexShrink: 0, justifyContent: "flex-end" }}>

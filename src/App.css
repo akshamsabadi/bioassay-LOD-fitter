@@ -336,19 +336,22 @@ body,
   top: calc(100% + 8px);
   right: 0;
   width: 330px;
-  background-color: var(--card-glass);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  background-color: var(--surface0);
   border: 1px solid var(--border-hover);
   border-radius: var(--radius-md);
   padding: 14px 16px;
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   animation: tooltipFadeIn 0.14s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   display: flex;
   flex-direction: column;
   gap: 10px;
   text-align: left;
+}
+
+[data-theme='light'] .help-popover-card {
+  background-color: #ffffff;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .help-popover-header {
@@ -707,6 +710,57 @@ body,
   border-color: var(--indigo);
   background: var(--base);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.signals-input-container {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.signals-input-container .signals-input {
+  width: 100%;
+}
+
+.signals-input-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+  overflow: hidden;
+  border: 1px solid var(--pink);
+  border-radius: var(--radius-sm);
+  background: var(--surface0);
+  box-shadow: 0 0 0 1px var(--pink);
+  box-sizing: border-box;
+  z-index: 2;
+}
+
+[data-theme='light'] .signals-input-overlay {
+  background: #ffffff;
+}
+
+.replicate-highlight-pill {
+  background-color: var(--pink);
+  color: #ffffff !important;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(236, 72, 153, 0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
+  margin: 0 1px;
 }
 
 .data-row.has-warning .signals-input {

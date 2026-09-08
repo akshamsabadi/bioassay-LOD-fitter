@@ -218,6 +218,10 @@ export interface ChartScatterPoint {
   y: number;
   actualX: number | string;
   id: string;
+  pointId?: string;
+  rowId?: string;
+  repIndex?: number;
+  repValue?: number;
   seriesId?: string;
   seriesName?: string;
   color?: string;
@@ -230,10 +234,14 @@ export interface ChartLinePoint {
 
 export interface HoveredPointData {
   id: string;
+  pointId?: string;
+  rowId?: string;
+  repIndex?: number;
   y: number;
   cx: number;
   cy: number;
   conc: number | string;
+  seriesId?: string;
   seriesName?: string;
 }
 
@@ -241,6 +249,7 @@ export interface ScatterDotProps {
   cx?: number;
   cy?: number;
   payload?: ChartScatterPoint;
+  hoveredPoint?: HoveredPointData | null;
   setHoveredPoint?: (pt: HoveredPointData | null) => void;
   tableHoveredRowId?: string | null;
   hoveredPointId?: string | undefined;
@@ -250,12 +259,21 @@ export interface ScatterDotProps {
 }
 
 const CustomScatterDot = (props: ScatterDotProps) => {
-  const { cx = 0, cy = 0, payload, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve } = props;
+  const { cx = 0, cy = 0, payload, hoveredPoint, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve } = props;
   if (!payload) return null;
-  const isSelected =
-    payload.id === tableHoveredRowId ||
-    payload.id === hoveredPointId ||
-    (tableHoveredRowId === "blank" && (payload.actualX === 0 || payload.id.endsWith("-blank")));
+
+  // When hovering directly over a point: ONLY that specific point is selected!
+  // When hovering from the sidebar table row: all points for that row are selected.
+  const isDirectlyHovered = hoveredPoint && payload.pointId
+    ? payload.pointId === hoveredPoint.pointId
+    : (hoveredPointId ? payload.id === hoveredPointId : false);
+
+  const isTableHovered = tableHoveredRowId
+    ? (payload.rowId === tableHoveredRowId || payload.id === tableHoveredRowId ||
+       (tableHoveredRowId === "blank" && (payload.actualX === 0 || payload.rowId === "blank" || payload.id.endsWith("-blank"))))
+    : false;
+
+  const isSelected = isDirectlyHovered || (!hoveredPoint && isTableHovered);
   const color = isSingleCurve ? "var(--red)" : (seriesColor || payload.color || "var(--red)");
   
   return (
@@ -278,7 +296,20 @@ const CustomScatterDot = (props: ScatterDotProps) => {
         r={isSelected ? 6 : 4}
         fill={isSelected ? "var(--pink)" : color}
         onMouseEnter={() => {
-          if (setHoveredPoint) setHoveredPoint({ id: payload.id, y: payload.y, cx, cy, conc: payload.actualX, seriesName: payload.seriesName });
+          if (setHoveredPoint) {
+            setHoveredPoint({
+              id: payload.id,
+              pointId: payload.pointId,
+              rowId: payload.rowId,
+              repIndex: payload.repIndex,
+              y: payload.y,
+              cx,
+              cy,
+              conc: payload.actualX,
+              seriesId: payload.seriesId,
+              seriesName: payload.seriesName
+            });
+          }
         }}
         onMouseLeave={() => {
           if (setHoveredPoint) setHoveredPoint(null);
@@ -463,16 +494,23 @@ interface CustomTooltipProps {
   payload?: ReadonlyArray<{
     payload?: {
       x?: number;
+      actualX?: number | string;
     };
   }>;
   curveSeriesList: MultiCurvePlotSeries[];
   xDomain: [number, number];
   breakStart: number;
+  hoveredPoint?: HoveredPointData | null;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, curveSeriesList, xDomain, breakStart }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, curveSeriesList, xDomain, breakStart, hoveredPoint }) => {
+  // Disappear when hovering directly over a data measurement point
+  if (hoveredPoint) return null;
   if (!active || !payload || !payload.length) return null;
-  const pData = payload[0]?.payload as (ChartCurvePoint & Partial<ChartScatterPoint>) | undefined;
+
+  // Find line entry with valid x
+  const lineEntry = payload.find(p => p?.payload && typeof p.payload.x === "number" && !isNaN(p.payload.x));
+  const pData = (lineEntry?.payload || payload[0]?.payload) as (ChartCurvePoint & Partial<ChartScatterPoint>) | undefined;
   const x = pData?.x;
   if (x === undefined || isNaN(x)) return null;
 
@@ -860,6 +898,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                   curveSeriesList={curveSeriesList} 
                   xDomain={xDomain} 
                   breakStart={breakStart} 
+                  hoveredPoint={hoveredPoint}
                 />
               )} 
               cursor={{ stroke: "var(--indigo)", strokeDasharray: "4 4", strokeWidth: 1.5, opacity: 0.7 }} 
@@ -1011,9 +1050,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                   dataKey="y" 
                   isAnimationActive={false} 
                   legendType="none"
+                  tooltipType="none"
                   shape={(dotProps: ScatterDotProps) => (
                     <CustomScatterDot 
                       {...dotProps} 
+                      hoveredPoint={hoveredPoint}
                       setHoveredPoint={setHoveredPoint} 
                       tableHoveredRowId={tableHoveredRowId} 
                       hoveredPointId={hoveredPoint?.id}

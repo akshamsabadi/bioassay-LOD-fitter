@@ -9,7 +9,7 @@ import { parseCSVData } from "./utils/csvParser";
 import { formatScientificUnicode } from "./utils/formatters";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
-import { ChartCard, type MultiCurvePlotSeries, type ChartScatterPoint } from "./components/ChartCard";
+import { ChartCard, type MultiCurvePlotSeries, type ChartScatterPoint, type HoveredPointData } from "./components/ChartCard";
 import { ResultsPanel, type SeriesLeaderboardItem } from "./components/ResultsPanel";
 import {
   DEMO_PRESETS,
@@ -37,7 +37,7 @@ function App() {
   const [plotTitle, setPlotTitle] = useState(DEMO_PRESETS[0].plotTitle);
   const [xAxisLabel, setXAxisLabel] = useState("Concentration (mM)");
   const [yAxisLabel, setYAxisLabel] = useState("Signal Intensity");
-  const [hoveredPoint, setHoveredPoint] = useState<{ id: string; y: number; cx: number; cy: number; conc: number | string; seriesName?: string } | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<HoveredPointData | null>(null);
   const [tableHoveredRowId, setTableHoveredRowId] = useState<string | null>(null);
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -372,14 +372,20 @@ function App() {
       // Scatter points
       const scatter: ChartScatterPoint[] = [];
       // Blanks
+      let blankRepCount = 0;
       s.blankSignals.split(",").forEach(sig => {
         const val = parseFloat(sig.trim());
         if (!isNaN(val)) {
+          const repIdx = blankRepCount++;
           scatter.push({
             x: zeroX,
             y: val,
             actualX: 0,
             id: `${s.id}-blank`,
+            pointId: `${s.id}-blank-rep-${repIdx}`,
+            rowId: "blank",
+            repIndex: repIdx,
+            repValue: val,
             seriesId: s.id,
             seriesName: s.name,
             color: s.color
@@ -390,14 +396,20 @@ function App() {
       s.standardRows.forEach(row => {
         const c = parseFloat(row.conc);
         if (isNaN(c)) return;
+        let stdRepCount = 0;
         row.signals.split(",").forEach(sig => {
           const val = parseFloat(sig.trim());
           if (!isNaN(val)) {
+            const repIdx = stdRepCount++;
             scatter.push({
               x: c,
               y: val,
               actualX: c,
               id: row.id,
+              pointId: `${s.id}-${row.id}-rep-${repIdx}`,
+              rowId: row.id,
+              repIndex: repIdx,
+              repValue: val,
               seriesId: s.id,
               seriesName: s.name,
               color: s.color
