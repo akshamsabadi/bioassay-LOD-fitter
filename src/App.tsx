@@ -214,21 +214,24 @@ function App() {
     const maxX = Math.max(...allX);
     const zeroX = minX / 10;
     const maxAxisValue = maxX * 1.5;
-    const breakCenterLog = (Math.log10(zeroX) + Math.log10(minX)) / 2;
-    const breakStart = Math.pow(10, breakCenterLog - 0.05);
-    const breakEnd = Math.pow(10, breakCenterLog + 0.05);
+    const logZero = Math.log10(zeroX);
+    const logMinPositive = Math.log10(minX);
+    // Expand break gap significantly (0.64 decades wide) and leave a clean compact zero baseline
+    const breakStart = Math.pow(10, logZero + 0.18);
+    const breakEnd = Math.pow(10, logMinPositive - 0.18);
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
     const ticks = [zeroX, breakStart, breakEnd];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
-      if (majorVal <= maxAxisValue && majorVal > zeroX + 1e-10) {
+      if (majorVal <= maxAxisValue && majorVal >= minX - 1e-10) {
         if (majorVal < breakStart || majorVal > breakEnd) ticks.push(majorVal);
       }
       if (i < logMax) {
         for (let j = 2; j <= 9; j++) {
           const minorVal = j * Math.pow(10, i);
-          if (minorVal <= maxAxisValue && minorVal > zeroX + 1e-10) {
+          // Strictly only include minor ticks for calibrator standard concentrations (>= minX)
+          if (minorVal <= maxAxisValue && minorVal >= minX - 1e-10) {
             if (minorVal < breakStart || minorVal > breakEnd) ticks.push(minorVal);
           }
         }
@@ -498,9 +501,9 @@ function App() {
     if (!displayResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.8)");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.9)");
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.7.8");
+    csvRows.push("App Version,v0.7.9");
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -531,7 +534,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.8_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.9_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -600,7 +603,7 @@ function App() {
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.8)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.9)
 Generated: ${new Date().toLocaleDateString()}
 
 ${leaderboardMarkdown}#### 📈 Active Curve: ${targetSeries.name}
