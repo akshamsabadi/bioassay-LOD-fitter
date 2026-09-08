@@ -427,7 +427,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.7.9.svg";
+    downloadLink.download = "bioassay_plot_v0.7.10.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -491,7 +491,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.7.9.png";
+        downloadLink.download = "bioassay_plot_v0.7.10.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);

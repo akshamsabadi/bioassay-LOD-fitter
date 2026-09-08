@@ -216,9 +216,11 @@ function App() {
     const maxAxisValue = maxX * 1.5;
     const logZero = Math.log10(zeroX);
     const logMinPositive = Math.log10(minX);
-    // Expand break gap significantly (0.64 decades wide) and leave a clean compact zero baseline
-    const breakStart = Math.pow(10, logZero + 0.18);
-    const breakEnd = Math.pow(10, logMinPositive - 0.18);
+    const breakCenterLog = (logZero + logMinPositive) / 2;
+    // Balanced break gap (0.26 decades wide) extending axes inward from both sides
+    const breakHalfWidth = 0.13;
+    const breakStart = Math.pow(10, breakCenterLog - breakHalfWidth);
+    const breakEnd = Math.pow(10, breakCenterLog + breakHalfWidth);
     const logMin = Math.floor(Math.log10(zeroX));
     const logMax = Math.ceil(Math.log10(maxAxisValue));
     const ticks = [zeroX, breakStart, breakEnd];
@@ -501,9 +503,9 @@ function App() {
     if (!displayResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.9)");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.10)");
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.7.9");
+    csvRows.push("App Version,v0.7.10");
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -534,7 +536,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.9_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.10_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -603,7 +605,7 @@ function App() {
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.9)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.10)
 Generated: ${new Date().toLocaleDateString()}
 
 ${leaderboardMarkdown}#### 📈 Active Curve: ${targetSeries.name}
