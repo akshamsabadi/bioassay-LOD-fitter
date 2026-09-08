@@ -93,7 +93,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           color: "var(--subtext1)",
           display: "flex",
           alignItems: "center",
-          gap: "8px"
+          gap: "8px",
+          flexShrink: 0
         }}>
           <span style={{ fontSize: "0.9rem" }}>✏️</span>
           <span>
@@ -479,7 +480,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       </div>
 
       {/* SECTION 4: UNIFIED MODERN ACTION BUTTONS */}
-      <div style={{ display: "flex", gap: "10px", marginTop: "2px", paddingBottom: "12px" }}>
+      <div style={{ display: "flex", gap: "10px", marginTop: "2px", paddingBottom: "12px", flexShrink: 0 }}>
         <button 
           onClick={handleCopyMetrics} 
           className="action-btn-pill"

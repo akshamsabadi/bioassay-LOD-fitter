@@ -598,6 +598,7 @@ body,
   background-color: transparent;
   overflow-y: hidden;
   padding: 16px;
+  min-height: 0;
 }
 
 .dashboard-grid {
@@ -606,6 +607,7 @@ body,
   gap: 16px;
   height: 100%;
   max-width: 100%;
+  min-height: 0;
 }
 
 /* ========================================== */
@@ -793,11 +795,29 @@ body,
   flex-direction: column;
   gap: 14px;
   height: 100%;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--surface2) transparent;
-  padding-right: 4px;
-  padding-bottom: 28px;
+  padding-right: 6px;
+  padding-bottom: 32px;
+}
+
+.results-side-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.results-side-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.results-side-panel::-webkit-scrollbar-thumb {
+  background: var(--surface2);
+  border-radius: var(--radius-pill);
+}
+
+.results-side-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--overlay1);
 }
 
 .stats-card {
@@ -809,6 +829,7 @@ body,
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
 }
 
 .stats-card:hover {
