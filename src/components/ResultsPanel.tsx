@@ -64,49 +64,45 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   }, [leaderboardItems, sortField, sortAsc]);
 
   return (
-    <div className="results-side-panel" style={{ display: "flex", flexDirection: "column", gap: "12px", height: "100%", overflowY: "auto", paddingRight: "4px" }}>
+    <div className="results-side-panel">
       
       {pendingSeriesName && (
         <div style={{
-          padding: "8px 12px",
-          borderRadius: "8px",
-          backgroundColor: "color-mix(in srgb, var(--surface1) 60%, var(--surface0))",
-          border: "1px dashed var(--mauve)",
-          fontSize: "0.72rem",
+          padding: "10px 14px",
+          borderRadius: "var(--radius-md)",
+          backgroundColor: "color-mix(in srgb, var(--indigo) 8%, var(--surface0))",
+          border: "1px dashed var(--indigo)",
+          fontSize: "0.76rem",
           color: "var(--subtext1)",
           display: "flex",
           alignItems: "center",
           gap: "8px"
         }}>
-          <span style={{ fontSize: "0.85rem" }}>✏️</span>
+          <span style={{ fontSize: "0.9rem" }}>✏️</span>
           <span>
             Entering <strong>{pendingSeriesName}</strong> in sidebar · Showing <strong>{activeSeries.name}</strong>
           </span>
         </div>
       )}
       
-      {/* SECTION 0: MULTI-CURVE COMPARATIVE LEADERBOARD (Shown when multiple curves exist) */}
+      {/* SECTION 0: MULTI-CURVE COMPARATIVE LEADERBOARD */}
       {isMultiCurve && (
-        <div className="stats-card" style={{ margin: 0, padding: 0, overflow: "visible", border: "1px solid var(--surface1)", borderRadius: "10px", background: "var(--surface0)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          {/* Top header banner */}
+        <div className="stats-card">
           <div style={{
-            backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
-            borderBottom: "1px solid var(--surface1)",
-            borderTopLeftRadius: "9px",
-            borderTopRightRadius: "9px",
-            padding: "8px 12px",
+            padding: "12px 16px",
+            borderBottom: "1px solid var(--border-subtle)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center"
           }}>
-            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.76rem", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
-              <span>🏆</span> SENSITIVITY LEADERBOARD
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>🏆</span> Sensitivity Leaderboard
             </h3>
-            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }}>Click headers to sort</span>
+            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }}>Click header to sort</span>
           </div>
 
-          <div style={{ overflowX: "auto" }}>
-            <table className="comparison-table" style={{ margin: 0, width: "100%", fontSize: "0.72rem" }}>
+          <div className="comparison-table-wrapper">
+            <table className="comparison-table">
               <thead>
                 <tr>
                   <th onClick={() => handleSort("name")} style={{ whiteSpace: "nowrap", cursor: "pointer", userSelect: "none" }} title="Sort by curve name">
@@ -131,27 +127,27 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   <tr
                     key={item.id}
                     onClick={() => onSelectSeries(item.id)}
+                    className={item.isActive ? "selected-row" : ""}
                     style={{
                       cursor: "pointer",
-                      backgroundColor: item.isActive ? "color-mix(in srgb, var(--surface1) 70%, var(--surface0))" : "transparent",
                       transition: "all 0.15s ease-in-out"
                     }}
                     title={`Click to inspect ${item.name}`}
                   >
-                    <td style={{ fontWeight: 700, padding: "6px 8px", whiteSpace: "nowrap" }}>
+                    <td style={{ fontWeight: 700, padding: "8px 12px", whiteSpace: "nowrap" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: item.color, flexShrink: 0 }} />
-                        <span style={{ color: item.isActive ? "var(--text)" : "var(--subtext1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "115px" }} title={item.name}>
+                        <span style={{ color: item.isActive ? "var(--text)" : "var(--subtext1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "105px" }} title={item.name}>
                           {item.name}
                         </span>
                         {item.isActive && <span style={{ fontSize: "0.65rem", color: item.color, flexShrink: 0 }}>●</span>}
                       </div>
                     </td>
                     <td style={{ whiteSpace: "nowrap", textAlign: "center", fontSize: "0.68rem" }}>{item.results.fit.method.toUpperCase()}</td>
-                    <td style={{ whiteSpace: "nowrap", fontWeight: 700, color: "var(--yellow)", fontFamily: '"Google Sans Mono", monospace' }}>
+                    <td style={{ whiteSpace: "nowrap", fontWeight: 700, color: "var(--yellow)", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">
                       {item.results.lodConc.toExponential(2)}
                     </td>
-                    <td style={{ whiteSpace: "nowrap" }}>{item.results.fit.metrics.r2.toFixed(3)}</td>
+                    <td style={{ whiteSpace: "nowrap", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">{item.results.fit.metrics.r2.toFixed(3)}</td>
                     <td style={{
                       whiteSpace: "nowrap",
                       fontWeight: 600,
@@ -168,29 +164,18 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       )}
 
       {/* SECTION 1: MODERN BIOTECH HERO METRIC CARD (Limit of Detection) */}
-      <div className="stats-card hero-card" style={{
-        margin: 0,
-        padding: 0,
-        overflow: "visible",
-        border: "1px solid var(--surface1)",
-        borderRadius: "10px",
-        background: "var(--surface0)",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
-      }}>
-        {/* Top header banner */}
+      <div className="stats-card hero-card">
+        {/* Header */}
         <div style={{
-          backgroundColor: isMultiCurve ? `color-mix(in srgb, ${activeSeries.color} 12%, var(--surface0))` : "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
-          borderBottom: "1px solid var(--surface1)",
-          borderTopLeftRadius: "9px",
-          borderTopRightRadius: "9px",
-          padding: "10px 14px",
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--border-subtle)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           gap: "8px"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10" />
               <line x1="22" y1="12" x2="18" y2="12" />
               <line x1="6" y1="12" x2="2" y2="12" />
@@ -198,10 +183,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               <line x1="12" y1="22" x2="12" y2="18" />
             </svg>
             <span style={{ 
-              fontSize: "0.78rem", 
+              fontSize: "0.82rem", 
               color: "var(--text)", 
               fontWeight: 700,
-              letterSpacing: "0.2px",
+              letterSpacing: "-0.01em",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis"
@@ -210,13 +195,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             </span>
           </div>
           <span style={{
-            fontSize: "0.7rem",
-            padding: "3px 8px",
-            borderRadius: "9999px",
+            fontSize: "0.68rem",
+            padding: "2px 8px",
+            borderRadius: "var(--radius-pill)",
             backgroundColor: "color-mix(in srgb, var(--blue) 12%, transparent)",
             border: "1px solid color-mix(in srgb, var(--blue) 25%, transparent)",
             color: "var(--blue)",
-            fontWeight: 600,
+            fontWeight: 700,
             whiteSpace: "nowrap",
             flexShrink: 0
           }}>
@@ -225,25 +210,18 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         </div>
 
         {/* Card Body */}
-        <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
           <div>
-            <div style={{ fontSize: "0.66rem", textTransform: "uppercase", letterSpacing: "0.6px", color: "var(--subtext0)", fontWeight: 600, marginBottom: "4px" }}>
+            <div style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--subtext0)", fontWeight: 700, marginBottom: "4px" }}>
               Calculated Threshold
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <span style={{ 
-                fontSize: "2.3rem", 
-                fontWeight: 800, 
-                color: "var(--yellow)", 
-                fontFamily: '"Google Sans", -apple-system, sans-serif',
-                lineHeight: 1,
-                letterSpacing: "-0.02em"
-              }}>
+              <span className="hero-value tabular-nums">
                 {isNaN(activeResults.lodConc) ? "N/A" : activeResults.lodConc.toExponential(3)}
               </span>
               {xAxisLabel && (
                 <span style={{ 
-                  fontSize: "0.95rem", 
+                  fontSize: "0.92rem", 
                   fontWeight: 600, 
                   color: "var(--subtext0)"
                 }}>
@@ -253,44 +231,44 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             </div>
 
             {!isNaN(activeResults.lodConc) && !isNaN(activeResults.lodCI.low) ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.76rem", color: "var(--subtext0)", marginTop: "6px", flexWrap: "wrap" }}>
-                <span>95% Confidence Interval:</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.75rem", color: "var(--subtext0)", marginTop: "6px", flexWrap: "wrap" }}>
+                <span>95% CI:</span>
                 <span style={{
-                  fontFamily: '"Google Sans Mono", monospace',
+                  fontFamily: "'JetBrains Mono', monospace",
                   color: "var(--lavender)",
                   fontWeight: 600,
                   backgroundColor: "color-mix(in srgb, var(--lavender) 12%, transparent)",
                   border: "1px solid color-mix(in srgb, var(--lavender) 25%, transparent)",
-                  padding: "2px 6px",
-                  borderRadius: "4px"
-                }}>
+                  padding: "2px 8px",
+                  borderRadius: "var(--radius-pill)"
+                }} className="tabular-nums">
                   {activeResults.lodCI.low.toExponential(2)} – {activeResults.lodCI.high.toExponential(2)}
                 </span>
               </div>
             ) : isNaN(activeResults.lodConc) ? (
-              <div style={{ fontSize: "0.72rem", color: "var(--red)", marginTop: "6px", backgroundColor: "color-mix(in srgb, var(--red) 10%, transparent)", padding: "4px 8px", borderRadius: "6px" }}>
+              <div style={{ fontSize: "0.72rem", color: "var(--red)", marginTop: "6px", backgroundColor: "color-mix(in srgb, var(--red) 10%, transparent)", padding: "4px 8px", borderRadius: "var(--radius-sm)" }}>
                 ⚠️ L<sub>D</sub> signal ({activeResults.ld.toFixed(3)}) falls outside dynamic range
               </div>
             ) : null}
           </div>
 
-          {/* Three Modern Metric KPI Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginTop: "4px" }}>
-            <div style={{ backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))", borderRadius: "8px", padding: "8px 10px", border: "1px solid var(--surface1)", display: "flex", flexDirection: "column", gap: "2px" }}>
-              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Fit (R²)</span>
-              <span style={{ fontSize: "1.02rem", fontWeight: 700, color: activeResults.fit.metrics.r2 >= 0.99 ? "var(--green)" : "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
+          {/* Three Modern Metric KPI Sub-Cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginTop: "2px" }}>
+            <div style={{ backgroundColor: "var(--surface0)", borderRadius: "var(--radius-md)", padding: "10px 12px", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: "3px" }}>
+              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Fit (R²)</span>
+              <span style={{ fontSize: "1.05rem", fontWeight: 800, color: activeResults.fit.metrics.r2 >= 0.99 ? "var(--green)" : "var(--text)", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">
                 {activeResults.fit.metrics.r2.toFixed(4)}
               </span>
             </div>
-            <div style={{ backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))", borderRadius: "8px", padding: "8px 10px", border: "1px solid var(--surface1)", display: "flex", flexDirection: "column", gap: "2px" }}>
-              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>AICc</span>
-              <span style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
+            <div style={{ backgroundColor: "var(--surface0)", borderRadius: "var(--radius-md)", padding: "10px 12px", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: "3px" }}>
+              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>AICc</span>
+              <span style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">
                 {isFinite(activeResults.fit.metrics.aicc) ? activeResults.fit.metrics.aicc.toFixed(1) : "—"}
               </span>
             </div>
-            <div style={{ backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))", borderRadius: "8px", padding: "8px 10px", border: "1px solid var(--surface1)", display: "flex", flexDirection: "column", gap: "2px" }}>
-              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Points</span>
-              <span style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>
+            <div style={{ backgroundColor: "var(--surface0)", borderRadius: "var(--radius-md)", padding: "10px 12px", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: "3px" }}>
+              <span style={{ fontSize: "0.62rem", color: "var(--subtext0)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Points</span>
+              <span style={{ fontSize: "1.05rem", fontWeight: 800, color: "var(--text)", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">
                 {activeResults.fit.actualX.length}
               </span>
             </div>
@@ -298,23 +276,23 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
           {/* Micro-grid of fitted parameters */}
           <div style={{
-            paddingTop: "10px",
-            borderTop: "1px solid var(--surface1)"
+            paddingTop: "12px",
+            borderTop: "1px solid var(--border-subtle)"
           }}>
-            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.6px", color: "var(--subtext0)", fontWeight: 600, marginBottom: "8px" }}>
+            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--subtext0)", fontWeight: 700, marginBottom: "8px" }}>
               Sigmoidal Parameters
             </div>
             <div style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "6px 10px"
+              gap: "6px 8px"
             }}>
               {Object.entries(activeResults.fit.parameters).map(([name, val]) => {
                 const cleanName = name.replace("EC50", "EC₅₀").split("(")[0].trim();
                 return (
-                  <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 8px", borderRadius: "6px", backgroundColor: "color-mix(in srgb, var(--surface1) 40%, transparent)", fontSize: "0.72rem" }}>
-                    <span style={{ color: "var(--subtext1)", fontWeight: 500 }}>{cleanName}</span>
-                    <span style={{ fontWeight: 600, fontFamily: '"Google Sans Mono", monospace', color: "var(--text)" }}>
+                  <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 10px", borderRadius: "var(--radius-sm)", backgroundColor: "var(--surface0)", border: "1px solid var(--border-subtle)", fontSize: "0.74rem" }}>
+                    <span style={{ color: "var(--subtext1)", fontWeight: 600 }}>{cleanName}</span>
+                    <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "var(--text)" }} className="tabular-nums">
                       {Math.abs(val) >= 1000 || (Math.abs(val) > 0 && Math.abs(val) < 0.01) ? val.toExponential(2) : val.toFixed(3)}
                     </span>
                   </div>
@@ -326,33 +304,22 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       </div>
 
       {/* SECTION 2: MODEL SELECTION & COMPARISON */}
-      <div className="stats-card model-comparison-card" style={{
-        margin: 0,
-        padding: 0,
-        overflow: "visible",
-        border: "1px solid var(--surface1)",
-        borderRadius: "10px",
-        background: "var(--surface0)",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
-      }}>
+      <div className="stats-card">
         {/* Header */}
         <div style={{
-          backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
-          borderBottom: "1px solid var(--surface1)",
-          borderTopLeftRadius: "9px",
-          borderTopRightRadius: "9px",
-          padding: "10px 14px",
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--border-subtle)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="20" x2="18" y2="10" />
               <line x1="12" y1="20" x2="12" y2="4" />
               <line x1="6" y1="20" x2="6" y2="14" />
             </svg>
-            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.78rem", letterSpacing: "0.2px", fontWeight: 700 }}>
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.82rem", letterSpacing: "-0.01em", fontWeight: 700 }}>
               Model Selection
             </h3>
           </div>
@@ -360,14 +327,14 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             onClick={() => setFitMethod("auto")}
             style={{
               padding: "3px 10px",
-              borderRadius: "9999px",
-              fontSize: "0.68rem",
+              borderRadius: "var(--radius-pill)",
+              fontSize: "0.7rem",
               fontWeight: 600,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "5px",
-              border: fitMethod === "auto" ? "1px solid var(--green)" : "1px solid var(--surface2)",
+              gap: "6px",
+              border: fitMethod === "auto" ? "1px solid var(--green)" : "1px solid var(--border-subtle)",
               backgroundColor: fitMethod === "auto" ? "color-mix(in srgb, var(--green) 14%, var(--surface0))" : "transparent",
               color: fitMethod === "auto" ? "var(--green)" : "var(--subtext0)",
               transition: "all 0.15s ease-in-out"
@@ -379,13 +346,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           </button>
         </div>
 
-        <div className="comparison-table-wrapper" style={{ overflowX: "auto" }}>
-          <table className="comparison-table" style={{ margin: 0, width: "100%", fontSize: "0.72rem" }}>
+        <div className="comparison-table-wrapper">
+          <table className="comparison-table">
             <thead>
               <tr>
-                <th style={{ padding: "8px 12px" }}>Model</th>
-                <th style={{ padding: "8px 12px" }}>R²</th>
-                <th style={{ padding: "8px 12px" }}>AICc</th>
+                <th>Model</th>
+                <th>R²</th>
+                <th>AICc</th>
               </tr>
             </thead>
             <tbody>
@@ -395,16 +362,15 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 return (
                   <tr 
                     key={method} 
-                    className={`${isSelected ? "selected-row" : ""} ${isBetter ? "better-row" : ""}`}
-                    onClick={() => setFitMethod(method as any)}
+                    className={`${isSelected ? "selected-row" : ""}`}
+                    onClick={() => setFitMethod(method as "linear" | "langmuir" | "4pl" | "5pl" | "auto")}
                     style={{
                       cursor: "pointer",
-                      transition: "all 0.15s ease-in-out",
-                      backgroundColor: isSelected ? "color-mix(in srgb, var(--blue) 12%, var(--surface0))" : "transparent"
+                      transition: "all 0.15s ease-in-out"
                     }}
                     title={`Click to select ${method.toUpperCase()} model`}
                   >
-                    <td style={{ padding: "8px 12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                    <td style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
                       <span>{method.toUpperCase()}</span>
                       {isBetter && (
                         <span style={{
@@ -414,7 +380,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                           color: "var(--green)",
                           border: "1px solid color-mix(in srgb, var(--green) 25%, transparent)",
                           padding: "1px 6px",
-                          borderRadius: "4px"
+                          borderRadius: "var(--radius-pill)"
                         }}>
                           Best Fit
                         </span>
@@ -423,8 +389,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                         <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--blue)" }} title="Active model" />
                       )}
                     </td>
-                    <td style={{ padding: "8px 12px" }}>{fit.metrics.r2.toFixed(4)}</td>
-                    <td style={{ padding: "8px 12px", color: isBetter ? "var(--green)" : "inherit", fontWeight: isBetter ? "bold" : "normal" }}>
+                    <td style={{ fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">{fit.metrics.r2.toFixed(4)}</td>
+                    <td style={{ color: isBetter ? "var(--green)" : "inherit", fontWeight: isBetter ? 700 : 500, fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">
                       {isFinite(fit.metrics.aicc) ? fit.metrics.aicc.toFixed(1) : "—"}
                     </td>
                   </tr>
@@ -436,25 +402,12 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       </div>
 
       {/* SECTION 3: ASSAY STATISTICAL LIMITS */}
-      <div className="stats-card" style={{
-        margin: 0,
-        padding: 0,
-        overflow: "visible",
-        border: "1px solid var(--surface1)",
-        borderRadius: "10px",
-        background: "var(--surface0)",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
-      }}>
+      <div className="stats-card">
         <div 
           onClick={() => setShowStats(!showStats)}
           style={{
-            backgroundColor: "color-mix(in srgb, var(--surface1) 50%, var(--surface0))",
-            borderBottom: showStats ? "1px solid var(--surface1)" : "none",
-            borderTopLeftRadius: "9px",
-            borderTopRightRadius: "9px",
-            borderBottomLeftRadius: showStats ? "0" : "9px",
-            borderBottomRightRadius: showStats ? "0" : "9px",
-            padding: "10px 14px",
+            padding: "12px 16px",
+            borderBottom: showStats ? "1px solid var(--border-subtle)" : "none",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -463,37 +416,37 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--peach)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--peach)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 12h20M2 12l5-5m-5 5 5 5" />
             </svg>
-            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.78rem", letterSpacing: "0.2px", fontWeight: 700 }}>
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.82rem", letterSpacing: "-0.01em", fontWeight: 700 }}>
               Statistical Limits & Noise
             </h3>
           </div>
-          <span style={{ fontSize: "0.7rem", transform: showStats ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", color: "var(--subtext0)" }}>▶</span>
+          <span style={{ fontSize: "0.75rem", transform: showStats ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", color: "var(--subtext0)" }}>▶</span>
         </div>
 
         {showStats && (
-          <div className="fade-in" style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+          <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div className="stat-row">
               <span className="stat-label-wrap" data-tooltip="Decision Limit (LC): Signal threshold above which response is statistically distinct from noise (α=0.05).">
-                <span className="stat-label" style={{ color: "var(--subtext1)" }}>Critical Level (L<sub>C</sub>)</span>
+                <span className="stat-label">Critical Level (L<sub>C</sub>)</span>
               </span>
-              <span className="stat-value" style={{ color: "var(--peach)", fontWeight: 700, fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.lc.toFixed(4)}</span>
+              <span className="stat-value" style={{ color: "var(--peach)" }}>{activeResults.lc.toFixed(4)}</span>
             </div>
-            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+            <div className="stat-row">
               <span className="stat-label-wrap" data-tooltip="Detection Limit Signal (LD): Signal level ensuring 95% detection probability above LC (β=0.05).">
-                <span className="stat-label" style={{ color: "var(--subtext1)" }}>Signal Limit (L<sub>D</sub>)</span>
+                <span className="stat-label">Signal Limit (L<sub>D</sub>)</span>
               </span>
-              <span className="stat-value" style={{ color: "var(--green)", fontWeight: 700, fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.ld.toFixed(4)}</span>
+              <span className="stat-value" style={{ color: "var(--green)" }}>{activeResults.ld.toFixed(4)}</span>
             </div>
-            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}><span className="stat-label" style={{ color: "var(--subtext1)" }}>Blank Mean</span><span className="stat-value" style={{ fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.meanBlank.toFixed(4)}</span></div>
-            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}><span className="stat-label" style={{ color: "var(--subtext1)" }}>Blank SD</span><span className="stat-value" style={{ fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.sdBlank.toFixed(4)}</span></div>
-            <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}><span className="stat-label" style={{ color: "var(--subtext1)" }}>Pooled Replicate SD</span><span className="stat-value" style={{ fontFamily: '"Google Sans Mono", monospace' }}>{activeResults.sdPooled.toFixed(4)}</span></div>
+            <div className="stat-row"><span className="stat-label">Blank Mean</span><span className="stat-value">{activeResults.meanBlank.toFixed(4)}</span></div>
+            <div className="stat-row"><span className="stat-label">Blank SD</span><span className="stat-value">{activeResults.sdBlank.toFixed(4)}</span></div>
+            <div className="stat-row"><span className="stat-label">Pooled Replicate SD</span><span className="stat-value">{activeResults.sdPooled.toFixed(4)}</span></div>
             {activeResults.isDecreasing && (
-              <div className="stat-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-                <span className="stat-label" style={{ color: "var(--subtext1)" }}>Assay Mode</span>
-                <span className="stat-value" style={{ color: "var(--mauve)", fontWeight: "bold" }}>Competitive / Decreasing</span>
+              <div className="stat-row">
+                <span className="stat-label">Assay Mode</span>
+                <span className="stat-value" style={{ color: "var(--mauve)" }}>Competitive / Decreasing</span>
               </div>
             )}
           </div>
@@ -501,24 +454,19 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       </div>
 
       {/* SECTION 4: UNIFIED MODERN ACTION BUTTONS */}
-      <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+      <div style={{ display: "flex", gap: "10px", marginTop: "2px" }}>
         <button 
           onClick={handleCopyMetrics} 
+          className="action-btn-pill"
           style={{
             flex: 1,
             padding: "10px 14px",
-            borderRadius: "8px",
-            backgroundColor: "var(--surface1)",
+            borderRadius: "var(--radius-md)",
+            backgroundColor: "var(--surface0)",
             color: "var(--text)",
             fontWeight: 600,
-            border: "1px solid var(--surface2)",
-            cursor: "pointer",
-            fontSize: "0.75rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px",
-            transition: "all 0.15s ease-in-out"
+            fontSize: "0.78rem",
+            height: "40px"
           }}
           title="Copy analytics report as Markdown"
         >
@@ -526,35 +474,31 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
-          Copy Report
+          <span>Copy Report</span>
         </button>
         <button 
           onClick={handleExportCSV} 
+          className="action-btn-pill"
           style={{
             flex: 1,
             padding: "10px 14px",
-            borderRadius: "8px",
+            borderRadius: "var(--radius-md)",
             backgroundColor: "var(--green)",
-            color: "var(--base)",
+            color: "#ffffff",
             fontWeight: 700,
             border: "none",
-            cursor: "pointer",
-            fontSize: "0.75rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px",
-            boxShadow: "0 2px 8px color-mix(in srgb, var(--green) 35%, transparent)",
-            transition: "all 0.15s ease-in-out"
+            fontSize: "0.78rem",
+            boxShadow: "0 2px 10px rgba(16, 185, 129, 0.3)",
+            height: "40px"
           }}
           title="Download experimental audit as CSV"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          Export CSV
+          <span>Export CSV</span>
         </button>
       </div>
 

@@ -31,7 +31,7 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
   if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
     return (
       <g>
-        <line x1={x} y1={y - 16} x2={x} y2={y} stroke="var(--text)" strokeWidth={1} />
+        <line x1={x} y1={y - 16} x2={x} y2={y} stroke="var(--border-hover)" strokeWidth={1} />
       </g>
     );
   }
@@ -39,8 +39,8 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
   if (val === zeroX || val === 0 || isNaN(val)) {
     return (
       <g>
-        <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--text)" />
-        <text x={x} y={y + 18} fill="var(--overlay2)" textAnchor="middle" fontSize={10}>0</text>
+        <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--border-subtle)" />
+        <text x={x} y={y + 18} fill="var(--subtext0)" textAnchor="middle" fontSize={10} fontFamily="'Plus Jakarta Sans', sans-serif">0</text>
       </g>
     );
   }
@@ -50,7 +50,7 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
   if (!isMajor) {
     return (
       <g>
-        <line x1={x} y1={y - 6} x2={x} y2={y - 2} stroke="var(--text)" opacity={0.5} />
+        <line x1={x} y1={y - 6} x2={x} y2={y - 2} stroke="var(--border-subtle)" opacity={0.5} />
       </g>
     );
   }
@@ -59,9 +59,9 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
 
   return (
     <g>
-      <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--text)" />
-      <text x={x} y={y + 18} fill="var(--overlay2)" textAnchor="middle" fontSize={10}>
-        <tspan>1 × 10</tspan>
+      <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--border-subtle)" />
+      <text x={x} y={y + 18} fill="var(--subtext0)" textAnchor="middle" fontSize={10} fontFamily="'Plus Jakarta Sans', sans-serif">
+        <tspan>10</tspan>
         <tspan baselineShift="super" fontSize={8}>{exponent}</tspan>
       </text>
     </g>
@@ -87,8 +87,8 @@ const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
   }
   return (
     <g>
-      <line x1={x} y1={y} x2={x - 6} y2={y} stroke="var(--text)" />
-      <text x={x - 10} y={y + 3} fill="var(--overlay2)" textAnchor="end" fontSize={10}>
+      <line x1={x} y1={y} x2={x - 6} y2={y} stroke="var(--border-subtle)" />
+      <text x={x - 10} y={y + 3} fill="var(--subtext0)" textAnchor="end" fontSize={10} fontFamily="'Plus Jakarta Sans', sans-serif" className="tabular-nums">
         {label}
       </text>
     </g>
@@ -108,7 +108,7 @@ const CustomLcLabel = ({ viewBox }: ViewBoxProps) => {
   if (!viewBox) return null;
   return (
     <g style={{ pointerEvents: "none" }}>
-      <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 8} fill="var(--peach)" fontSize={10} fontWeight={600}>
+      <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 8} fill="var(--peach)" fontSize={10} fontWeight={700} fontFamily="'Plus Jakarta Sans', sans-serif">
         L<tspan dy="0.3em" fontSize={7.5}>C</tspan>
       </text>
     </g>
@@ -119,7 +119,7 @@ const CustomLdLabel = ({ viewBox }: ViewBoxProps) => {
   if (!viewBox) return null;
   return (
     <g style={{ pointerEvents: "none" }}>
-      <text x={viewBox.x + viewBox.width + 5} y={viewBox.y - 2} fill="var(--green)" fontSize={10} fontWeight={600}>
+      <text x={viewBox.x + viewBox.width + 5} y={viewBox.y - 2} fill="var(--green)" fontSize={10} fontWeight={700} fontFamily="'Plus Jakarta Sans', sans-serif">
         L<tspan dy="0.3em" fontSize={7.5}>D</tspan>
       </text>
     </g>
@@ -143,17 +143,15 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
   if (!viewBox || typeof viewBox.x !== "number" || isNaN(viewBox.x) || typeof viewBox.y !== "number" || isNaN(viewBox.y)) {
     return null;
   }
-  // Truncate long labels so pills don't span excessively across the plot
   const displayLabel = labelText.length > 18 ? labelText.slice(0, 15) + "…" : labelText;
-  const charWidth = 6.2;
-  const pillWidth = Math.min(Math.max(displayLabel.length * charWidth + 14, 38), 130);
+  const charWidth = 6.4;
+  const pillWidth = Math.min(Math.max(displayLabel.length * charWidth + 16, 42), 136);
   const halfWidth = pillWidth / 2;
 
-  // Clamp x to avoid spilling over chart borders
   let x = viewBox.x;
   if (typeof viewBox.width === "number" && viewBox.width > 0) {
-    const minX = halfWidth + 5;
-    const maxX = viewBox.width - halfWidth - 5;
+    const minX = halfWidth + 6;
+    const maxX = viewBox.width - halfWidth - 6;
     x = Math.max(minX, Math.min(x, maxX));
   }
   const y = viewBox.y + 2 + offsetY;
@@ -164,22 +162,22 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
         x={x - halfWidth}
         y={y}
         width={pillWidth}
-        height={18}
-        rx={5}
-        fill="var(--surface0)"
+        height={20}
+        rx={7}
+        ry={7}
+        fill="var(--card-bg)"
         stroke={color}
-        strokeWidth={1.4}
-        opacity={1}
-        style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))" }}
+        strokeWidth={1.5}
+        style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.3))" }}
       />
       <text
         x={x}
-        y={y + 12.5}
+        y={y + 13.5}
         fill={color}
         fontSize={10}
         fontWeight={700}
         textAnchor="middle"
-        fontFamily="'Google Sans', -apple-system, sans-serif"
+        fontFamily="'Plus Jakarta Sans', sans-serif"
       >
         {displayLabel}
       </text>
@@ -189,7 +187,7 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
 
 const CustomMinorYAxisTickLabel = ({ viewBox }: Partial<ViewBoxProps>) => {
   if (!viewBox) return null;
-  return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--text)" opacity={0.5} />;
+  return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--border-subtle)" opacity={0.5} />;
 };
 
 interface ScatterDotProps {
@@ -217,7 +215,7 @@ const CustomScatterDot = (props: ScatterDotProps) => {
   const color = isSingleCurve ? "var(--red)" : (seriesColor || payload.color || "var(--red)");
   
   return (
-    <g opacity={isDimmed ? 0.3 : 1}>
+    <g opacity={isDimmed ? 0.25 : 1}>
       {isSelected && (
         <circle
           cx={cx}
@@ -241,7 +239,7 @@ const CustomScatterDot = (props: ScatterDotProps) => {
         onMouseLeave={() => {
           if (setHoveredPoint) setHoveredPoint(null);
         }}
-        style={{ cursor: "pointer", transition: "all 0.15s", pointerEvents: "all" }}
+        style={{ cursor: "pointer", transition: "all 0.15s ease", pointerEvents: "all" }}
       />
     </g>
   );
@@ -290,8 +288,6 @@ interface ChartCardProps {
 
 export const ChartCard: React.FC<ChartCardProps> = ({
   plotTitle,
-  activeResults: _activeResults,
-  activeSeriesName: _activeSeriesName,
   curveSeriesList,
   xAxisLabel,
   yAxisLabel,
@@ -313,7 +309,21 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   onSelectSeries,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(700);
   const activeSeries = curveSeriesList.find(s => s.isActive) || curveSeriesList[0];
+
+  React.useEffect(() => {
+    if (!chartRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width) {
+          setChartWidth(entry.contentRect.width);
+        }
+      }
+    });
+    observer.observe(chartRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Layer Visibility Toggles
   const [showCI, setShowCI] = useState(true);
@@ -327,10 +337,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     if (curveSeriesList.length <= 1) {
       return new Map<string, number>();
     }
-    // Sort curves by lodConc ascending (left-to-right along X axis)
     const sorted = [...curveSeriesList].sort((a, b) => a.results.lodConc - b.results.lodConc);
-    
-    // Each tier tracks the last log10(x) placed on it
     const tierLastLogX: number[] = [];
     const map = new Map<string, number>();
 
@@ -338,7 +345,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       const logX = Math.log10(Math.max(s.results.lodConc, 1e-12));
       let assignedTier = -1;
 
-      // Safe threshold: at least 1.0 log10 decades apart (~110-120px on screen)
       for (let t = 0; t < tierLastLogX.length; t++) {
         if (logX - tierLastLogX[t] >= 1.0) {
           assignedTier = t;
@@ -373,12 +379,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     clone.setAttribute("width", width.toString());
     clone.setAttribute("height", height.toString());
     clone.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    clone.setAttribute("font-family", "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+    clone.setAttribute("font-family", "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif");
 
     const docStyle = getComputedStyle(document.documentElement);
-    const currentBg = docStyle.getPropertyValue("--base").trim() || "#ffffff";
+    const currentBg = docStyle.getPropertyValue("--base").trim() || "#141824";
 
-    // Add background rect as first child so SVG renders nicely standalone
     const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     bgRect.setAttribute("width", "100%");
     bgRect.setAttribute("height", "100%");
@@ -393,7 +398,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       "--peach", "--yellow", "--green", "--teal", "--sky", "--sapphire", 
       "--blue", "--lavender", "--text", "--subtext1", "--subtext0", 
       "--overlay2", "--overlay1", "--overlay0", "--surface2", "--surface1", 
-      "--surface0", "--base", "--mantle", "--crust"
+      "--surface0", "--base", "--mantle", "--crust", "--border-subtle"
     ];
     
     for (const v of varNames) {
@@ -406,7 +411,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.7.2.svg";
+    downloadLink.download = "bioassay_plot_v0.7.3.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -438,7 +443,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       "--peach", "--yellow", "--green", "--teal", "--sky", "--sapphire", 
       "--blue", "--lavender", "--text", "--subtext1", "--subtext0", 
       "--overlay2", "--overlay1", "--overlay0", "--surface2", "--surface1", 
-      "--surface0", "--base", "--mantle", "--crust"
+      "--surface0", "--base", "--mantle", "--crust", "--border-subtle"
     ];
     
     for (const v of varNames) {
@@ -462,7 +467,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.scale(scale, scale);
-        const currentBg = docStyle.getPropertyValue("--base").trim() || "#ffffff";
+        const currentBg = docStyle.getPropertyValue("--base").trim() || "#141824";
         ctx.fillStyle = currentBg;
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
@@ -470,7 +475,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.7.2.png";
+        downloadLink.download = "bioassay_plot_v0.7.3.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -485,41 +490,41 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     if (curveSeriesList.length === 1) {
       return (
         <div className="custom-chart-legend">
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--yellow)" }} />
             <span style={{ fontWeight: 600, color: "var(--yellow)" }}>LOD</span>
           </div>
           {showLodZone && (
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 25%, transparent)", border: "1px dashed var(--yellow)", borderRadius: "2px" }} />
-              <span>95% CI LOD</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 22%, transparent)", border: "1px dashed var(--yellow)", borderRadius: "var(--radius-xs)" }} />
+              <span style={{ color: "var(--subtext1)" }}>95% CI LOD</span>
             </div>
           )}
           {showLc && (
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--peach)" }} />
-              <span>L<sub>C</sub></span>
+              <span style={{ color: "var(--subtext1)" }}>L<sub>C</sub></span>
             </div>
           )}
           {showLd && (
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--green)" }} />
-              <span>L<sub>D</sub></span>
+              <span style={{ color: "var(--subtext1)" }}>L<sub>D</sub></span>
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ width: "14px", height: "2px", backgroundColor: "var(--blue)", borderRadius: "2px" }} />
-            <span>Model Fit</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ width: "14px", height: "2.5px", backgroundColor: "var(--blue)", borderRadius: "var(--radius-pill)" }} />
+            <span style={{ color: "var(--subtext1)" }}>Model Fit</span>
           </div>
           {showCI && (
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--blue) 25%, transparent)", border: "1px solid var(--blue)", borderRadius: "2px" }} />
-              <span>95% CI Fit</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--blue) 22%, transparent)", border: "1px solid var(--blue)", borderRadius: "var(--radius-xs)" }} />
+              <span style={{ color: "var(--subtext1)" }}>95% CI Fit</span>
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ color: "var(--red)", fontSize: "13px", lineHeight: "1" }}>●</span>
-            <span>Measured Data</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ color: "var(--red)", fontSize: "11px", lineHeight: "1" }}>●</span>
+            <span style={{ color: "var(--subtext1)" }}>Measured Data</span>
           </div>
         </div>
       );
@@ -538,19 +543,19 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
+                gap: "8px",
                 cursor: "pointer",
-                padding: "2px 6px",
-                borderRadius: "6px",
+                padding: "3px 8px",
+                borderRadius: "var(--radius-sm)",
                 backgroundColor: s.isActive ? "var(--surface1)" : (isHovered ? "var(--surface0)" : "transparent"),
                 border: s.isActive ? `1px solid ${s.color}` : "1px solid transparent",
-                transition: "all 0.15s"
+                transition: "all 0.15s ease"
               }}
               title={`Click to focus ${s.name} (LOD: ${s.results.lodConc.toExponential(2)})`}
             >
-              <span style={{ width: "10px", height: "3px", backgroundColor: s.color, borderRadius: "2px" }} title="Curve fit" />
-              <span style={{ width: "10px", height: "0", borderTop: `2px dashed ${s.color}` }} title="LOD threshold" />
-              <span style={{ fontWeight: s.isActive ? "bold" : "normal", color: s.isActive ? "var(--text)" : "var(--subtext1)" }}>
+              <span style={{ width: "10px", height: "3px", backgroundColor: s.color, borderRadius: "var(--radius-pill)" }} />
+              <span style={{ width: "10px", height: "0", borderTop: `2px dashed ${s.color}` }} />
+              <span style={{ fontWeight: s.isActive ? 700 : 500, color: s.isActive ? "var(--text)" : "var(--subtext1)" }}>
                 {s.name}
               </span>
             </div>
@@ -558,29 +563,29 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         })}
 
         {(showLc || showLd || showLodZone || showCI) && (
-          <div style={{ borderTop: "1px solid var(--surface1)", paddingTop: "6px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "6px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "6px" }}>
             {showLc && (
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
                 <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--peach)" }} />
-                <span>L<sub>C</sub></span>
+                <span style={{ color: "var(--subtext1)" }}>L<sub>C</sub></span>
               </div>
             )}
             {showLd && (
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
                 <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--green)" }} />
-                <span>L<sub>D</sub></span>
+                <span style={{ color: "var(--subtext1)" }}>L<sub>D</sub></span>
               </div>
             )}
             {showCI && (
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
-                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 25%, transparent)", border: "1px solid var(--overlay1)", borderRadius: "2px" }} />
-                <span>95% CI Fit</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
+                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)", border: "1px solid var(--overlay1)", borderRadius: "var(--radius-xs)" }} />
+                <span style={{ color: "var(--subtext1)" }}>95% CI Fit</span>
               </div>
             )}
             {showLodZone && (
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0 6px" }}>
-                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 25%, transparent)", border: "1px dashed var(--overlay1)", borderRadius: "2px" }} />
-                <span>95% CI LOD</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
+                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)", border: "1px dashed var(--overlay1)", borderRadius: "var(--radius-xs)" }} />
+                <span style={{ color: "var(--subtext1)" }}>95% CI LOD</span>
               </div>
             )}
           </div>
@@ -596,24 +601,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     if (x === undefined || isNaN(x)) return null;
 
     return (
-      <div className="custom-chart-tooltip" style={{
-        backgroundColor: "var(--crust)",
-        border: "1px solid var(--mauve)",
-        borderRadius: "8px",
-        padding: "10px 14px",
-        fontSize: "0.78rem",
-        color: "var(--text)",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "4px",
-        pointerEvents: "none",
-        zIndex: 1000,
-        minWidth: "220px"
-      }}>
-        <div style={{ display: "flex", borderBottom: "1px solid var(--surface2)", paddingBottom: "3px", marginBottom: "3px", justifyContent: "space-between" }}>
-          <span style={{ color: "var(--overlay2)", fontWeight: "bold", fontSize: "0.68rem" }}>CONCENTRATION</span>
-          <span style={{ fontWeight: "bold", fontFamily: '"Google Sans Mono", monospace' }}>
+      <div className="custom-chart-tooltip">
+        <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "4px", marginBottom: "2px", justifyContent: "space-between" }}>
+          <span style={{ color: "var(--subtext0)", fontWeight: 700, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>CONCENTRATION</span>
+          <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', 'Google Sans Mono', monospace" }} className="tabular-nums">
             {x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) ? "0 (Blank)" : x.toFixed(4)}
           </span>
         </div>
@@ -621,12 +612,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         {curveSeriesList.map(s => {
           const pred = s.results.fit.predict(x);
           return (
-            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "6px", color: s.color, fontWeight: s.isActive ? "bold" : "normal" }}>
+            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "6px", color: s.color, fontWeight: s.isActive ? 700 : 500 }}>
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: s.color }} />
                 {s.name}:
               </span>
-              <span style={{ fontWeight: "bold", fontFamily: '"Google Sans Mono", monospace' }}>
+              <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', 'Google Sans Mono', monospace" }} className="tabular-nums">
                 {isFinite(pred) ? pred.toFixed(3) : "—"}
               </span>
             </div>
@@ -638,207 +629,122 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
   return (
     <div className="chart-card">
-      <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          <h2 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text)", display: "flex", alignItems: "center", gap: "8px" }}>
+      <div className="chart-header">
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <h2 className="chart-title">
             {plotTitle}
             {curveSeriesList.length > 1 && (
-              <span style={{ fontSize: "0.65rem", padding: "2px 6px", backgroundColor: "var(--surface1)", borderRadius: "6px", color: "var(--subtext0)", fontWeight: "normal" }}>
+              <span className="curve-badge">
                 {curveSeriesList.length} curves overlaid
               </span>
             )}
           </h2>
 
-          {/* LAYER TOGGLE PILLS */}
+          {/* LAYER TOGGLE PILLS WITH GLOWING DOTS */}
           <div className="layer-toggles-bar">
             <button 
               className={`layer-toggle-pill ${showCI ? "active" : ""}`}
               onClick={() => setShowCI(!showCI)}
               title="Toggle 95% Confidence Interval band"
             >
-              <span style={{ color: showCI ? "var(--blue)" : "inherit" }}>{showCI ? "✓" : "○"}</span> 95% CI
+              <span className="layer-indicator-dot" style={{ backgroundColor: "var(--blue)" }} />
+              <span>95% CI</span>
             </button>
             <button 
               className={`layer-toggle-pill ${showLc ? "active" : ""}`}
               onClick={() => setShowLc(!showLc)}
               title="Toggle Critical Limit (LC) Decision Threshold Line"
             >
-              <span style={{ color: showLc ? "var(--peach)" : "inherit" }}>{showLc ? "✓" : "○"}</span> L<sub>C</sub>
+              <span className="layer-indicator-dot" style={{ backgroundColor: "var(--peach)" }} />
+              <span>L<sub>C</sub></span>
             </button>
             <button 
               className={`layer-toggle-pill ${showLd ? "active" : ""}`}
               onClick={() => setShowLd(!showLd)}
               title="Toggle Detection Limit (LD) Minimum Detectable Signal Line"
             >
-              <span style={{ color: showLd ? "var(--green)" : "inherit" }}>{showLd ? "✓" : "○"}</span> L<sub>D</sub>
+              <span className="layer-indicator-dot" style={{ backgroundColor: "var(--green)" }} />
+              <span>L<sub>D</sub></span>
             </button>
             <button 
               className={`layer-toggle-pill ${showLodZone ? "active" : ""}`}
               onClick={() => setShowLodZone(!showLodZone)}
               title="Toggle Shaded Limit of Detection Range"
             >
-              <span style={{ color: showLodZone ? "var(--yellow)" : "inherit" }}>{showLodZone ? "✓" : "○"}</span> LOD Zone
+              <span className="layer-indicator-dot" style={{ backgroundColor: "var(--yellow)" }} />
+              <span>LOD Zone</span>
             </button>
             <button 
               className={`layer-toggle-pill ${showGrid ? "active" : ""}`}
               onClick={() => setShowGrid(!showGrid)}
               title="Toggle Cartesian Grid"
             >
-              <span style={{ color: showGrid ? "var(--blue)" : "inherit" }}>{showGrid ? "✓" : "○"}</span> Grid
+              <span className="layer-indicator-dot" style={{ backgroundColor: "var(--subtext0)" }} />
+              <span>Grid</span>
             </button>
           </div>
         </div>
         
-        <div style={{ display: "flex", gap: "8px" }}>
+        {/* EXPORT ACTION BUTTONS */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <button 
-            className="action-btn" 
+            className="action-btn-pill" 
             onClick={handleExportCSV} 
             title="Download Full Multi-Curve Analytical Report as CSV"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "44px",
-              height: "44px",
-              padding: "4px",
-              borderRadius: "8px",
-              backgroundColor: "var(--surface0)",
-              border: "1px solid var(--surface2)",
-              color: "var(--text)",
-              fontSize: "0.68rem",
-              fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              lineHeight: 1.1
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-              e.currentTarget.style.borderColor = "var(--green)";
-              e.currentTarget.style.color = "var(--green)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = "none";
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--surface2)";
-              e.currentTarget.style.color = "var(--text)";
-            }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
             </svg>
-            <span style={{ marginTop: "2px" }}>CSV</span>
+            <span>CSV</span>
           </button>
           <button 
-            className="action-btn" 
+            className="action-btn-pill" 
             onClick={handleDownloadPlot} 
             title="Download Publication-Ready Raster PNG Image"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "44px",
-              height: "44px",
-              padding: "4px",
-              borderRadius: "8px",
-              backgroundColor: "var(--surface0)",
-              border: "1px solid var(--surface2)",
-              color: "var(--text)",
-              fontSize: "0.68rem",
-              fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              lineHeight: 1.1
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-              e.currentTarget.style.borderColor = "var(--sapphire)";
-              e.currentTarget.style.color = "var(--sapphire)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = "none";
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--surface2)";
-              e.currentTarget.style.color = "var(--text)";
-            }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
             </svg>
-            <span style={{ marginTop: "2px" }}>PNG</span>
+            <span>PNG</span>
           </button>
           <button 
-            className="action-btn" 
+            className="action-btn-pill" 
             onClick={handleDownloadSVG} 
             title="Download High-Resolution Scalable Vector Graphics (SVG)"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "44px",
-              height: "44px",
-              padding: "4px",
-              borderRadius: "8px",
-              backgroundColor: "var(--surface0)",
-              border: "1px solid var(--surface2)",
-              color: "var(--text)",
-              fontSize: "0.68rem",
-              fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              lineHeight: 1.1
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-              e.currentTarget.style.borderColor = "var(--mauve)";
-              e.currentTarget.style.color = "var(--mauve)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = "none";
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.borderColor = "var(--surface2)";
-              e.currentTarget.style.color = "var(--text)";
-            }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-              <polyline points="2 17 12 22 22 17"></polyline>
-              <polyline points="2 12 12 17 22 12"></polyline>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
             </svg>
-            <span style={{ marginTop: "2px" }}>SVG</span>
+            <span>SVG</span>
           </button>
         </div>
       </div>
       
-      <div className="chart-frame" ref={chartRef} style={{ position: "relative", width: "100%", height: "100%", flex: 1, minHeight: 0 }}>
+      <div className="chart-frame" ref={chartRef}>
         <CustomLegend />
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
-            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--surface0)" vertical={false} horizontalValues={yMajorTicks} />}
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} horizontalValues={yMajorTicks} opacity={0.6} />}
             <ReferenceArea x1={breakStart} x2={breakEnd} y1={yDomain[0]} y2={yDomain[1]} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: "none" }} />
             
             <XAxis 
-              dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--text)" 
+              dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--subtext0)" 
               ticks={xTicks}
               interval={0}
               tickLine={false}
               axisLine={false}
               tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} />}
-              label={{ value: xAxisLabel, position: "bottom", fill: "var(--overlay2)", fontSize: 11, offset: 25 }}
+              label={{ value: xAxisLabel, position: "bottom", fill: "var(--subtext0)", fontSize: 11, offset: 25, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             />
             <YAxis 
-              stroke="var(--text)" 
+              stroke="var(--subtext0)" 
               domain={yDomain} 
               ticks={yMajorTicks}
               interval={0}
@@ -846,11 +752,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               allowDataOverflow={true}
               tickLine={false}
               tick={<CustomYAxisTick />}
-              label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--overlay2)", fontSize: 11, offset: -5 }} 
+              label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--subtext0)", fontSize: 11, offset: -5, fontFamily: "'Plus Jakarta Sans', sans-serif" }} 
             />
             <Tooltip 
               content={<CustomTooltip />} 
-              cursor={{ stroke: "var(--overlay1)", strokeDasharray: "4 4", strokeWidth: 1.5 }} 
+              cursor={{ stroke: "var(--indigo)", strokeDasharray: "4 4", strokeWidth: 1.5, opacity: 0.7 }} 
             />
             
             {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => (
@@ -874,10 +780,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               );
             })}
 
-            {/* 95% CI LOD Range Areas for Every Series (matches the LOD Line color) */}
+            {/* 95% CI LOD Range Areas for Every Series */}
             {showLodZone && curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
-              const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.13 : 0.07);
+              const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.14 : 0.07);
               const isMulti = curveSeriesList.length > 1;
               const lodColor = isMulti ? s.color : "var(--yellow)";
               return (
@@ -947,7 +853,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               );
             })}
 
-            {/* 2. Render Vertical LOD Dashed Lines (connecting bottom axis up to each curve's LOD badge) */}
+            {/* 2. Render Vertical LOD Dashed Lines */}
             {curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const isMulti = curveSeriesList.length > 1;
@@ -967,11 +873,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                     if (!lineProps || typeof lineProps.x1 !== "number" || typeof lineProps.y1 !== "number" || typeof lineProps.y2 !== "number") {
                       return <line stroke="none" />;
                     }
-                    // Calculate top and bottom of plot area correctly regardless of Recharts coordinate orientation
                     const chartTop = Math.min(lineProps.y1, lineProps.y2);
                     const chartBottom = Math.max(lineProps.y1, lineProps.y2);
-                    // Line starts at the bottom edge of the LOD badge and connects down to the bottom axis
-                    const pillBottom = chartTop + 2 + offsetY + 18;
+                    const pillBottom = chartTop + 2 + offsetY + 20;
                     return (
                       <line
                         x1={lineProps.x1}
@@ -1016,7 +920,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               );
             })}
 
-            {/* 3. Render All LOD Labels on TOP of all lines, scatters, and curves */}
+            {/* 3. Render All LOD Labels on TOP of all elements */}
             {curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const isMulti = curveSeriesList.length > 1;
@@ -1043,13 +947,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* Zero break tick axis line */}
-            <Line data={leftAxisData} dataKey="y" stroke="var(--text)" strokeWidth={1} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-            <Line data={rightAxisData} dataKey="y" stroke="var(--text)" strokeWidth={1} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+            <Line data={leftAxisData} dataKey="y" stroke="var(--subtext0)" strokeWidth={1} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+            <Line data={rightAxisData} dataKey="y" stroke="var(--subtext0)" strokeWidth={1} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
           </ComposedChart>
         </ResponsiveContainer>
         
         {hoveredPoint && hoveredPoint.cx && hoveredPoint.cy && (() => {
-          const frameWidth = chartRef.current?.clientWidth || 700;
+          const frameWidth = chartWidth || 700;
           const isRight = hoveredPoint.cx > frameWidth - 190;
           const left = isRight ? hoveredPoint.cx - 175 : hoveredPoint.cx + 15;
           const top = Math.max(8, hoveredPoint.cy - 15);
@@ -1058,32 +962,34 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               position: "absolute",
               left,
               top,
-              backgroundColor: "var(--crust)",
+              backgroundColor: "var(--card-glass)",
+              backdropFilter: "var(--glass-blur)",
+              WebkitBackdropFilter: "var(--glass-blur)",
               border: "1px solid var(--pink)",
-              borderRadius: "8px",
-              padding: "8px 12px",
+              borderRadius: "var(--radius-sm)",
+              padding: "10px 14px",
               fontSize: "0.78rem",
               color: "var(--text)",
               pointerEvents: "none",
               zIndex: 100,
-              boxShadow: "0 8px 16px rgba(0,0,0,0.4)",
+              boxShadow: "var(--shadow-md)",
               display: "flex",
               flexDirection: "column",
               gap: "4px"
             }}>
               {hoveredPoint.seriesName && (
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", borderBottom: "1px solid var(--surface1)", paddingBottom: "2px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "3px" }}>
                   <span style={{ color: "var(--subtext0)" }}>Curve</span>
-                  <span style={{ fontWeight: "bold", color: "var(--text)" }}>{hoveredPoint.seriesName}</span>
+                  <span style={{ fontWeight: 700, color: "var(--text)" }}>{hoveredPoint.seriesName}</span>
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
                 <span style={{ color: "var(--subtext0)" }}>Concentration</span>
-                <span style={{ fontWeight: "bold", color: "var(--text)", fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.conc}</span>
+                <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">{hoveredPoint.conc}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
                 <span style={{ color: "var(--subtext0)" }}>Signal</span>
-                <span style={{ fontWeight: "bold", color: "var(--pink)", fontFamily: '"Google Sans Mono", monospace' }}>{hoveredPoint.y.toFixed(4)}</span>
+                <span style={{ fontWeight: 700, color: "var(--pink)", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">{hoveredPoint.y.toFixed(4)}</span>
               </div>
             </div>
           );

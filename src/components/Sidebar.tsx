@@ -105,7 +105,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         signals: ""
       });
     }
-    // If dilution (decreasing), sort concentrations ascending from low to high
     newRows.sort((a, b) => parseFloat(a.conc) - parseFloat(b.conc));
     setStandardRows(newRows);
     setShowDilutionModal(false);
@@ -127,7 +126,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  // Clipboard paste handler for spreadsheet table data
   const handleGlobalPaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData("text");
     if (!text) return;
@@ -193,10 +191,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside className={`sidebar ${isCollapsed ? "collapsed" : ""}`} onPaste={handleGlobalPaste}>
         
         {/* SECTION 0: MULTI-CURVE SERIES SELECTOR PILLS */}
-        <section className="sidebar-section" style={{ margin: 0, paddingBottom: "10px", borderBottom: "1px solid var(--surface1)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-            <span className="section-title" style={{ color: "var(--blue)", margin: 0 }}>Curves / Conditions</span>
-            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }}>{seriesList.length} {seriesList.length === 1 ? "curve" : "curves"}</span>
+        <section className="sidebar-section" style={{ margin: 0, paddingBottom: "12px", borderBottom: "1px solid var(--border-subtle)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+            <span className="section-title">Curves & Conditions</span>
+            <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "var(--radius-pill)", backgroundColor: "var(--surface1)", color: "var(--subtext0)" }}>
+              {seriesList.length} {seriesList.length === 1 ? "curve" : "curves"}
+            </span>
           </div>
 
           <div style={{
@@ -212,26 +212,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div 
                   key={s.id}
                   onClick={() => setActiveSeriesId(s.id)}
+                  className={`curve-pill ${isActive ? "active" : ""}`}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "4px 8px",
-                    borderRadius: "14px",
-                    fontSize: "0.72rem",
-                    fontWeight: isActive ? 700 : 500,
-                    backgroundColor: isActive ? "var(--surface1)" : "var(--surface0)",
-                    border: isActive ? `1.5px solid ${s.color}` : "1px solid var(--surface1)",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    color: isActive ? "var(--text)" : "var(--subtext0)",
-                    transition: "all 0.15s",
-                    boxShadow: isActive ? `0 0 6px ${s.color}33` : "none"
+                    boxShadow: isActive ? `0 0 0 1.5px ${s.color}` : "none",
+                    borderColor: isActive ? "transparent" : undefined
                   }}
                   title={`Click to edit ${s.name}`}
                 >
                   <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: s.color, display: "inline-block", flexShrink: 0 }} />
-                  <span style={{ maxWidth: "110px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
+                  <span style={{ maxWidth: "105px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); onToggleSeriesVisibility(s.id); }}
                     style={{
@@ -240,8 +229,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       padding: 0,
                       cursor: "pointer",
                       opacity: s.visible ? 1 : 0.35,
-                      fontSize: "0.75rem",
-                      lineHeight: 1
+                      color: "inherit",
+                      display: "flex",
+                      alignItems: "center"
                     }}
                     title={s.visible ? "Hide curve on plot" : "Show curve on plot"}
                   >
@@ -280,51 +270,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             <button
               onClick={onAddSeries}
+              className="curve-pill"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                padding: "4px 8px",
-                borderRadius: "14px",
-                fontSize: "0.72rem",
-                fontWeight: 600,
                 backgroundColor: "transparent",
-                border: "1px dashed var(--surface2)",
-                color: "var(--subtext0)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: "all 0.15s"
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "var(--blue)";
-                e.currentTarget.style.color = "var(--blue)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "var(--surface2)";
-                e.currentTarget.style.color = "var(--subtext0)";
+                borderStyle: "dashed",
+                borderColor: "var(--border-hover)",
+                color: "var(--indigo)",
+                fontWeight: 600
               }}
               title="Overlay a new curve series onto the plot"
             >
-              + Add Curve
+              <span style={{ fontSize: "0.85rem" }}>+</span> Add Curve
             </button>
           </div>
 
           {/* Active Curve Rename Input */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
             <span style={{ fontSize: "0.72rem", color: "var(--subtext0)", whiteSpace: "nowrap" }}>Curve Label:</span>
             <input
               type="text"
               className="text-input"
               value={activeSeries.name}
               onChange={e => onUpdateSeriesName(activeSeries.id, e.target.value)}
-              style={{ flex: 1, padding: "3px 8px", fontSize: "0.75rem", height: "24px" }}
+              style={{ flex: 1, padding: "5px 10px", fontSize: "0.75rem", height: "28px" }}
               placeholder="Series Name"
             />
           </div>
         </section>
 
-        {/* SECTION 1: COLLAPSIBLE PLOT LABELS */}
-        <section className="sidebar-section" style={{ margin: 0, paddingBottom: "10px", borderBottom: "1px solid var(--surface1)" }}>
+        {/* SECTION 1: AXIS LABELS & TITLE */}
+        <section className="sidebar-section" style={{ margin: 0, paddingBottom: "12px", borderBottom: "1px solid var(--border-subtle)" }}>
           <details style={{ margin: 0, fontSize: "0.8rem" }}>
             <summary style={{
               cursor: "pointer",
@@ -334,9 +309,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               display: "flex",
               alignItems: "center",
               gap: "6px",
-              padding: "2px 0"
+              padding: "4px 0"
             }}>
-              <span>⚙️ Axis Labels & Title</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span>Axis Labels & Title</span>
             </summary>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
               <input 
@@ -345,7 +324,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 placeholder="Chart Title" 
                 value={plotTitle} 
                 onChange={e => setPlotTitle(e.target.value)} 
-                style={{ width: "100%" }} 
               />
               <div style={{ display: "flex", gap: "8px" }}>
                 <input 
@@ -371,10 +349,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* UNIFIED DATA ENTRY TABLE */}
         <section className="sidebar-section" style={{ margin: 0, display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: activeSeries.color, flexShrink: 0 }} />
-              <span className="section-title" style={{ color: "var(--teal)", margin: 0 }}>
+              <span className="section-title">
                 {seriesList.length > 1 ? `${activeSeries.name} Data` : "Calibration Data"}
               </span>
             </div>
@@ -385,16 +363,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Table Column Headers */}
           <div style={{ display: "flex", gap: "6px", alignItems: "center", paddingRight: "16px", marginBottom: "4px" }}>
-            <span style={{ width: "58px", fontSize: "0.68rem", fontWeight: 600, color: "var(--subtext0)", textAlign: "center", letterSpacing: "0.04em", userSelect: "none" }}>
+            <span style={{ width: "62px", fontSize: "0.68rem", fontWeight: 700, color: "var(--subtext0)", textAlign: "center", letterSpacing: "0.04em", userSelect: "none" }}>
               CONC
             </span>
-            <span style={{ flex: 1, fontSize: "0.68rem", fontWeight: 600, color: "var(--subtext0)", paddingLeft: "4px", letterSpacing: "0.04em", userSelect: "none" }}>
+            <span style={{ flex: 1, fontSize: "0.68rem", fontWeight: 700, color: "var(--subtext0)", paddingLeft: "6px", letterSpacing: "0.04em", userSelect: "none" }}>
               REPLICATES (SIGNALS)
             </span>
-            <span style={{ width: "20px" }} />
+            <span style={{ width: "24px" }} />
           </div>
           
-          <div className="rows-container" style={{ flex: 1, overflowY: "auto", marginBottom: "8px", paddingRight: "16px" }}>
+          <div className="rows-container" style={{ flex: 1, overflowY: "auto", marginBottom: "8px", paddingRight: "6px" }}>
             {/* Blank Row (Conc = 0) */}
             <div
               className={`data-row ${blankStats && blankStats.cv > 15 ? "has-warning" : ""}`}
@@ -408,7 +386,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--overlay0)",
+                  color: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined,
                   cursor: "default"
                 }}
                 title="Blank (0 Conc)"
@@ -429,12 +407,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }
                 }}
                 style={{
-                  color: hoveredPoint?.id === "blank" ? "var(--pink)" : "var(--text)",
+                  color: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined,
                   borderColor: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined
                 }}
                 title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
               />
-              <div style={{ width: "32px", minWidth: "32px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "24px", minWidth: "24px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {blankStats && blankStats.cv > 15 && (
                   <span title={`High Variance: Blank CV is ${blankStats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
                 )}
@@ -467,7 +445,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onChange={e => updateRow(r.id, "conc", e.target.value)}
                     onKeyDown={e => handleKeyDown(idx, e)}
                     style={{
-                      color: isHovered ? "var(--pink)" : "var(--text)",
+                      color: isHovered ? "var(--pink)" : undefined,
                       borderColor: isHovered ? "var(--pink)" : undefined
                     }}
                   />
@@ -481,12 +459,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onPaste={e => handleSignalPaste(r.id, e)}
                     onKeyDown={e => handleKeyDown(idx, e)}
                     style={{
-                      color: isHovered ? "var(--pink)" : "var(--text)",
+                      color: isHovered ? "var(--pink)" : undefined,
                       borderColor: isHovered ? "var(--pink)" : undefined
                     }}
                     title={rowTooltip}
                   />
-                  <div style={{ display: "flex", alignItems: "center", gap: "3px", width: "32px", minWidth: "32px", flexShrink: 0, justifyContent: "flex-end" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "2px", width: "24px", minWidth: "24px", flexShrink: 0, justifyContent: "flex-end" }}>
                     {hasHighCV && (
                       <span title={`High Variance: CV is ${stats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1, flexShrink: 0 }}>⚠️</span>
                     )}
@@ -497,67 +475,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
             })}
           </div>
           
-          <div style={{ display: "flex", gap: "8px", width: "calc(100% - 16px)", marginTop: "2px" }}>
+          <div style={{ display: "flex", gap: "8px", width: "100%", marginTop: "4px" }}>
             <button
               onClick={onAddRow}
+              className="action-btn-pill"
               style={{
                 flex: 1,
-                padding: "6px",
-                backgroundColor: "transparent",
-                border: "1px dashed var(--surface2)",
-                borderRadius: "6px",
-                color: "var(--subtext0)",
-                fontSize: "0.82rem",
+                padding: "8px 12px",
+                borderRadius: "var(--radius-sm)",
+                backgroundColor: "var(--surface0)",
+                color: "var(--indigo)",
                 fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "4px"
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "var(--blue)";
-                e.currentTarget.style.color = "var(--blue)";
-                e.currentTarget.style.backgroundColor = "var(--surface0)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "var(--surface2)";
-                e.currentTarget.style.color = "var(--subtext0)";
-                e.currentTarget.style.backgroundColor = "transparent";
+                border: "1px dashed var(--border-hover)",
+                fontSize: "0.8rem"
               }}
               title="Add a new standard concentration point (or press Enter)"
             >
-              + Add Point
+              <span style={{ fontSize: "0.9rem" }}>+</span> Add Point
             </button>
 
             <button
               onClick={() => setShowDilutionModal(true)}
+              className="action-btn-pill"
               style={{
                 flex: 1,
-                padding: "6px",
-                backgroundColor: "transparent",
-                border: "1px dashed var(--surface2)",
-                borderRadius: "6px",
-                color: "var(--subtext0)",
-                fontSize: "0.82rem",
+                padding: "8px 12px",
+                borderRadius: "var(--radius-sm)",
+                backgroundColor: "var(--surface0)",
+                color: "var(--yellow)",
                 fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "4px"
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "var(--yellow)";
-                e.currentTarget.style.color = "var(--yellow)";
-                e.currentTarget.style.backgroundColor = "var(--surface0)";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "var(--surface2)";
-                e.currentTarget.style.color = "var(--subtext0)";
-                e.currentTarget.style.backgroundColor = "transparent";
+                border: "1px dashed var(--border-hover)",
+                fontSize: "0.8rem"
               }}
               title="Auto-generate a serial dilution series"
             >
@@ -571,14 +519,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="modal-overlay" onClick={() => setShowDilutionModal(false)}>
             <div className="modal-dialog" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h3 style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--yellow)" }}>
+                <h3 style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--yellow)" }}>
                   <span>⚡</span> Serial Dilution Generator
                 </h3>
                 <button className="modal-close-btn" onClick={() => setShowDilutionModal(false)}>×</button>
               </div>
               <div className="modal-body">
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--subtext0)" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--subtext0)" }}>
                     Starting Concentration:
                   </label>
                   <input
@@ -591,9 +539,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   />
                 </div>
 
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--subtext0)" }}>
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--subtext0)" }}>
                       Dilution Factor:
                     </label>
                     <input
@@ -606,8 +554,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       min="1.01"
                     />
                   </div>
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--subtext0)" }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--subtext0)" }}>
                       Number of Steps:
                     </label>
                     <input
@@ -621,24 +569,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--subtext0)" }}>
-                    Mode:
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--subtext0)" }}>
+                    Dilution Mode:
                   </label>
-                  <div style={{ display: "flex", gap: "8px" }}>
+                  <div style={{ display: "flex", gap: "8px", backgroundColor: "var(--surface0)", padding: "4px", borderRadius: "var(--radius-pill)", border: "1px solid var(--border-subtle)" }}>
                     <button
                       type="button"
                       onClick={() => setDilutionDirection("dilution")}
                       style={{
                         flex: 1,
-                        padding: "6px 10px",
-                        borderRadius: "6px",
-                        fontSize: "0.75rem",
+                        padding: "6px 12px",
+                        borderRadius: "var(--radius-pill)",
+                        fontSize: "0.76rem",
                         cursor: "pointer",
-                        border: dilutionDirection === "dilution" ? "1px solid var(--blue)" : "1px solid var(--surface2)",
-                        backgroundColor: dilutionDirection === "dilution" ? "color-mix(in srgb, var(--blue) 12%, var(--surface0))" : "var(--surface0)",
-                        color: dilutionDirection === "dilution" ? "var(--blue)" : "var(--subtext0)",
-                        fontWeight: dilutionDirection === "dilution" ? 700 : 500
+                        border: "none",
+                        backgroundColor: dilutionDirection === "dilution" ? "var(--surface2)" : "transparent",
+                        color: dilutionDirection === "dilution" ? "var(--text)" : "var(--subtext0)",
+                        fontWeight: dilutionDirection === "dilution" ? 700 : 500,
+                        transition: "all 0.18s ease"
                       }}
                     >
                       Serial Dilution (÷ factor)
@@ -648,14 +597,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onClick={() => setDilutionDirection("serial")}
                       style={{
                         flex: 1,
-                        padding: "6px 10px",
-                        borderRadius: "6px",
-                        fontSize: "0.75rem",
+                        padding: "6px 12px",
+                        borderRadius: "var(--radius-pill)",
+                        fontSize: "0.76rem",
                         cursor: "pointer",
-                        border: dilutionDirection === "serial" ? "1px solid var(--blue)" : "1px solid var(--surface2)",
-                        backgroundColor: dilutionDirection === "serial" ? "color-mix(in srgb, var(--blue) 12%, var(--surface0))" : "var(--surface0)",
-                        color: dilutionDirection === "serial" ? "var(--blue)" : "var(--subtext0)",
-                        fontWeight: dilutionDirection === "serial" ? 700 : 500
+                        border: "none",
+                        backgroundColor: dilutionDirection === "serial" ? "var(--surface2)" : "transparent",
+                        color: dilutionDirection === "serial" ? "var(--text)" : "var(--subtext0)",
+                        fontWeight: dilutionDirection === "serial" ? 700 : 500,
+                        transition: "all 0.18s ease"
                       }}
                     >
                       Multiplication (× factor)
@@ -665,16 +615,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div className="modal-footer">
                 <button
-                  className="toolbar-btn"
+                  className="action-btn-pill"
                   onClick={() => setShowDilutionModal(false)}
-                  style={{ padding: "0 12px", height: "32px" }}
+                  style={{ padding: "8px 16px", borderRadius: "var(--radius-pill)" }}
                 >
                   Cancel
                 </button>
                 <button
-                  className="toolbar-btn primary-btn"
+                  className="action-btn-pill"
                   onClick={handleGenerateDilution}
-                  style={{ padding: "0 14px", height: "32px" }}
+                  style={{
+                    backgroundColor: "var(--indigo)",
+                    color: "#ffffff",
+                    borderColor: "transparent",
+                    padding: "8px 18px",
+                    borderRadius: "var(--radius-pill)",
+                    fontWeight: 700,
+                    boxShadow: "0 2px 10px rgba(99, 102, 241, 0.35)"
+                  }}
                 >
                   Generate Series
                 </button>
@@ -687,26 +645,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {results && (
           <section className="sidebar-section" style={{
             margin: 0,
-            borderTop: "1px solid var(--surface1)",
+            borderTop: "1px solid var(--border-subtle)",
             paddingTop: "12px"
           }}>
-            <span className="section-title" style={{ color: "var(--pink)", display: "block", marginBottom: "8px" }}>
+            <span className="section-title" style={{ color: "var(--subtext0)", display: "block", marginBottom: "4px" }}>
               {activeSeries.name} Diagnostics
             </span>
             {qualityChecks && qualityChecks.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {qualityChecks.map((warning, index) => (
                   <div key={index} style={{
-                    fontSize: "0.72rem",
+                    fontSize: "0.74rem",
                     color: "var(--text)",
-                    backgroundColor: "var(--surface0)",
-                    borderRadius: "6px",
-                    overflow: "hidden",
-                    border: "1px solid color-mix(in srgb, var(--peach) 25%, var(--surface1))",
+                    backgroundColor: "color-mix(in srgb, var(--peach) 8%, var(--surface0))",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid color-mix(in srgb, var(--peach) 25%, transparent)",
                     display: "flex",
                     alignItems: "flex-start",
                     gap: "8px",
-                    padding: "8px 10px"
+                    padding: "8px 12px"
                   }}>
                     <span style={{ fontSize: "0.85rem", lineHeight: 1 }}>⚠️</span>
                     <span style={{ lineHeight: 1.4 }}>{warning}</span>
@@ -715,17 +672,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <div style={{
-                fontSize: "0.72rem",
+                fontSize: "0.74rem",
                 color: "var(--green)",
-                backgroundColor: "var(--surface0)",
-                borderRadius: "6px",
-                padding: "8px 10px",
-                border: "1px solid color-mix(in srgb, var(--green) 25%, var(--surface1))",
+                backgroundColor: "color-mix(in srgb, var(--green) 8%, var(--surface0))",
+                borderRadius: "var(--radius-sm)",
+                padding: "8px 12px",
+                border: "1px solid color-mix(in srgb, var(--green) 25%, transparent)",
                 display: "flex",
                 alignItems: "center",
-                gap: "6px"
+                gap: "8px"
               }}>
-                <span>✓</span> All quality metrics within expected ranges.
+                <span style={{ fontWeight: "bold" }}>✓</span>
+                <span>All quality metrics within expected ranges.</span>
               </div>
             )}
           </section>
