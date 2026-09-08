@@ -750,9 +750,19 @@ body,
 
 .replicate-highlight-value {
   color: var(--pink) !important;
-  font-weight: 700;
+  font-weight: inherit;
   background: transparent;
   box-shadow: none;
+}
+
+.data-row.row-hovered .conc-input,
+.data-row.row-hovered .signals-input {
+  border-color: var(--pink) !important;
+}
+
+.data-row.row-hovered .conc-input.disabled {
+  border-color: var(--pink) !important;
+  color: var(--pink) !important;
 }
 
 .data-row.has-warning .signals-input {
