@@ -110,12 +110,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             borderBottom: "1px solid var(--border-subtle)",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
+            gap: "10px"
           }}>
-            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px", minWidth: 0, whiteSpace: "nowrap" }}>
               <span>🏆</span> Sensitivity Leaderboard
             </h3>
-            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)" }}>Click column to sort</span>
+            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)", whiteSpace: "nowrap", flexShrink: 0 }}>Click column to sort</span>
           </div>
 
           <div className="comparison-table-wrapper">
@@ -231,7 +232,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         </div>
 
         {/* Card Body */}
-        <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ padding: "16px 16px 22px 16px", display: "flex", flexDirection: "column", gap: "14px" }}>
           <div>
             <div style={{ fontSize: "0.72rem", color: "var(--subtext0)", fontWeight: 600, marginBottom: "4px" }}>
               Estimated Detection Threshold
@@ -288,7 +289,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           {/* Micro-grid of fitted parameters */}
           <div style={{
             paddingTop: "12px",
-            borderTop: "1px solid var(--border-subtle)"
+            borderTop: "1px solid var(--border-subtle)",
+            paddingBottom: "4px"
           }}>
             <div style={{ fontSize: "0.68rem", color: "var(--subtext0)", fontWeight: 700, marginBottom: "8px" }}>
               Model Fit Parameters
@@ -296,7 +298,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             <div style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "6px 8px"
+              gap: "7px 8px"
             }}>
               {Object.entries(activeResults.fit.parameters).map(([name, val]) => {
                 const cleanName = name.replace("EC50", "EC₅₀").split("(")[0].trim();
@@ -318,7 +320,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         </div>
       </div>
 
-      {/* SECTION 2: MODEL SELECTION & EVALUATION */}
+      {/* SECTION 2: MODEL EVALUATION */}
       <div className="stats-card">
         {/* Header */}
         <div style={{
@@ -326,16 +328,17 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           borderBottom: "1px solid var(--border-subtle)",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center"
+          alignItems: "center",
+          gap: "10px"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <line x1="18" y1="20" x2="18" y2="10" />
               <line x1="12" y1="20" x2="12" y2="4" />
               <line x1="6" y1="20" x2="6" y2="14" />
             </svg>
-            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.82rem", letterSpacing: "-0.01em", fontWeight: 700 }}>
-              Model Evaluation & Selection
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.82rem", letterSpacing: "-0.01em", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              Model Evaluation
             </h3>
           </div>
           <button
@@ -343,16 +346,17 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             style={{
               padding: "3px 10px",
               borderRadius: "var(--radius-pill)",
-              fontSize: "0.7rem",
+              fontSize: "0.68rem",
               fontWeight: 600,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: "6px",
+              gap: "5px",
               border: fitMethod === "auto" ? "1px solid var(--green)" : "1px solid var(--border-subtle)",
               backgroundColor: fitMethod === "auto" ? "color-mix(in srgb, var(--green) 14%, var(--surface0))" : "transparent",
               color: fitMethod === "auto" ? "var(--green)" : "var(--subtext0)",
-              transition: "all 0.15s ease-in-out"
+              transition: "all 0.15s ease-in-out",
+              flexShrink: 0
             }}
             title="Automatically select model with lowest AICc"
           >
@@ -366,8 +370,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             <thead>
               <tr>
                 <th>Model</th>
-                <th>R² Fit</th>
-                <th>AICc Score</th>
+                <th style={{ textAlign: "right" }}>R² Fit</th>
+                <th style={{ textAlign: "right" }}>AICc Score</th>
               </tr>
             </thead>
             <tbody>
@@ -385,27 +389,31 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                     }}
                     title={`Click to select ${getModelLabel(method)}`}
                   >
-                    <td style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span>{getModelLabel(method)}</span>
-                      {isBetter && (
-                        <span style={{
-                          fontSize: "0.62rem",
-                          fontWeight: 700,
-                          backgroundColor: "color-mix(in srgb, var(--green) 14%, transparent)",
-                          color: "var(--green)",
-                          border: "1px solid color-mix(in srgb, var(--green) 25%, transparent)",
-                          padding: "1px 6px",
-                          borderRadius: "var(--radius-pill)"
-                        }}>
-                          Best Fit
-                        </span>
-                      )}
-                      {isSelected && (
-                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--blue)" }} title="Active model" />
-                      )}
+                    <td style={{ fontWeight: 700 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+                        <span style={{ whiteSpace: "nowrap" }}>{getModelLabel(method)}</span>
+                        {isBetter && (
+                          <span style={{
+                            fontSize: "0.62rem",
+                            fontWeight: 700,
+                            backgroundColor: "color-mix(in srgb, var(--green) 14%, transparent)",
+                            color: "var(--green)",
+                            border: "1px solid color-mix(in srgb, var(--green) 25%, transparent)",
+                            padding: "1px 6px",
+                            borderRadius: "var(--radius-pill)",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0
+                          }}>
+                            Best Fit
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--blue)", flexShrink: 0 }} title="Active model" />
+                        )}
+                      </div>
                     </td>
-                    <td style={{ fontWeight: 600 }} className="tabular-nums">{fit.metrics.r2.toFixed(4)}</td>
-                    <td style={{ color: isBetter ? "var(--green)" : "inherit", fontWeight: isBetter ? 700 : 500 }} className="tabular-nums">
+                    <td style={{ fontWeight: 600, textAlign: "right" }} className="tabular-nums">{fit.metrics.r2.toFixed(4)}</td>
+                    <td style={{ color: isBetter ? "var(--green)" : "inherit", fontWeight: isBetter ? 700 : 500, textAlign: "right" }} className="tabular-nums">
                       {isFinite(fit.metrics.aicc) ? fit.metrics.aicc.toFixed(1) : "—"}
                     </td>
                   </tr>
@@ -418,6 +426,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
       {/* SECTION 3: ASSAY STATISTICAL LIMITS */}
       <div className="stats-card">
+        {/* Header */}
         <div 
           onClick={() => setShowStats(!showStats)}
           style={{
@@ -426,19 +435,20 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            gap: "10px",
             cursor: "pointer",
             userSelect: "none"
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--peach)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--peach)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M2 12h20M2 12l5-5m-5 5 5 5" />
             </svg>
-            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.82rem", letterSpacing: "-0.01em", fontWeight: 700 }}>
+            <h3 style={{ margin: 0, color: "var(--text)", fontSize: "0.82rem", letterSpacing: "-0.01em", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               Statistical Detection Limits & Noise
             </h3>
           </div>
-          <span style={{ fontSize: "0.75rem", transform: showStats ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", color: "var(--subtext0)" }}>▶</span>
+          <span style={{ fontSize: "0.75rem", transform: showStats ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", color: "var(--subtext0)", flexShrink: 0 }}>▶</span>
         </div>
 
         {showStats && (
@@ -469,7 +479,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       </div>
 
       {/* SECTION 4: UNIFIED MODERN ACTION BUTTONS */}
-      <div style={{ display: "flex", gap: "10px", marginTop: "2px" }}>
+      <div style={{ display: "flex", gap: "10px", marginTop: "2px", paddingBottom: "12px" }}>
         <button 
           onClick={handleCopyMetrics} 
           className="action-btn-pill"
