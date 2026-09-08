@@ -737,30 +737,22 @@ body,
   font-variant-numeric: tabular-nums;
   white-space: pre;
   overflow: hidden;
-  border: 1px solid var(--pink);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  background: var(--surface0);
-  box-shadow: 0 0 0 1px var(--pink);
+  background: transparent;
   box-sizing: border-box;
   z-index: 2;
 }
 
 [data-theme='light'] .signals-input-overlay {
-  background: #ffffff;
+  background: transparent;
 }
 
-.replicate-highlight-pill {
-  background-color: var(--pink);
-  color: #ffffff !important;
+.replicate-highlight-value {
+  color: var(--pink) !important;
   font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 4px;
-  box-shadow: 0 0 8px rgba(236, 72, 153, 0.6);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1.25;
-  margin: 0 1px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .data-row.has-warning .signals-input {

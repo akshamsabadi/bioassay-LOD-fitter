@@ -340,34 +340,64 @@ function App() {
     const zeroX = xDomain[0];
     const maxAxisValue = xDomain[1];
 
+    // Unified X coordinate grids for left (zero break) and right (main curve)
+    // By including all standard calibrator concentrations, LOD values, and fine log-spaced intervals,
+    // we ensure that Recharts findEntryInArray never returns undefined at any hovered X position.
+    const leftXSet = new Set<number>();
+    const leftSteps = 25;
+    const logMinLeft = Math.log10(zeroX);
+    const logMaxLeft = Math.log10(breakStart);
+    for (let i = 0; i <= leftSteps; i++) {
+      leftXSet.add(Math.pow(10, logMinLeft + i * (logMaxLeft - logMinLeft) / leftSteps));
+    }
+    leftXSet.add(zeroX);
+    leftXSet.add(breakStart);
+    const leftXGrid = Array.from(leftXSet).sort((a, b) => a - b);
+
+    const rightXSet = new Set<number>();
+    const rightSteps = 120;
+    const logMinRight = Math.log10(breakEnd);
+    const logMaxRight = Math.log10(maxAxisValue);
+    for (let i = 0; i <= rightSteps; i++) {
+      rightXSet.add(Math.pow(10, logMinRight + i * (logMaxRight - logMinRight) / rightSteps));
+    }
+    rightXSet.add(breakEnd);
+    rightXSet.add(maxAxisValue);
+
+    // Include all calibrator standard concentrations and LOD concentrations from all visible series
+    validVisibleSeries.forEach(item => {
+      item.series.standardRows.forEach(r => {
+        const c = parseFloat(r.conc);
+        if (!isNaN(c) && c >= breakEnd && c <= maxAxisValue) {
+          rightXSet.add(c);
+        }
+      });
+      const lod = item.results?.lodConc;
+      if (Number.isFinite(lod) && lod! >= breakEnd && lod! <= maxAxisValue) {
+        rightXSet.add(lod!);
+      }
+    });
+
+    const rightXGrid = Array.from(rightXSet).sort((a, b) => a - b);
+
     return validVisibleSeries.map(item => {
       const res = item.results!;
       const s = item.series;
       const isActive = s.id === (activeResults ? activeSeries.id : displaySeries.id);
 
       // Left chart data (zero break)
-      const leftData = [];
-      const leftSteps = 20;
-      const logMinLeft = Math.log10(zeroX);
-      const logMaxLeft = Math.log10(breakStart);
-      for (let i = 0; i <= leftSteps; i++) {
-        const xVal = Math.pow(10, logMinLeft + i * (logMaxLeft - logMinLeft) / leftSteps);
+      const leftData = leftXGrid.map(xVal => {
         const pred = res.fit.predict(0);
         const { low, high } = res.fit.getCI(0);
-        leftData.push({ x: xVal, trend: pred, ciRange: [low, high] });
-      }
+        return { x: xVal, trend: pred, ciRange: [low, high] as [number, number] };
+      });
 
       // Right chart data (main curve)
-      const rightData = [];
-      const rightSteps = 80;
-      const logMinRight = Math.log10(breakEnd);
-      const logMaxRight = Math.log10(maxAxisValue);
-      for (let i = 0; i <= rightSteps; i++) {
-        const xVal = Math.pow(10, logMinRight + i * (logMaxRight - logMinRight) / rightSteps);
+      const rightData = rightXGrid.map(xVal => {
         const pred = res.fit.predict(xVal);
         const { low, high } = res.fit.getCI(xVal);
-        rightData.push({ x: xVal, trend: pred, ciRange: [low, high] });
-      }
+        return { x: xVal, trend: pred, ciRange: [low, high] as [number, number] };
+      });
 
       // Scatter points
       const scatter: ChartScatterPoint[] = [];

@@ -43,7 +43,6 @@ interface HighlightedSignalsInputProps {
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   title?: string;
-  isHovered?: boolean;
   highlightRepIndex?: number;
 }
 
@@ -56,7 +55,6 @@ const HighlightedSignalsInput: React.FC<HighlightedSignalsInputProps> = ({
   onPaste,
   onKeyDown,
   title,
-  isHovered,
   highlightRepIndex,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
@@ -83,7 +81,6 @@ const HighlightedSignalsInput: React.FC<HighlightedSignalsInputProps> = ({
         title={title}
         style={{
           color: showHighlight ? "transparent" : undefined,
-          borderColor: isHovered ? "var(--pink)" : undefined,
           caretColor: "var(--text)"
         }}
       />
@@ -92,7 +89,7 @@ const HighlightedSignalsInput: React.FC<HighlightedSignalsInputProps> = ({
           {tokens.map((token, idx) => {
             if (token.isReplicate && token.repIndex === highlightRepIndex) {
               return (
-                <span key={idx} className="replicate-highlight-pill">
+                <span key={idx} className="replicate-highlight-value">
                   {token.text}
                 </span>
               );
@@ -491,7 +488,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="rows-container" style={{ flex: 1, overflowY: "auto", marginBottom: "8px", paddingRight: "6px" }}>
             {/* Blank Row (Conc = 0) */}
             {(() => {
-              const isBlankHovered = hoveredPoint?.rowId === "blank" || hoveredPoint?.id === "blank" || hoveredPoint?.id?.endsWith("-blank") || hoveredPoint?.conc === 0;
+              const isBlankHovered = (hoveredPoint?.seriesId ? hoveredPoint.seriesId === activeSeriesId : true) && (hoveredPoint?.rowId === "blank" || hoveredPoint?.id === "blank" || hoveredPoint?.id?.endsWith("-blank") || hoveredPoint?.conc === 0);
               const hasBlankWarning = blankStats && blankStats.cv > BLANK_CV_WARNING_THRESHOLD;
               const blankHighlightRepIndex = isBlankHovered ? hoveredPoint?.repIndex : undefined;
               return (
@@ -524,7 +521,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         document.getElementById("conc-input-0")?.focus();
                       }
                     }}
-                    isHovered={isBlankHovered}
                     highlightRepIndex={blankHighlightRepIndex}
                     title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${hasBlankWarning ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
                   />
@@ -541,7 +537,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {standardRows.map((r, idx) => {
               const stats = computeRowStats(r.signals);
               const hasHighCV = stats && stats.cv > STANDARD_CV_WARNING_THRESHOLD;
-              const isRowHovered = hoveredPoint?.rowId === r.id || hoveredPoint?.id === r.id;
+              const isRowHovered = (hoveredPoint?.seriesId ? hoveredPoint.seriesId === activeSeriesId : true) && (hoveredPoint?.rowId === r.id || hoveredPoint?.id === r.id);
               const repHighlightIndex = isRowHovered ? hoveredPoint?.repIndex : undefined;
               const rowTooltip = stats
                 ? `Conc: ${r.conc || "—"} | n=${stats.n}, Mean=${stats.mean.toFixed(4)}, SD=${stats.sd.toFixed(4)}, CV=${stats.cv.toFixed(1)}%${hasHighCV ? ' (⚠️ High Variance)' : ''}`
@@ -571,7 +567,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onChange={e => updateRow(r.id, "signals", e.target.value)}
                     onPaste={e => handleSignalPaste(r.id, e)}
                     onKeyDown={e => handleSignalKeyDown(idx, e)}
-                    isHovered={isRowHovered}
                     highlightRepIndex={repHighlightIndex}
                     title={rowTooltip}
                   />

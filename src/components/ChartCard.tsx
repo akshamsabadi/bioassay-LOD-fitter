@@ -492,29 +492,51 @@ const ChartLegend: React.FC<ChartLegendProps> = ({
 interface CustomTooltipProps {
   active?: boolean;
   payload?: ReadonlyArray<{
+    value?: unknown;
     payload?: {
       x?: number;
       actualX?: number | string;
     };
   }>;
+  label?: string | number;
+  coordinate?: { x: number; y: number };
   curveSeriesList: MultiCurvePlotSeries[];
   xDomain: [number, number];
   breakStart: number;
+  breakEnd?: number;
   hoveredPoint?: HoveredPointData | null;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, curveSeriesList, xDomain, breakStart, hoveredPoint }) => {
-  // Disappear when hovering directly over a data measurement point
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, curveSeriesList, xDomain, breakStart, hoveredPoint }) => {
+  // Disappear when hovering directly over a specific data measurement point (scatter-point-tooltip shows instead)
   if (hoveredPoint) return null;
-  if (!active || !payload || !payload.length) return null;
+  if (!active) return null;
 
-  // Find line entry with valid x
-  const lineEntry = payload.find(p => p?.payload && typeof p.payload.x === "number" && !isNaN(p.payload.x));
-  const pData = (lineEntry?.payload || payload[0]?.payload) as (ChartCurvePoint & Partial<ChartScatterPoint>) | undefined;
-  const x = pData?.x;
+  // 1. Try to find line entry with valid x from payload
+  const lineEntry = payload?.find(p => p?.payload && typeof p.payload.x === "number" && !isNaN(p.payload.x));
+  let x = lineEntry?.payload?.x;
+  let actualX = lineEntry?.payload?.actualX;
+
+  // 2. Fallback to any payload entry with x
+  if (x === undefined || isNaN(x)) {
+    const p0 = payload?.[0]?.payload as (ChartCurvePoint & Partial<ChartScatterPoint>) | undefined;
+    if (p0 && typeof p0.x === "number" && !isNaN(p0.x)) {
+      x = p0.x;
+      actualX = p0.actualX;
+    }
+  }
+
+  // 3. Fallback to label if provided by Recharts axis
+  if (x === undefined || isNaN(x)) {
+    if (typeof label === "number" && !isNaN(label)) {
+      x = label;
+    } else if (typeof label === "string" && !isNaN(parseFloat(label))) {
+      x = parseFloat(label);
+    }
+  }
+
   if (x === undefined || isNaN(x)) return null;
 
-  const actualX = pData?.actualX;
   const isBlank = actualX !== undefined
     ? actualX === 0
     : (x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) || (breakStart && x <= breakStart));
@@ -892,12 +914,14 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             />
             <Tooltip 
               isAnimationActive={false}
+              filterNull={false}
               content={(props) => (
                 <CustomTooltip 
                   {...props} 
                   curveSeriesList={curveSeriesList} 
                   xDomain={xDomain} 
                   breakStart={breakStart} 
+                  breakEnd={breakEnd}
                   hoveredPoint={hoveredPoint}
                 />
               )} 
@@ -919,8 +943,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.14 : 0.08);
               return (
                 <React.Fragment key={`ci-band-${s.id}`}>
-                  <Area data={s.leftChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                  <Area data={s.rightChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                  <Area data={s.leftChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                  <Area data={s.rightChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
                 </React.Fragment>
               );
             })}
@@ -950,15 +974,15 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               <>
                 {showLc && (
                   <>
-                    <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                    <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                    <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
                     <ReferenceLine y={activeSeries.results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: "none" }} />
                   </>
                 )}
                 {showLd && (
                   <>
-                    <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-                    <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+                    <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                    <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
                     <ReferenceLine y={activeSeries.results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: "none" }} />
                   </>
                 )}
@@ -1094,8 +1118,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* Zero break tick axis line */}
-            <Line data={leftAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-            <Line data={rightAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+            <Line data={leftAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+            <Line data={rightAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
           </ComposedChart>
         </ResponsiveContainer>
         
