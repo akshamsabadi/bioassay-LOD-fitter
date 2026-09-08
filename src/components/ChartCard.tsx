@@ -853,6 +853,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--subtext1)", fontSize: 11.5, fontWeight: 600, offset: -5, fontFamily: "'Plus Jakarta Sans', sans-serif" }} 
             />
             <Tooltip 
+              isAnimationActive={false}
               content={(props) => (
                 <CustomTooltip 
                   {...props} 
@@ -1063,7 +1064,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           const left = isRight ? hoveredPoint.cx - 175 : hoveredPoint.cx + 15;
           const top = Math.max(8, hoveredPoint.cy - 15);
           return (
-            <div style={{
+            <div className="scatter-point-tooltip" style={{
               position: "absolute",
               left,
               top,

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { type DemoPreset, APP_VERSION } from "../constants";
 
 interface HeaderProps {
@@ -24,6 +24,26 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showImportHelp, setShowImportHelp] = useState(false);
+  const helpContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showImportHelp) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (helpContainerRef.current && !helpContainerRef.current.contains(e.target as Node)) {
+        setShowImportHelp(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowImportHelp(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showImportHelp]);
 
   return (
     <>
@@ -121,26 +141,67 @@ export const Header: React.FC<HeaderProps> = ({
               </svg>
               <span>Import</span>
             </button>
-            <div
-              className="help-tooltip"
-              data-tooltip="SPREADSHEET / CSV IMPORT RULES:&#10;1. Column 1: Concentration (numeric).&#10;2. Use 0, 'blank', or 'blanks' for blanks.&#10;3. Columns 2+: Replicate signal readings.&#10;4. You can drag and drop any CSV/TSV file anywhere onto the page!&#10;&#10;Click 'Template' to download an example."
-              style={{
-                fontSize: "11px",
-                color: "var(--subtext0)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "22px",
-                height: "22px",
-                borderRadius: "var(--radius-pill)",
-                backgroundColor: "var(--surface1)",
-                fontWeight: 700,
-                userSelect: "none",
-                cursor: "help",
-                marginRight: "2px"
-              }}
-            >
-              ?
+            <div className="help-button-container" ref={helpContainerRef}>
+              <button
+                type="button"
+                className={`help-info-btn ${showImportHelp ? "active" : ""}`}
+                onClick={() => setShowImportHelp(prev => !prev)}
+                aria-label="CSV and TSV file import instructions and formatting guide"
+                title="CSV/TSV Import Guide & Tips"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </button>
+
+              {showImportHelp && (
+                <div className="help-popover-card" role="tooltip">
+                  <div className="help-popover-header">
+                    <span className="help-popover-title">CSV & TSV Import Guide</span>
+                    <button 
+                      type="button" 
+                      className="help-popover-close" 
+                      onClick={() => setShowImportHelp(false)}
+                      aria-label="Close guide"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="help-popover-body">
+                    <div className="help-rule-item">
+                      <span className="rule-badge">Col 1</span>
+                      <div><strong>Concentrations:</strong> Standard concentrations (numeric). For blanks, use <code>0</code>, <code>blank</code>, or <code>blanks</code>.</div>
+                    </div>
+                    <div className="help-rule-item">
+                      <span className="rule-badge">Col 2+</span>
+                      <div><strong>Signals:</strong> Direct detector readings per row (separated by commas or tabs).</div>
+                    </div>
+                    <div className="help-rule-item">
+                      <span className="rule-badge">Multi</span>
+                      <div><strong>Multi-Series:</strong> Columns like <code>Series1_Rep1</code>, <code>Series2_Rep1</code> or stacked rows with a <code>Series</code> column are parsed automatically.</div>
+                    </div>
+                    <div className="help-rule-item">
+                      <span className="rule-badge">Tip</span>
+                      <div><strong>Drag & Drop:</strong> You can drop any <code>.csv</code> or <code>.tsv</code> file anywhere onto the page!</div>
+                    </div>
+                  </div>
+                  <div className="help-popover-footer">
+                    <span>Need a reference template?</span>
+                    <button
+                      type="button"
+                      className="help-popover-action"
+                      onClick={() => {
+                        handleDownloadTemplate();
+                        setShowImportHelp(false);
+                      }}
+                    >
+                      Download Template
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

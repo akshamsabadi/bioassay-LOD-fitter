@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { type AdvancedLoDResult } from "../utils/calculations";
 import { parseCSVData } from "../utils/csvParser";
-import { type AssaySeries, type StandardRow } from "../constants";
+import { type AssaySeries, type StandardRow, BLANK_CV_WARNING_THRESHOLD, STANDARD_CV_WARNING_THRESHOLD } from "../constants";
 
 export { type StandardRow };
 
@@ -392,12 +392,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Blank Row (Conc = 0) */}
             {(() => {
               const isBlankHovered = hoveredPoint?.id === "blank" || hoveredPoint?.id?.endsWith("-blank") || hoveredPoint?.conc === 0;
+              const hasBlankWarning = blankStats && blankStats.cv > BLANK_CV_WARNING_THRESHOLD;
               return (
                 <div
-                  className={`data-row ${isBlankHovered ? "row-hovered" : ""} ${blankStats && blankStats.cv > 15 ? "has-warning" : ""}`}
+                  className={`data-row ${isBlankHovered ? "row-hovered" : ""} ${hasBlankWarning ? "has-warning" : ""}`}
                   onMouseEnter={() => setTableHoveredRowId("blank")}
                   onMouseLeave={() => setTableHoveredRowId(null)}
-                  title={blankStats ? `Blank (0 conc): n=${blankStats.n}, Mean=${blankStats.mean.toFixed(4)}, SD=${blankStats.sd.toFixed(4)}, CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Assay Blank (Conc = 0)"}
+                  title={blankStats ? `Blank (0 conc): n=${blankStats.n}, Mean=${blankStats.mean.toFixed(4)}, SD=${blankStats.sd.toFixed(4)}, CV=${blankStats.cv.toFixed(1)}%${hasBlankWarning ? ' (⚠️ High Variance)' : ''}` : "Assay Blank (Conc = 0)"}
                 >
                   <div
                     className="conc-input disabled"
@@ -429,11 +430,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       color: isBlankHovered ? "var(--pink)" : undefined,
                       borderColor: isBlankHovered ? "var(--pink)" : undefined
                     }}
-                    title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
+                    title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${hasBlankWarning ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
                   />
                   <div style={{ width: "24px", minWidth: "24px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {blankStats && blankStats.cv > 15 && (
-                      <span title={`High Variance: Blank CV is ${blankStats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
+                    {hasBlankWarning && (
+                      <span title={`High Variance: Blank CV is ${blankStats.cv.toFixed(1)}% (>${BLANK_CV_WARNING_THRESHOLD}%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
                     )}
                   </div>
                 </div>
@@ -443,7 +444,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Standard Concentration Rows */}
             {standardRows.map((r, idx) => {
               const stats = computeRowStats(r.signals);
-              const hasHighCV = stats && stats.cv > 15;
+              const hasHighCV = stats && stats.cv > STANDARD_CV_WARNING_THRESHOLD;
               const isHovered = hoveredPoint?.id === r.id;
               const rowTooltip = stats
                 ? `Conc: ${r.conc || "—"} | n=${stats.n}, Mean=${stats.mean.toFixed(4)}, SD=${stats.sd.toFixed(4)}, CV=${stats.cv.toFixed(1)}%${hasHighCV ? ' (⚠️ High Variance)' : ''}`
@@ -487,7 +488,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   />
                   <div style={{ display: "flex", alignItems: "center", gap: "2px", width: "24px", minWidth: "24px", flexShrink: 0, justifyContent: "flex-end" }}>
                     {hasHighCV && (
-                      <span title={`High Variance: CV is ${stats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1, flexShrink: 0 }}>⚠️</span>
+                      <span title={`High Variance: CV is ${stats.cv.toFixed(1)}% (>${STANDARD_CV_WARNING_THRESHOLD}%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1, flexShrink: 0 }}>⚠️</span>
                     )}
                     <button className="remove-row-btn" onClick={() => onRemoveRow(r.id)} title="Delete row">×</button>
                   </div>

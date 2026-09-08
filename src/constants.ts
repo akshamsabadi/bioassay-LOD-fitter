@@ -1,5 +1,8 @@
-export const APP_VERSION = "0.7.13";
+export const APP_VERSION = "0.7.14";
 
+// Replicate variation thresholds (%) for bioassay quality checks
+export const BLANK_CV_WARNING_THRESHOLD = 50; // Background blank signals naturally exhibit higher relative variance
+export const STANDARD_CV_WARNING_THRESHOLD = 20; // Bioanalytical acceptance limit for standard calibrators (FDA/EMA LBA guidance)
 export interface StandardRow {
   id: string;
   conc: string;

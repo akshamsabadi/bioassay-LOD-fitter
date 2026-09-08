@@ -15,6 +15,8 @@ import {
   DEMO_PRESETS,
   SERIES_COLORS,
   APP_VERSION,
+  BLANK_CV_WARNING_THRESHOLD,
+  STANDARD_CV_WARNING_THRESHOLD,
   type AssaySeries,
   type StandardRow
 } from "./constants";
@@ -106,11 +108,24 @@ function App() {
   };
 
   // Quality Checks computation
-  const computeQualityChecks = (results: AdvancedLoDResult | null, standardRows: StandardRow[]): string[] => {
+  const computeQualityChecks = (results: AdvancedLoDResult | null, standardRows: StandardRow[], blankSignals?: string): string[] => {
     if (!results) return [];
     const warnings: string[] = [];
     if (results.fit.metrics.r2 < 0.95) {
       warnings.push(`Poor fit quality (R² = ${results.fit.metrics.r2.toFixed(4)}). Consider manual model selection.`);
+    }
+    if (blankSignals) {
+      const bSigs = blankSignals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+      if (bSigs.length > 1) {
+        const mean = bSigs.reduce((a, b) => a + b, 0) / bSigs.length;
+        if (Math.abs(mean) > 1e-9) {
+          const sd = Math.sqrt(bSigs.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (bSigs.length - 1));
+          const cvPercent = (sd / Math.abs(mean)) * 100;
+          if (cvPercent > BLANK_CV_WARNING_THRESHOLD) {
+            warnings.push(`High blank replicate variance (CV = ${cvPercent.toFixed(1)}%). Check blank baseline purity.`);
+          }
+        }
+      }
     }
     standardRows.forEach((row) => {
       const c = parseFloat(row.conc);
@@ -120,9 +135,9 @@ function App() {
         const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
         if (Math.abs(mean) > 1e-9) {
           const sd = Math.sqrt(sigs.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (sigs.length - 1));
-          const cv = sd / Math.abs(mean);
-          if (cv > 0.15) {
-            warnings.push(`High replicate variance at concentration ${c} (CV = ${(cv * 100).toFixed(1)}%). Check for pipetting errors.`);
+          const cvPercent = (sd / Math.abs(mean)) * 100;
+          if (cvPercent > STANDARD_CV_WARNING_THRESHOLD) {
+            warnings.push(`High replicate variance at concentration ${c} (CV = ${cvPercent.toFixed(1)}%). Check for pipetting errors.`);
           }
         }
       }
@@ -179,7 +194,7 @@ function App() {
           return { series: s, results: null, qualityChecks: [] };
         }
         const res = calculateAdvancedLoD(blanks, standards, s.fitMethod);
-        const qc = computeQualityChecks(res, s.standardRows);
+        const qc = computeQualityChecks(res, s.standardRows, s.blankSignals);
         return { series: s, results: res, qualityChecks: qc };
       } catch {
         return { series: s, results: null, qualityChecks: [] };
