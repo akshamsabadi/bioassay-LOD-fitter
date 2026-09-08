@@ -6,6 +6,7 @@ import {
   computeSensitivityFoldChange
 } from "./utils/calculations";
 import { parseCSVData } from "./utils/csvParser";
+import { formatScientificUnicode } from "./utils/formatters";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { ChartCard, type MultiCurvePlotSeries } from "./components/ChartCard";
@@ -497,9 +498,9 @@ function App() {
     if (!displayResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.3)");
+    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.4)");
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.7.3");
+    csvRows.push("App Version,v0.7.4");
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -530,7 +531,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.3_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.4_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -584,7 +585,7 @@ function App() {
 | :--- | :--- | :--- | :--- | :--- | :--- |
 `;
       leaderboardItems.forEach(item => {
-        leaderboardMarkdown += `| **${item.name}** | ${item.results.fit.method.toUpperCase()} | **${item.results.lodConc.toExponential(3)}** | [${item.results.lodCI.low.toExponential(2)}, ${item.results.lodCI.high.toExponential(2)}] | ${item.results.fit.metrics.r2.toFixed(4)} | ${item.foldChangeVsRef} |
+        leaderboardMarkdown += `| **${item.name}** | ${item.results.fit.method.toUpperCase()} | **${formatScientificUnicode(item.results.lodConc, 3)}** | [${formatScientificUnicode(item.results.lodCI.low, 2)}, ${formatScientificUnicode(item.results.lodCI.high, 2)}] | ${item.results.fit.metrics.r2.toFixed(4)} | ${item.foldChangeVsRef} |
 `;
       });
       leaderboardMarkdown += "\n";
@@ -592,18 +593,21 @@ function App() {
 
     let fitParamsText = "";
     Object.entries(targetResults.fit.parameters).forEach(([p, val]) => {
-      fitParamsText += `| **${p}** | ${val.toFixed(6)} |
+      const formattedVal = Math.abs(val) >= 1000 || (Math.abs(val) > 0 && Math.abs(val) < 0.01)
+        ? formatScientificUnicode(val, 3)
+        : val.toFixed(4);
+      fitParamsText += `| **${p}** | ${formattedVal} |
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.3)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.4)
 Generated: ${new Date().toLocaleDateString()}
 
 ${leaderboardMarkdown}#### 📈 Active Curve: ${targetSeries.name}
 | Parameter | Value |
 | :--- | :--- |
-| **Limit of Detection (LOD)** | **${targetResults.lodConc.toExponential(4)}** |
-| **95% Confidence Interval** | [${targetResults.lodCI.low.toExponential(4)}, ${targetResults.lodCI.high.toExponential(4)}] |
+| **Limit of Detection (LOD)** | **${formatScientificUnicode(targetResults.lodConc, 4)}** |
+| **95% Confidence Interval** | [${formatScientificUnicode(targetResults.lodCI.low, 4)}, ${formatScientificUnicode(targetResults.lodCI.high, 4)}] |
 | **Model Fitted** | ${targetResults.fit.method.toUpperCase()} |
 | **R² (Coefficient of Determination)** | ${targetResults.fit.metrics.r2.toFixed(5)} |
 | **AICc Score** | ${targetResults.fit.metrics.aicc.toFixed(2)} |

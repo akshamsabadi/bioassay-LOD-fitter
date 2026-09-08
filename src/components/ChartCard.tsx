@@ -13,6 +13,7 @@ import {
   Tooltip
 } from "recharts";
 import { type AdvancedLoDResult } from "../utils/calculations";
+import { formatScientificUnicode } from "../utils/formatters";
 
 interface XAxisTickProps {
   x?: number;
@@ -80,8 +81,14 @@ const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
   if (!payload) return null;
   const val = payload.value;
   let label = val.toString();
+  let mantissa = "";
+  let exponent: number | null = null;
+
   if (Math.abs(val) >= 10000 || (Math.abs(val) > 0 && Math.abs(val) < 0.001)) {
-    label = val.toExponential(1);
+    const expStr = val.toExponential(1);
+    const [m, e] = expStr.split("e");
+    mantissa = m;
+    exponent = parseInt(e, 10);
   } else if (Math.abs(val - Math.round(val)) > 1e-6) {
     label = parseFloat(val.toFixed(4)).toString();
   }
@@ -89,11 +96,19 @@ const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
     <g>
       <line x1={x} y1={y} x2={x - 6} y2={y} stroke="var(--border-subtle)" />
       <text x={x - 10} y={y + 3} fill="var(--subtext0)" textAnchor="end" fontSize={10} fontFamily="'Plus Jakarta Sans', sans-serif" className="tabular-nums">
-        {label}
+        {exponent !== null ? (
+          <>
+            <tspan>{mantissa}×10</tspan>
+            <tspan baselineShift="super" fontSize={8}>{exponent}</tspan>
+          </>
+        ) : (
+          label
+        )}
       </text>
     </g>
   );
 };
+
 
 interface ViewBoxProps {
   viewBox?: {
@@ -411,7 +426,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.7.3.svg";
+    downloadLink.download = "bioassay_plot_v0.7.4.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -475,7 +490,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.7.3.png";
+        downloadLink.download = "bioassay_plot_v0.7.4.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -551,7 +566,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                 border: s.isActive ? `1px solid ${s.color}` : "1px solid transparent",
                 transition: "all 0.15s ease"
               }}
-              title={`Click to focus ${s.name} (LOD: ${s.results.lodConc.toExponential(2)})`}
+              title={`Click to focus ${s.name} (LOD: ${formatScientificUnicode(s.results.lodConc, 2)})`}
             >
               <span style={{ width: "10px", height: "3px", backgroundColor: s.color, borderRadius: "var(--radius-pill)" }} />
               <span style={{ width: "10px", height: "0", borderTop: `2px dashed ${s.color}` }} />
@@ -603,9 +618,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     return (
       <div className="custom-chart-tooltip">
         <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "4px", marginBottom: "2px", justifyContent: "space-between" }}>
-          <span style={{ color: "var(--subtext0)", fontWeight: 700, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>CONCENTRATION</span>
-          <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', 'Google Sans Mono', monospace" }} className="tabular-nums">
-            {x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) ? "0 (Blank)" : x.toFixed(4)}
+          <span style={{ color: "var(--subtext0)", fontWeight: 600, fontSize: "0.72rem" }}>Concentration</span>
+          <span style={{ fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">
+            {x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) ? "0 (Blank)" : formatScientificUnicode(x, 3)}
           </span>
         </div>
 
@@ -617,7 +632,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: s.color }} />
                 {s.name}:
               </span>
-              <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', 'Google Sans Mono', monospace" }} className="tabular-nums">
+              <span style={{ fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">
                 {isFinite(pred) ? pred.toFixed(3) : "—"}
               </span>
             </div>
@@ -985,11 +1000,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               )}
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
                 <span style={{ color: "var(--subtext0)" }}>Concentration</span>
-                <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">{hoveredPoint.conc}</span>
+                <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">{hoveredPoint.conc}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
                 <span style={{ color: "var(--subtext0)" }}>Signal</span>
-                <span style={{ fontWeight: 700, color: "var(--pink)", fontFamily: "'JetBrains Mono', monospace" }} className="tabular-nums">{hoveredPoint.y.toFixed(4)}</span>
+                <span style={{ fontWeight: 700, color: "var(--pink)", fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">{hoveredPoint.y.toFixed(4)}</span>
               </div>
             </div>
           );
