@@ -112,9 +112,13 @@ export const calculateAdvancedLoD = (
   };
 
   const availableMethods: Array<'linear' | 'langmuir' | '4pl' | '5pl'> = ['linear', 'langmuir', '4pl', '5pl'];
-  let betterMethod: 'linear' | 'langmuir' | '4pl' | '5pl' = '4pl';
+  // Disqualify models with more parameters than data points (k > n) from auto-selection
+  const eligibleMethods = availableMethods.filter(m => standards.length >= fits[m].k);
+  const candidates = eligibleMethods.length > 0 ? eligibleMethods : availableMethods;
+
+  let betterMethod: 'linear' | 'langmuir' | '4pl' | '5pl' = candidates[0];
   let bestAicc = Infinity;
-  availableMethods.forEach(m => {
+  candidates.forEach(m => {
     const aicc = fits[m].metrics.aicc;
     if (isFinite(aicc) && aicc < bestAicc) {
       bestAicc = aicc;
@@ -122,10 +126,10 @@ export const calculateAdvancedLoD = (
     }
   });
 
-  // If all AICc are infinite (e.g. tiny sample size), select model by highest R^2
+  // If all AICc are infinite (e.g. tiny sample size), select eligible model by highest R^2
   if (!isFinite(bestAicc)) {
     let bestR2 = -Infinity;
-    availableMethods.forEach(m => {
+    candidates.forEach(m => {
       const r2 = fits[m].metrics.r2;
       if (isFinite(r2) && r2 > bestR2) {
         bestR2 = r2;
@@ -141,8 +145,10 @@ export const calculateAdvancedLoD = (
     fit = fits[method] || fits[betterMethod];
   }
 
-  const meanBlank = blanks.reduce((a, b) => a + b, 0) / blanks.length;
-  const sdBlank = Math.sqrt(blanks.reduce((a, b) => a + Math.pow(b - meanBlank, 2), 0) / (blanks.length - 1));
+  const meanBlank = blanks.length > 0 ? blanks.reduce((a, b) => a + b, 0) / blanks.length : 0;
+  const sdBlank = blanks.length > 1 
+    ? Math.sqrt(blanks.reduce((a, b) => a + Math.pow(b - meanBlank, 2), 0) / (blanks.length - 1))
+    : 0;
 
   const { sd: sdPooledRaw, df: dfPooledRaw } = calculatePooledSD(standards);
   const hasReplicates = dfPooledRaw > 0;
@@ -152,13 +158,14 @@ export const calculateAdvancedLoD = (
   const dfPooled = hasReplicates ? dfPooledRaw : Math.max(1, standards.length - fit.k);
 
   // Check curve directionality (increasing vs decreasing/competitive assay)
-  const minStdX = Math.min(...x.filter(val => val > 0));
-  const maxStdX = Math.max(...x);
+  const positiveX = x.filter(val => val > 0);
+  const minStdX = positiveX.length > 0 ? Math.min(...positiveX) : 1;
+  const maxStdX = x.length > 0 ? Math.max(...x) : 1;
   const predMin = fit.predict(minStdX);
   const predMax = fit.predict(maxStdX);
   const isDecreasing = predMax < predMin;
 
-  const tAlpha = tinv(1 - alpha, blanks.length - 1);
+  const tAlpha = tinv(1 - alpha, Math.max(1, blanks.length - 1));
   const tBeta = tinv(1 - beta, dfPooled);
 
   const lc = isDecreasing 
@@ -180,7 +187,7 @@ export const calculateAdvancedLoD = (
   } else if (fit.method === 'langmuir') {
     const bmax = p['Bmax'];
     const kd = p['Kd'];
-    if (bmax - ld > 0 && ld > 0) {
+    if (bmax - ld > 0 && ld > 0 && kd > 0) {
       lodConc = (ld * kd) / (bmax - ld);
     }
   } else if (fit.method === '4pl') {
@@ -224,13 +231,19 @@ export const calculateAdvancedLoD = (
       const seLOD = seFit / Math.abs(deriv);
       const dfForLOD = dfPooled;
       const tCrit = tinv(0.975, dfForLOD) || 1.96;
+      const margin = tCrit * seLOD;
+      const lowLinear = lodConc - margin;
+      // Guarantee strictly positive lower bound for logarithmic concentration axis
+      const lowBound = lowLinear > 0
+        ? lowLinear
+        : lodConc * Math.exp(-Math.min(3, margin / lodConc));
       
       lodCI = {
-        low: Math.max(0, lodConc - tCrit * seLOD),
-        high: lodConc + tCrit * seLOD
+        low: Math.max(1e-12, lowBound),
+        high: lodConc + margin
       };
     } else {
-      lodCI = { low: lodConc * 0.85, high: lodConc * 1.15 };
+      lodCI = { low: Math.max(1e-12, lodConc * 0.85), high: lodConc * 1.15 };
     }
   }
 

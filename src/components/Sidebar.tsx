@@ -72,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [showDilutionModal, setShowDilutionModal] = useState(false);
   const [dilutionStartConc, setDilutionStartConc] = useState("10");
   const [dilutionFactor, setDilutionFactor] = useState("3");
-  const [dilutionSteps, setDilutionSteps] = useState(8);
+  const [dilutionSteps, setDilutionSteps] = useState<number | string>(8);
   const [dilutionDirection, setDilutionDirection] = useState<"dilution" | "serial">("dilution");
 
   // Replicate Statistics Calculation Helper
@@ -82,19 +82,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const mean = parts.reduce((a, b) => a + b, 0) / parts.length;
     if (parts.length === 1) return { n: 1, mean, sd: 0, cv: 0 };
     const sd = Math.sqrt(parts.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (parts.length - 1));
-    const cv = mean !== 0 ? (sd / Math.abs(mean)) * 100 : 0;
+    const cv = Math.abs(mean) > 1e-12 ? (sd / Math.abs(mean)) * 100 : 0;
     return { n: parts.length, mean, sd, cv };
   };
 
   const handleGenerateDilution = () => {
     const start = parseFloat(dilutionStartConc);
     const factor = parseFloat(dilutionFactor);
+    const steps = typeof dilutionSteps === "number" ? dilutionSteps : parseInt(dilutionSteps) || 8;
     if (isNaN(start) || start <= 0 || isNaN(factor) || factor <= 1) {
       alert("Please enter a valid starting concentration (>0) and dilution factor (>1).");
       return;
     }
     const newRows: StandardRow[] = [];
-    for (let i = 0; i < dilutionSteps; i++) {
+    for (let i = 0; i < steps; i++) {
       const val = dilutionDirection === "dilution"
         ? start / Math.pow(factor, i)
         : start * Math.pow(factor, i);
@@ -110,18 +111,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setShowDilutionModal(false);
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleConcKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      document.getElementById(`signals-input-${index}`)?.focus();
+    }
+  };
+
+  const handleSignalKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       if (index === standardRows.length - 1) {
         onAddRow();
         setTimeout(() => {
-          const nextConc = document.getElementById(`conc-input-${index + 1}`);
-          nextConc?.focus();
+          document.getElementById(`conc-input-${index + 1}`)?.focus();
         }, 50);
       } else {
-        const nextConc = document.getElementById(`conc-input-${index + 1}`);
-        nextConc?.focus();
+        document.getElementById(`conc-input-${index + 1}`)?.focus();
       }
     }
   };
@@ -148,7 +154,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const text = e.clipboardData.getData("text");
     if (!text) return;
 
-    if (text.includes("\t") || text.includes("\n")) {
+    const lower = text.toLowerCase();
+    const isFullTable = (lower.includes("conc") || lower.includes("dose")) && (text.includes("\t") || text.includes("\n"));
+    if (isFullTable) {
       const parsed = parseCSVData(text);
       if (parsed.standards.length > 0) {
         e.preventDefault();
@@ -156,7 +164,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         setStandardRows(parsed.standards);
         return;
       }
-      const numbers = text.split(/[\t\r\n,;]+/).map(s => s.trim()).filter(s => !isNaN(parseFloat(s)));
+    }
+
+    if (text.includes("\t") || text.includes("\n") || text.includes(";")) {
+      const numbers = text.split(/[\t\r\n,;]+/).map(s => s.trim().replace(",", ".")).filter(s => !isNaN(parseFloat(s)));
       if (numbers.length > 0) {
         e.preventDefault();
         setBlankSignals(numbers.join(", "));
@@ -168,7 +179,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const text = e.clipboardData.getData("text");
     if (!text) return;
 
-    if (text.includes("\t") || text.includes("\n")) {
+    const lower = text.toLowerCase();
+    const isFullTable = (lower.includes("conc") || lower.includes("dose")) && (text.includes("\t") || text.includes("\n"));
+    if (isFullTable) {
       const parsed = parseCSVData(text);
       if (parsed.standards.length > 0) {
         e.preventDefault();
@@ -176,7 +189,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         setStandardRows(parsed.standards);
         return;
       }
-      const numbers = text.split(/[\t\r\n,;]+/).map(s => s.trim()).filter(s => !isNaN(parseFloat(s)));
+    }
+
+    if (text.includes("\t") || text.includes("\n") || text.includes(";")) {
+      const numbers = text.split(/[\t\r\n,;]+/).map(s => s.trim().replace(",", ".")).filter(s => !isNaN(parseFloat(s)));
       if (numbers.length > 0) {
         e.preventDefault();
         updateRow(id, "signals", numbers.join(", "));
@@ -443,7 +459,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     placeholder="Conc"
                     value={r.conc}
                     onChange={e => updateRow(r.id, "conc", e.target.value)}
-                    onKeyDown={e => handleKeyDown(idx, e)}
+                    onKeyDown={e => handleConcKeyDown(idx, e)}
                     style={{
                       color: isHovered ? "var(--pink)" : undefined,
                       borderColor: isHovered ? "var(--pink)" : undefined
@@ -457,7 +473,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     value={r.signals}
                     onChange={e => updateRow(r.id, "signals", e.target.value)}
                     onPaste={e => handleSignalPaste(r.id, e)}
-                    onKeyDown={e => handleKeyDown(idx, e)}
+                    onKeyDown={e => handleSignalKeyDown(idx, e)}
                     style={{
                       color: isHovered ? "var(--pink)" : undefined,
                       borderColor: isHovered ? "var(--pink)" : undefined
@@ -562,7 +578,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       type="number"
                       className="text-input"
                       value={dilutionSteps}
-                      onChange={e => setDilutionSteps(Math.max(3, Math.min(24, parseInt(e.target.value) || 8)))}
+                      onChange={e => setDilutionSteps(e.target.value)}
+                      onBlur={() => {
+                        const parsed = parseInt(String(dilutionSteps), 10);
+                        setDilutionSteps(isNaN(parsed) ? 8 : Math.max(3, Math.min(24, parsed)));
+                      }}
                       min="3"
                       max="24"
                     />

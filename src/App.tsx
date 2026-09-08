@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   calculateAdvancedLoD,
   type StandardData,
@@ -9,11 +9,12 @@ import { parseCSVData } from "./utils/csvParser";
 import { formatScientificUnicode } from "./utils/formatters";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
-import { ChartCard, type MultiCurvePlotSeries } from "./components/ChartCard";
+import { ChartCard, type MultiCurvePlotSeries, type ChartScatterPoint } from "./components/ChartCard";
 import { ResultsPanel, type SeriesLeaderboardItem } from "./components/ResultsPanel";
 import {
   DEMO_PRESETS,
   SERIES_COLORS,
+  APP_VERSION,
   type AssaySeries,
   type StandardRow
 } from "./constants";
@@ -25,7 +26,7 @@ function App() {
   });
 
   const [seriesList, setSeriesList] = useState<AssaySeries[]>(() => {
-    return DEMO_PRESETS[0].series;
+    return structuredClone(DEMO_PRESETS[0].series);
   });
   const [activeSeriesId, setActiveSeriesId] = useState<string>(() => {
     return DEMO_PRESETS[0].series[0].id;
@@ -39,6 +40,7 @@ function App() {
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const dragCounter = useRef(0);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -46,10 +48,11 @@ function App() {
     localStorage.setItem("app-theme", theme);
   }, [theme]);
 
-  useEffect(() => {
+  const handleSelectSeries = (id: string) => {
+    setActiveSeriesId(id);
     setHoveredPoint(null);
     setTableHoveredRowId(null);
-  }, [activeSeriesId]);
+  };
 
   const toggleTheme = () => {
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
@@ -82,7 +85,7 @@ function App() {
       ]
     };
     setSeriesList(prev => [...prev, newSeries]);
-    setActiveSeriesId(newId);
+    handleSelectSeries(newId);
   };
 
   const handleRemoveSeries = (id: string) => {
@@ -90,7 +93,7 @@ function App() {
     setSeriesList(prev => {
       const nextList = prev.filter(s => s.id !== id);
       if (activeSeriesId === id) {
-        setActiveSeriesId(nextList[0].id);
+        handleSelectSeries(nextList[0].id);
       }
       return nextList;
     });
@@ -117,9 +120,9 @@ function App() {
       const sigs = row.signals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
       if (sigs.length > 1) {
         const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
-        if (mean > 0) {
+        if (Math.abs(mean) > 1e-9) {
           const sd = Math.sqrt(sigs.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (sigs.length - 1));
-          const cv = sd / mean;
+          const cv = sd / Math.abs(mean);
           if (cv > 0.15) {
             warnings.push(`High replicate variance at concentration ${c} (CV = ${(cv * 100).toFixed(1)}%). Check for pipetting errors.`);
           }
@@ -136,12 +139,15 @@ function App() {
       .filter(item => !isNaN(item.conc))
       .sort((a, b) => a.conc - b.conc);
     if (sortedStandards.length > 2) {
+      const means = sortedStandards.map(s => s.mean);
+      const signalSpan = Math.max(...means) - Math.min(...means);
+      const threshold = Math.max(1e-9, signalSpan * 0.05);
       let increases = 0;
       let decreases = 0;
       for (let i = 1; i < sortedStandards.length; i++) {
         const diff = sortedStandards[i].mean - sortedStandards[i - 1].mean;
-        if (diff > 0.05) increases++;
-        else if (diff < -0.05) decreases++;
+        if (diff > threshold) increases++;
+        else if (diff < -threshold) decreases++;
       }
       if (increases > 0 && decreases > 0) {
         warnings.push("Non-monotonic response detected (Hook Effect / signal drop at high concentration).");
@@ -342,7 +348,7 @@ function App() {
       }
 
       // Scatter points
-      const scatter: any[] = [];
+      const scatter: ChartScatterPoint[] = [];
       // Blanks
       s.blankSignals.split(",").forEach(sig => {
         const val = parseFloat(sig.trim());
@@ -403,8 +409,8 @@ function App() {
 
   // Comparative Leaderboard Items
   const leaderboardItems = useMemo((): SeriesLeaderboardItem[] => {
-    const refResult = validVisibleSeries[0]?.results;
-    const refLod = refResult?.lodConc || 0;
+    const refItem = validVisibleSeries.find(item => Number.isFinite(item.results?.lodConc) && item.results!.lodConc > 0) || validVisibleSeries[0];
+    const refLod = (refItem && Number.isFinite(refItem.results?.lodConc)) ? refItem.results!.lodConc : 0;
 
     return validVisibleSeries.map(item => {
       const s = item.series;
@@ -438,8 +444,8 @@ function App() {
   const handleSelectPreset = (index: number) => {
     if (index < 0 || index >= DEMO_PRESETS.length) return;
     const preset = DEMO_PRESETS[index];
-    setSeriesList(preset.series);
-    setActiveSeriesId(preset.series[0].id);
+    setSeriesList(structuredClone(preset.series));
+    handleSelectSeries(preset.series[0].id);
     setPlotTitle(preset.plotTitle);
     setDemoIndex(index);
     setHoveredPoint(null);
@@ -455,7 +461,7 @@ function App() {
       const parsed = parseCSVData(text);
       if (parsed.multiSeries && parsed.multiSeries.length > 1) {
         setSeriesList(parsed.multiSeries);
-        setActiveSeriesId(parsed.multiSeries[0].id);
+        handleSelectSeries(parsed.multiSeries[0].id);
         alert(`Successfully imported ${parsed.multiSeries.length} curves from file!`);
       } else if (parsed.blankSignals || parsed.standards.length > 0) {
         if (parsed.blankSignals) updateActiveSeriesField("blankSignals", parsed.blankSignals);
@@ -475,16 +481,26 @@ function App() {
     e.target.value = "";
   };
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDraggingOver(true);
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDraggingOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.currentTarget === e.target) {
+    dragCounter.current -= 1;
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
       setIsDraggingOver(false);
     }
   };
@@ -492,6 +508,7 @@ function App() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    dragCounter.current = 0;
     setIsDraggingOver(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
@@ -503,9 +520,9 @@ function App() {
     if (!displayResults) return;
     const csvRows: string[] = [];
     csvRows.push("# ===================================================");
-    csvRows.push("# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v0.7.10)");
+    csvRows.push(`# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v${APP_VERSION})`);
     csvRows.push("# ===================================================");
-    csvRows.push("App Version,v0.7.10");
+    csvRows.push(`App Version,v${APP_VERSION}`);
     csvRows.push(`Total Curves,${seriesList.length}`);
     csvRows.push("");
 
@@ -536,7 +553,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v0.7.10_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `bioassay_multi_curve_report_v${APP_VERSION}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -605,7 +622,7 @@ function App() {
 `;
     });
 
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v0.7.10)
+    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v${APP_VERSION})
 Generated: ${new Date().toLocaleDateString()}
 
 ${leaderboardMarkdown}#### 📈 Active Curve: ${targetSeries.name}
@@ -638,6 +655,7 @@ ${fitParamsText}`;
   return (
     <div
       className="app-wrapper"
+      onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -676,7 +694,7 @@ ${fitParamsText}`;
           isCollapsed={isSidebarCollapsed}
           seriesList={seriesList}
           activeSeriesId={activeSeries.id}
-          setActiveSeriesId={setActiveSeriesId}
+          setActiveSeriesId={handleSelectSeries}
           onAddSeries={handleAddSeries}
           onRemoveSeries={handleRemoveSeries}
           onToggleSeriesVisibility={handleToggleSeriesVisibility}
@@ -738,14 +756,14 @@ ${fitParamsText}`;
                 handleExportCSV={handleExportCSV}
                 hoveredSeriesId={hoveredSeriesId}
                 setHoveredSeriesId={setHoveredSeriesId}
-                onSelectSeries={id => setActiveSeriesId(id)}
+                onSelectSeries={handleSelectSeries}
               />
               <ResultsPanel
                 activeSeries={displaySeries}
                 activeResults={displayResults}
                 pendingSeriesName={!activeResults && seriesList.length > 1 ? activeSeries.name : undefined}
                 leaderboardItems={leaderboardItems}
-                onSelectSeries={id => setActiveSeriesId(id)}
+                onSelectSeries={handleSelectSeries}
                 xAxisLabel={xAxisLabel}
                 fitMethod={displaySeries.fitMethod}
                 setFitMethod={method => {

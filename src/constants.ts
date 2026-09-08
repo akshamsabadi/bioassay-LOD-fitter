@@ -1,3 +1,5 @@
+export const APP_VERSION = "0.7.11";
+
 export interface StandardRow {
   id: string;
   conc: string;

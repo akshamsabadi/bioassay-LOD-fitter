@@ -22,11 +22,12 @@ export interface FitResult {
 const models = {
   linear: {
     func: (x: number, [m, b]: number[]) => m * x + b,
-    dfdx: (_x: number, [m, _b]: number[]) => m,
-    grad: (x: number, [_m, _b]: number[]) => [x, 1],
+    dfdx: (_x: number, [m]: number[]) => m,
+    grad: (x: number) => [x, 1],
     k: 2,
     paramNames: ['Slope (m)', 'Intercept (b)'],
-    initialValues: (_x: number[], y: number[]) => [1, y[0]]
+    initialValues: (_x: number[], y: number[]) => [1, y[0]],
+    minValues: [-Number.MAX_VALUE, -Number.MAX_VALUE]
   },
   langmuir: {
     func: (x: number, [bmax, kd]: number[]) => {
@@ -34,7 +35,7 @@ const models = {
       return (bmax * x) / (kd + x);
     },
     dfdx: (x: number, [bmax, kd]: number[]) => {
-      if (x <= 0) return 0;
+      if (x < 0 || kd <= 0) return 0;
       const denom = kd + x;
       if (denom === 0) return 0;
       const val = (bmax * kd) / (denom * denom);
@@ -48,7 +49,8 @@ const models = {
     },
     k: 2,
     paramNames: ['Bmax', 'Kd'],
-    initialValues: (x: number[], y: number[]) => [Math.max(...y), x[Math.floor(x.length / 2)] || 1]
+    initialValues: (x: number[], y: number[]) => [Math.max(...y), x[Math.floor(x.length / 2)] || 1],
+    minValues: [0, 1e-12]
   },
   '4pl': {
     func: (x: number, [a, b, c, d]: number[]) => {
@@ -88,7 +90,8 @@ const models = {
       const positiveX = x.filter(v => v > 0);
       const midX = positiveX.length > 0 ? positiveX[Math.floor(positiveX.length / 2)] : 1;
       return [Math.min(...y), 1, midX, Math.max(...y)];
-    }
+    },
+    minValues: [-Number.MAX_VALUE, 0.01, 1e-12, -Number.MAX_VALUE]
   },
   '5pl': {
     func: (x: number, [a, b, c, d, g]: number[]) => {
@@ -134,7 +137,8 @@ const models = {
       const positiveX = x.filter(v => v > 0);
       const midX = positiveX.length > 0 ? positiveX[Math.floor(positiveX.length / 2)] : 1;
       return [Math.min(...y), 1, midX, Math.max(...y), 1];
-    }
+    },
+    minValues: [-Number.MAX_VALUE, 0.01, 1e-12, -Number.MAX_VALUE, 0.01]
   }
 };
 
@@ -158,7 +162,7 @@ export const fitData = (x: number[], y: number[], method: 'linear' | 'langmuir' 
     fitSucceeded = true;
   } else {
     try {
-      const options = { initialValues: initialVals, maxIterations: 1000 };
+      const options = { initialValues: initialVals, minValues: model.minValues, maxIterations: 1000 };
       const result = levenbergMarquardt({ x, y }, (p: number[]) => (xi: number) => model.func(xi, p), options);
       if (result && Array.isArray(result.parameterValues) && result.parameterValues.every(v => isFinite(v))) {
         params = result.parameterValues;

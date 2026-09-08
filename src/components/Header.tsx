@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { type DemoPreset } from "../constants";
+import { type DemoPreset, APP_VERSION } from "../constants";
 
 interface HeaderProps {
   theme: "dark" | "light";
@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div className="header-title-wrap">
             <h1 className="header-title">Bioassay LOD Fitter</h1>
-            <span className="header-version-pill">v0.7.10</span>
+            <span className="header-version-pill">v{APP_VERSION}</span>
           </div>
         </div>
         

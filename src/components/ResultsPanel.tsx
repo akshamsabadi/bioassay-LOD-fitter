@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { type AdvancedLoDResult } from "../utils/calculations";
 import { type AssaySeries } from "../constants";
-import { ScientificDisplay, formatCIRange } from "../utils/formatters";
+import { formatCIRange } from "../utils/formatters";
+import { ScientificDisplay } from "./ScientificDisplay";
 
 export interface SeriesLeaderboardItem {
   id: string;
@@ -55,11 +56,17 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     if (!sortField) return leaderboardItems;
     return [...leaderboardItems].sort((a, b) => {
       let cmp = 0;
-      if (sortField === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortField === "model") cmp = a.results.fit.method.localeCompare(b.results.fit.method);
-      else if (sortField === "lod") cmp = (a.results.lodConc || Infinity) - (b.results.lodConc || Infinity);
-      else if (sortField === "r2") cmp = a.results.fit.metrics.r2 - b.results.fit.metrics.r2;
-      else if (sortField === "fold") cmp = (a.results.lodConc || 0) - (b.results.lodConc || 0);
+      if (sortField === "name") {
+        cmp = a.name.localeCompare(b.name);
+      } else if (sortField === "model") {
+        cmp = a.results.fit.method.localeCompare(b.results.fit.method);
+      } else if (sortField === "lod" || sortField === "fold") {
+        const aLod = Number.isFinite(a.results.lodConc) && a.results.lodConc > 0 ? a.results.lodConc : Infinity;
+        const bLod = Number.isFinite(b.results.lodConc) && b.results.lodConc > 0 ? b.results.lodConc : Infinity;
+        cmp = aLod - bLod;
+      } else if (sortField === "r2") {
+        cmp = a.results.fit.metrics.r2 - b.results.fit.metrics.r2;
+      }
       return sortAsc ? cmp : -cmp;
     });
   }, [leaderboardItems, sortField, sortAsc]);
@@ -250,7 +257,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               </span>
             </div>
 
-            {!isNaN(activeResults.lodConc) && !isNaN(activeResults.lodCI.low) ? (
+            {Number.isFinite(activeResults.lodConc) && Number.isFinite(activeResults.lodCI.low) && Number.isFinite(activeResults.lodCI.high) ? (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.76rem", color: "var(--subtext0)", marginTop: "8px", flexWrap: "wrap" }}>
                 <span>95% Confidence Interval:</span>
                 <span className="hero-ci-pill">
@@ -258,7 +265,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   {cleanUnit && <span style={{ marginLeft: "4px", color: "var(--subtext0)" }}>{cleanUnit}</span>}
                 </span>
               </div>
-            ) : isNaN(activeResults.lodConc) ? (
+            ) : !Number.isFinite(activeResults.lodConc) ? (
               <div style={{ fontSize: "0.72rem", color: "var(--red)", marginTop: "6px", backgroundColor: "color-mix(in srgb, var(--red) 10%, transparent)", padding: "6px 10px", borderRadius: "var(--radius-sm)" }}>
                 ⚠️ Detection limit signal ({activeResults.ld.toFixed(3)}) falls outside assay dynamic range
               </div>

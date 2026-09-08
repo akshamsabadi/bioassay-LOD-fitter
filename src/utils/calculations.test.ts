@@ -118,12 +118,65 @@ const testOutOfBoundsLOD = () => {
   console.log('✓ testOutOfBoundsLOD passed!');
 };
 
+const testAutoModelDisqualifiesOverparameterized = () => {
+  const blanks = [0.08, 0.12, 0.10];
+  // n = 3 points only (4PL requires 4 params, 5PL requires 5)
+  const standards = [
+    { concentration: 0.1, readout: 0.15 },
+    { concentration: 1.0, readout: 1.10 },
+    { concentration: 10.0, readout: 4.80 }
+  ];
+
+  const result = calculateAdvancedLoD(blanks, standards, 'auto');
+  if (result.fit.method === '4pl' || result.fit.method === '5pl') {
+    throw new Error(`Auto model selection should not select overparameterized 4PL/5PL for n=3 standards! Got: ${result.fit.method}`);
+  }
+  console.log('✓ testAutoModelDisqualifiesOverparameterized passed!');
+};
+
+const testSingleBlankDivisionByZero = () => {
+  const blanks = [0.10];
+  const standards = [
+    { concentration: 0.1, readout: 0.15 },
+    { concentration: 1.0, readout: 1.10 },
+    { concentration: 10.0, readout: 4.80 }
+  ];
+
+  const result = calculateAdvancedLoD(blanks, standards, 'linear');
+  if (isNaN(result.sdBlank) || !isFinite(result.sdBlank)) {
+    throw new Error(`Expected finite sdBlank for single blank, got: ${result.sdBlank}`);
+  }
+  if (result.sdBlank !== 0) {
+    throw new Error(`Expected sdBlank to be 0 for single blank, got: ${result.sdBlank}`);
+  }
+  console.log('✓ testSingleBlankDivisionByZero passed!');
+};
+
+const testPositiveLODCILow = () => {
+  const blanks = [0.01, 0.09, 0.05];
+  const standards = [
+    { concentration: 0.01, readout: 0.06 },
+    { concentration: 0.1, readout: 0.12 },
+    { concentration: 1.0, readout: 1.05 },
+    { concentration: 10.0, readout: 4.80 }
+  ];
+
+  const result = calculateAdvancedLoD(blanks, standards, 'auto');
+  if (result.lodCI.low <= 0 || !isFinite(result.lodCI.low)) {
+    throw new Error(`Expected positive finite lodCI.low on log scale, got: ${result.lodCI.low}`);
+  }
+  console.log('✓ testPositiveLODCILow passed!');
+};
+
 const runAllTests = () => {
   testExactTinv();
   testStandardLODCalculation();
   testCompetitiveAssayCalculation();
   testSingleReplicateFallback();
   testOutOfBoundsLOD();
+  testAutoModelDisqualifiesOverparameterized();
+  testSingleBlankDivisionByZero();
+  testPositiveLODCILow();
   console.log('All calculations and LOD statistical engine unit tests completed successfully!');
 };
 

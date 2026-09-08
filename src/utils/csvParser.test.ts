@@ -144,12 +144,48 @@ Concentration,Signals
   console.log("✓ testMultiSeriesCSV passed!");
 };
 
+const testEuropeanCSV = () => {
+  const europeanContent = `
+Concentration;Signals
+0;0,07;0,13;0,08
+0,001;0,08;0,15
+1,5;2,5;2,7
+`;
+  const result = parseCSVData(europeanContent);
+  if (result.blankSignals !== "0.07, 0.13, 0.08") {
+    throw new Error(`Expected European blanks converted to "0.07, 0.13, 0.08", got "${result.blankSignals}"`);
+  }
+  if (result.standards.length !== 2) {
+    throw new Error(`Expected 2 standards, got ${result.standards.length}`);
+  }
+  if (result.standards[1].conc !== "1.5" || result.standards[1].signals !== "2.5, 2.7") {
+    throw new Error(`Expected European decimal converted to "1.5" and "2.5, 2.7", got "${result.standards[1].conc}" and "${result.standards[1].signals}"`);
+  }
+  console.log("✓ testEuropeanCSV passed!");
+};
+
+const testSingleSeriesName = () => {
+  const content = `
+# Series: Monoclonal Antibody Batch 4
+Concentration,Signals
+0,0.05,0.06
+1.0,1.2,1.3
+`;
+  const result = parseCSVData(content);
+  if (result.seriesName !== "Monoclonal Antibody Batch 4") {
+    throw new Error(`Expected seriesName "Monoclonal Antibody Batch 4", got "${result.seriesName}"`);
+  }
+  console.log("✓ testSingleSeriesName passed!");
+};
+
 const runAllTests = () => {
   testSimpleCSV();
   testTSVExcelClipboard();
   testLongFormatCSV();
   testMetadataAndSpecialRows();
   testMultiSeriesCSV();
+  testEuropeanCSV();
+  testSingleSeriesName();
   console.log("All CSV parser unit tests completed successfully!");
 };
 

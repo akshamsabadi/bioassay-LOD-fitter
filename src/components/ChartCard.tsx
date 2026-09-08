@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { type AdvancedLoDResult } from "../utils/calculations";
 import { formatScientificUnicode } from "../utils/formatters";
+import { APP_VERSION } from "../constants";
 
 interface XAxisTickProps {
   x?: number;
@@ -206,27 +207,51 @@ const CustomMinorYAxisTickLabel = ({ viewBox }: Partial<ViewBoxProps>) => {
   return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 3.5} y2={viewBox.y} stroke="var(--subtext0)" strokeWidth={1} opacity={0.65} />;
 };
 
-interface ScatterDotProps {
+export interface ChartCurvePoint {
+  x: number;
+  trend?: number;
+  ciRange?: [number, number] | number[];
+}
+
+export interface ChartScatterPoint {
+  x: number;
+  y: number;
+  actualX: number | string;
+  id: string;
+  seriesId?: string;
+  seriesName?: string;
+  color?: string;
+}
+
+export interface ChartLinePoint {
+  x: number;
+  y: number;
+}
+
+export interface HoveredPointData {
+  id: string;
+  y: number;
   cx: number;
   cy: number;
-  payload: {
-    id: string;
-    y: number;
-    actualX: number | string;
-    seriesId?: string;
-    seriesName?: string;
-    color?: string;
-  };
-  setHoveredPoint: (pt: any) => void;
-  tableHoveredRowId: string | null;
-  hoveredPointId: string | undefined;
+  conc: number | string;
+  seriesName?: string;
+}
+
+export interface ScatterDotProps {
+  cx?: number;
+  cy?: number;
+  payload?: ChartScatterPoint;
+  setHoveredPoint?: (pt: HoveredPointData | null) => void;
+  tableHoveredRowId?: string | null;
+  hoveredPointId?: string | undefined;
   seriesColor?: string;
   isDimmed?: boolean;
   isSingleCurve?: boolean;
 }
 
 const CustomScatterDot = (props: ScatterDotProps) => {
-  const { cx, cy, payload, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve } = props;
+  const { cx = 0, cy = 0, payload, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve } = props;
+  if (!payload) return null;
   const isSelected = payload.id === tableHoveredRowId || payload.id === hoveredPointId;
   const color = isSingleCurve ? "var(--red)" : (seriesColor || payload.color || "var(--red)");
   
@@ -268,13 +293,13 @@ export interface MultiCurvePlotSeries {
   visible: boolean;
   isActive: boolean;
   results: AdvancedLoDResult;
-  leftChartData: any[];
-  rightChartData: any[];
-  scatterData: any[];
-  lcLeftData: any[];
-  lcRightData: any[];
-  ldLeftData: any[];
-  ldRightData: any[];
+  leftChartData: ChartCurvePoint[];
+  rightChartData: ChartCurvePoint[];
+  scatterData: ChartScatterPoint[];
+  lcLeftData: ChartLinePoint[];
+  lcRightData: ChartLinePoint[];
+  ldLeftData: ChartLinePoint[];
+  ldRightData: ChartLinePoint[];
 }
 
 interface ChartCardProps {
@@ -291,16 +316,188 @@ interface ChartCardProps {
   yDomain: [number, number];
   yTicks: number[] | undefined;
   yMajorTicks: number[];
-  leftAxisData: any[];
-  rightAxisData: any[];
-  hoveredPoint: { id: string; y: number; cx: number; cy: number; conc: number | string; seriesName?: string } | null;
-  setHoveredPoint: (point: any) => void;
+  leftAxisData: ChartLinePoint[];
+  rightAxisData: ChartLinePoint[];
+  hoveredPoint: HoveredPointData | null;
+  setHoveredPoint: (point: HoveredPointData | null) => void;
   tableHoveredRowId: string | null;
   handleExportCSV: () => void;
   hoveredSeriesId: string | null;
   setHoveredSeriesId: (id: string | null) => void;
   onSelectSeries?: (id: string) => void;
 }
+
+interface ChartLegendProps {
+  curveSeriesList: MultiCurvePlotSeries[];
+  showCI: boolean;
+  showLc: boolean;
+  showLd: boolean;
+  showLodZone: boolean;
+  hoveredSeriesId: string | null;
+  setHoveredSeriesId: (id: string | null) => void;
+  onSelectSeries?: (id: string) => void;
+}
+
+const ChartLegend: React.FC<ChartLegendProps> = ({
+  curveSeriesList,
+  showCI,
+  showLc,
+  showLd,
+  showLodZone,
+  hoveredSeriesId,
+  setHoveredSeriesId,
+  onSelectSeries,
+}) => {
+  if (curveSeriesList.length === 1) {
+    return (
+      <div className="custom-chart-legend">
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--yellow)" }} />
+          <span style={{ fontWeight: 600, color: "var(--yellow)" }}>LOD</span>
+        </div>
+        {showLodZone && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 22%, transparent)", border: "1px dashed var(--yellow)", borderRadius: "var(--radius-xs)" }} />
+            <span style={{ color: "var(--subtext1)" }}>95% CI LOD</span>
+          </div>
+        )}
+        {showLc && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--peach)" }} />
+            <span style={{ color: "var(--subtext1)" }}>L<sub>C</sub></span>
+          </div>
+        )}
+        {showLd && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--green)" }} />
+            <span style={{ color: "var(--subtext1)" }}>L<sub>D</sub></span>
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ width: "14px", height: "2.5px", backgroundColor: "var(--blue)", borderRadius: "var(--radius-pill)" }} />
+          <span style={{ color: "var(--subtext1)" }}>Model Fit</span>
+        </div>
+        {showCI && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--blue) 22%, transparent)", border: "1px solid var(--blue)", borderRadius: "var(--radius-xs)" }} />
+            <span style={{ color: "var(--subtext1)" }}>95% CI Fit</span>
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ color: "var(--red)", fontSize: "11px", lineHeight: "1" }}>●</span>
+          <span style={{ color: "var(--subtext1)" }}>Measured Data</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="custom-chart-legend">
+      {curveSeriesList.map(s => {
+        const isHovered = hoveredSeriesId === s.id;
+        return (
+          <div 
+            key={s.id}
+            onClick={() => onSelectSeries && onSelectSeries(s.id)}
+            onMouseEnter={() => setHoveredSeriesId(s.id)}
+            onMouseLeave={() => setHoveredSeriesId(null)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              padding: "3px 8px",
+              borderRadius: "var(--radius-sm)",
+              backgroundColor: s.isActive ? "var(--surface1)" : (isHovered ? "var(--surface0)" : "transparent"),
+              border: s.isActive ? `1px solid ${s.color}` : "1px solid transparent",
+              transition: "all 0.15s ease"
+            }}
+            title={`Click to focus ${s.name} (LOD: ${formatScientificUnicode(s.results.lodConc, 2)})`}
+          >
+            <span style={{ width: "10px", height: "3px", backgroundColor: s.color, borderRadius: "var(--radius-pill)" }} />
+            <span style={{ width: "10px", height: "0", borderTop: `2px dashed ${s.color}` }} />
+            <span style={{ fontWeight: s.isActive ? 700 : 500, color: s.isActive ? "var(--text)" : "var(--subtext1)" }}>
+              {s.name}
+            </span>
+          </div>
+        );
+      })}
+
+      {(showLc || showLd || showLodZone || showCI) && (
+        <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "6px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "6px" }}>
+          {showLc && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
+              <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--peach)" }} />
+              <span style={{ color: "var(--subtext1)" }}>L<sub>C</sub></span>
+            </div>
+          )}
+          {showLd && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
+              <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--green)" }} />
+              <span style={{ color: "var(--subtext1)" }}>L<sub>D</sub></span>
+            </div>
+          )}
+          {showCI && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
+              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)", border: "1px solid var(--overlay1)", borderRadius: "var(--radius-xs)" }} />
+              <span style={{ color: "var(--subtext1)" }}>95% CI Fit</span>
+            </div>
+          )}
+          {showLodZone && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
+              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)", border: "1px dashed var(--overlay1)", borderRadius: "var(--radius-xs)" }} />
+              <span style={{ color: "var(--subtext1)" }}>95% CI LOD</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: ReadonlyArray<{
+    payload?: {
+      x?: number;
+    };
+  }>;
+  curveSeriesList: MultiCurvePlotSeries[];
+  xDomain: [number, number];
+  breakStart: number;
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, curveSeriesList, xDomain, breakStart }) => {
+  if (!active || !payload || !payload.length) return null;
+  const x = payload[0]?.payload?.x;
+  if (x === undefined || isNaN(x)) return null;
+
+  return (
+    <div className="custom-chart-tooltip">
+      <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "4px", marginBottom: "2px", justifyContent: "space-between" }}>
+        <span style={{ color: "var(--subtext0)", fontWeight: 600, fontSize: "0.72rem" }}>Concentration</span>
+        <span style={{ fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">
+          {x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) || (breakStart && x <= breakStart) ? "0 (Blank)" : formatScientificUnicode(x, 3)}
+        </span>
+      </div>
+
+      {curveSeriesList.map(s => {
+        const pred = s.results.fit.predict(x);
+        return (
+          <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: "6px", color: s.color, fontWeight: s.isActive ? 700 : 500 }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: s.color }} />
+              {s.name}:
+            </span>
+            <span style={{ fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">
+              {Number.isFinite(pred) ? pred.toFixed(3) : "—"}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export const ChartCard: React.FC<ChartCardProps> = ({
   plotTitle,
@@ -353,7 +550,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     if (curveSeriesList.length <= 1) {
       return new Map<string, number>();
     }
-    const sorted = [...curveSeriesList].sort((a, b) => a.results.lodConc - b.results.lodConc);
+    const valid = curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0);
+    const sorted = [...valid].sort((a, b) => a.results.lodConc - b.results.lodConc);
     const tierLastLogX: number[] = [];
     const map = new Map<string, number>();
 
@@ -414,7 +612,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       "--peach", "--yellow", "--green", "--teal", "--sky", "--sapphire", 
       "--blue", "--lavender", "--text", "--subtext1", "--subtext0", 
       "--overlay2", "--overlay1", "--overlay0", "--surface2", "--surface1", 
-      "--surface0", "--base", "--mantle", "--crust", "--border-subtle"
+      "--surface0", "--base", "--mantle", "--crust", "--border-subtle",
+      "--card-bg", "--indigo", "--radius-pill", "--radius-sm", "--radius-xs"
     ];
     
     for (const v of varNames) {
@@ -427,7 +626,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.7.10.svg";
+    downloadLink.download = `bioassay_plot_v${APP_VERSION}.svg`;
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -459,7 +658,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       "--peach", "--yellow", "--green", "--teal", "--sky", "--sapphire", 
       "--blue", "--lavender", "--text", "--subtext1", "--subtext0", 
       "--overlay2", "--overlay1", "--overlay0", "--surface2", "--surface1", 
-      "--surface0", "--base", "--mantle", "--crust", "--border-subtle"
+      "--surface0", "--base", "--mantle", "--crust", "--border-subtle",
+      "--card-bg", "--indigo", "--radius-pill", "--radius-sm", "--radius-xs"
     ];
     
     for (const v of varNames) {
@@ -491,7 +691,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.7.10.png";
+        downloadLink.download = `bioassay_plot_v${APP_VERSION}.png`;
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -499,148 +699,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       DOMURL.revokeObjectURL(url);
     };
     img.src = url;
-  };
-
-  // Custom Interactive Legend (Single Curve & Multi-Curve)
-  const CustomLegend = () => {
-    if (curveSeriesList.length === 1) {
-      return (
-        <div className="custom-chart-legend">
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--yellow)" }} />
-            <span style={{ fontWeight: 600, color: "var(--yellow)" }}>LOD</span>
-          </div>
-          {showLodZone && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 22%, transparent)", border: "1px dashed var(--yellow)", borderRadius: "var(--radius-xs)" }} />
-              <span style={{ color: "var(--subtext1)" }}>95% CI LOD</span>
-            </div>
-          )}
-          {showLc && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--peach)" }} />
-              <span style={{ color: "var(--subtext1)" }}>L<sub>C</sub></span>
-            </div>
-          )}
-          {showLd && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--green)" }} />
-              <span style={{ color: "var(--subtext1)" }}>L<sub>D</sub></span>
-            </div>
-          )}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ width: "14px", height: "2.5px", backgroundColor: "var(--blue)", borderRadius: "var(--radius-pill)" }} />
-            <span style={{ color: "var(--subtext1)" }}>Model Fit</span>
-          </div>
-          {showCI && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--blue) 22%, transparent)", border: "1px solid var(--blue)", borderRadius: "var(--radius-xs)" }} />
-              <span style={{ color: "var(--subtext1)" }}>95% CI Fit</span>
-            </div>
-          )}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ color: "var(--red)", fontSize: "11px", lineHeight: "1" }}>●</span>
-            <span style={{ color: "var(--subtext1)" }}>Measured Data</span>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="custom-chart-legend">
-        {curveSeriesList.map(s => {
-          const isHovered = hoveredSeriesId === s.id;
-          return (
-            <div 
-              key={s.id}
-              onClick={() => onSelectSeries && onSelectSeries(s.id)}
-              onMouseEnter={() => setHoveredSeriesId(s.id)}
-              onMouseLeave={() => setHoveredSeriesId(null)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                cursor: "pointer",
-                padding: "3px 8px",
-                borderRadius: "var(--radius-sm)",
-                backgroundColor: s.isActive ? "var(--surface1)" : (isHovered ? "var(--surface0)" : "transparent"),
-                border: s.isActive ? `1px solid ${s.color}` : "1px solid transparent",
-                transition: "all 0.15s ease"
-              }}
-              title={`Click to focus ${s.name} (LOD: ${formatScientificUnicode(s.results.lodConc, 2)})`}
-            >
-              <span style={{ width: "10px", height: "3px", backgroundColor: s.color, borderRadius: "var(--radius-pill)" }} />
-              <span style={{ width: "10px", height: "0", borderTop: `2px dashed ${s.color}` }} />
-              <span style={{ fontWeight: s.isActive ? 700 : 500, color: s.isActive ? "var(--text)" : "var(--subtext1)" }}>
-                {s.name}
-              </span>
-            </div>
-          );
-        })}
-
-        {(showLc || showLd || showLodZone || showCI) && (
-          <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "6px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "6px" }}>
-            {showLc && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
-                <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--peach)" }} />
-                <span style={{ color: "var(--subtext1)" }}>L<sub>C</sub></span>
-              </div>
-            )}
-            {showLd && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
-                <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--green)" }} />
-                <span style={{ color: "var(--subtext1)" }}>L<sub>D</sub></span>
-              </div>
-            )}
-            {showCI && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
-                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)", border: "1px solid var(--overlay1)", borderRadius: "var(--radius-xs)" }} />
-                <span style={{ color: "var(--subtext1)" }}>95% CI Fit</span>
-              </div>
-            )}
-            {showLodZone && (
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
-                <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)", border: "1px dashed var(--overlay1)", borderRadius: "var(--radius-xs)" }} />
-                <span style={{ color: "var(--subtext1)" }}>95% CI LOD</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Tooltip content for multi-curve
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload.length) return null;
-    const x = payload[0].payload.x;
-    if (x === undefined || isNaN(x)) return null;
-
-    return (
-      <div className="custom-chart-tooltip">
-        <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "4px", marginBottom: "2px", justifyContent: "space-between" }}>
-          <span style={{ color: "var(--subtext0)", fontWeight: 600, fontSize: "0.72rem" }}>Concentration</span>
-          <span style={{ fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">
-            {x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) ? "0 (Blank)" : formatScientificUnicode(x, 3)}
-          </span>
-        </div>
-
-        {curveSeriesList.map(s => {
-          const pred = s.results.fit.predict(x);
-          return (
-            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "6px", color: s.color, fontWeight: s.isActive ? 700 : 500 }}>
-                <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: s.color }} />
-                {s.name}:
-              </span>
-              <span style={{ fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">
-                {isFinite(pred) ? pred.toFixed(3) : "—"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
   };
 
   return (
@@ -744,7 +802,16 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       </div>
       
       <div className="chart-frame" ref={chartRef}>
-        <CustomLegend />
+        <ChartLegend
+          curveSeriesList={curveSeriesList}
+          showCI={showCI}
+          showLc={showLc}
+          showLd={showLd}
+          showLodZone={showLodZone}
+          hoveredSeriesId={hoveredSeriesId}
+          setHoveredSeriesId={setHoveredSeriesId}
+          onSelectSeries={onSelectSeries}
+        />
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} horizontalValues={yMajorTicks} opacity={0.6} />}
@@ -771,11 +838,18 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--subtext1)", fontSize: 11.5, fontWeight: 600, offset: -5, fontFamily: "'Plus Jakarta Sans', sans-serif" }} 
             />
             <Tooltip 
-              content={<CustomTooltip />} 
+              content={(props) => (
+                <CustomTooltip 
+                  {...props} 
+                  curveSeriesList={curveSeriesList} 
+                  xDomain={xDomain} 
+                  breakStart={breakStart} 
+                />
+              )} 
               cursor={{ stroke: "var(--indigo)", strokeDasharray: "4 4", strokeWidth: 1.5, opacity: 0.7 }} 
             />
             
-            {yTicks && yTicks.filter(t => !yMajorTicks.includes(t)).map(tick => (
+            {yTicks && yTicks.filter(t => !yMajorTicks.some(m => Math.abs(m - t) < 1e-9)).map(tick => (
               <ReferenceLine 
                 key={`minor-y-${tick}`} 
                 y={tick} 
@@ -797,7 +871,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* 95% CI LOD Range Areas for Every Series */}
-            {showLodZone && curveSeriesList.map(s => {
+            {showLodZone && curveSeriesList.filter(s => Number.isFinite(s.results?.lodCI?.low) && Number.isFinite(s.results?.lodCI?.high) && s.results.lodCI.high > s.results.lodCI.low).map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.14 : 0.07);
               const isMulti = curveSeriesList.length > 1;
@@ -870,7 +944,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* 2. Render Vertical LOD Dashed Lines */}
-            {curveSeriesList.map(s => {
+            {curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0).map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const isMulti = curveSeriesList.length > 1;
               const lodColor = isMulti ? s.color : "var(--yellow)";
@@ -885,7 +959,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                   strokeWidth={s.isActive ? 2.2 : 1.4} 
                   strokeDasharray="4 4" 
                   strokeOpacity={isDimmed ? 0.2 : (s.isActive ? 1 : 0.75)}
-                  shape={(lineProps: any) => {
+                  shape={(lineProps: { x1?: number; y1?: number; x2?: number; y2?: number; stroke?: string; strokeWidth?: number; strokeDasharray?: string; strokeOpacity?: number }) => {
                     if (!lineProps || typeof lineProps.x1 !== "number" || typeof lineProps.y1 !== "number" || typeof lineProps.y2 !== "number") {
                       return <line stroke="none" />;
                     }
@@ -921,9 +995,9 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                   dataKey="y" 
                   isAnimationActive={false} 
                   legendType="none"
-                  shape={(props: any) => (
+                  shape={(dotProps: ScatterDotProps) => (
                     <CustomScatterDot 
-                      {...props} 
+                      {...dotProps} 
                       setHoveredPoint={setHoveredPoint} 
                       tableHoveredRowId={tableHoveredRowId} 
                       hoveredPointId={hoveredPoint?.id}
@@ -937,7 +1011,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* 3. Render All LOD Labels on TOP of all elements */}
-            {curveSeriesList.map(s => {
+            {curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0).map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const isMulti = curveSeriesList.length > 1;
               const lodColor = isMulti ? s.color : "var(--yellow)";
@@ -968,7 +1042,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </ComposedChart>
         </ResponsiveContainer>
         
-        {hoveredPoint && hoveredPoint.cx && hoveredPoint.cy && (() => {
+        {hoveredPoint && hoveredPoint.cx != null && hoveredPoint.cy != null && (() => {
           const frameWidth = chartWidth || 700;
           const isRight = hoveredPoint.cx > frameWidth - 190;
           const left = isRight ? hoveredPoint.cx - 175 : hoveredPoint.cx + 15;

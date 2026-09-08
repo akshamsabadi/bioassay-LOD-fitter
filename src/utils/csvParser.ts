@@ -4,6 +4,7 @@ export interface ParsedCSVResult {
   blankSignals: string;
   standards: StandardRow[];
   multiSeries?: AssaySeries[];
+  seriesName?: string;
 }
 
 export const parseSingleSeriesBlock = (lines: string[]): { blankSignals: string; standards: StandardRow[] } => {
@@ -16,7 +17,11 @@ export const parseSingleSeriesBlock = (lines: string[]): { blankSignals: string;
 
     // Detect delimiter: tab (Excel/Google Sheets), semicolon, or comma
     const delimiter = trimmed.includes("\t") ? "\t" : (trimmed.includes(";") ? ";" : ",");
-    const parts = trimmed.split(delimiter).map(part => part.trim().replace(/^["']|["']$/g, ""));
+    const rawParts = trimmed.split(delimiter).map(part => part.trim().replace(/^["']|["']$/g, ""));
+    // Normalize European decimal notation (comma to dot) when semicolon delimiter is used
+    const parts = delimiter === ";"
+      ? rawParts.map(part => part.replace(",", "."))
+      : rawParts;
     if (parts.length < 2) return;
 
     const firstCol = parts[0].toLowerCase();
@@ -47,7 +52,7 @@ export const parseSingleSeriesBlock = (lines: string[]): { blankSignals: string;
 
   const sortedStandards: StandardRow[] = Array.from(standardMap.entries())
     .sort((a, b) => a[0] - b[0])
-    .map(([_, data]) => ({
+    .map(([, data]) => ({
       id: Math.random().toString(36).substring(2, 9),
       conc: data.concStr,
       signals: data.signals.join(", ")
@@ -106,7 +111,18 @@ export const parseCSVData = (text: string): ParsedCSVResult => {
     return {
       blankSignals: firstParsed.blankSignals,
       standards: firstParsed.standards,
-      multiSeries
+      multiSeries,
+      seriesName: seriesBlocks[0].name
+    };
+  }
+
+  // Single series declared with '# Series: <name>'
+  if (seriesBlocks.length === 1) {
+    const single = parseSingleSeriesBlock(seriesBlocks[0].lines);
+    return {
+      blankSignals: single.blankSignals,
+      standards: single.standards,
+      seriesName: seriesBlocks[0].name
     };
   }
 
