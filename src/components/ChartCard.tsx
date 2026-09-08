@@ -32,7 +32,8 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
   if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
     return (
       <g>
-        <line x1={x} y1={y - 16} x2={x} y2={y} stroke="var(--border-hover)" strokeWidth={1} />
+        {/* Publication-standard angled break slash */}
+        <line x1={x - 3} y1={y + 5} x2={x + 3} y2={y - 6} stroke="var(--subtext1)" strokeWidth={1.8} strokeLinecap="round" />
       </g>
     );
   }
@@ -40,8 +41,8 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
   if (val === zeroX || val === 0 || isNaN(val)) {
     return (
       <g>
-        <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--border-subtle)" />
-        <text x={x} y={y + 18} fill="var(--subtext0)" textAnchor="middle" fontSize={10} fontFamily="'Plus Jakarta Sans', sans-serif">0</text>
+        <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
+        <text x={x} y={y + 18} fill="var(--subtext1)" textAnchor="middle" fontSize={11} fontWeight={500} fontFamily="'Plus Jakarta Sans', sans-serif">0</text>
       </g>
     );
   }
@@ -51,7 +52,7 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
   if (!isMajor) {
     return (
       <g>
-        <line x1={x} y1={y - 6} x2={x} y2={y - 2} stroke="var(--border-subtle)" opacity={0.5} />
+        <line x1={x} y1={y - 3.5} x2={x} y2={y} stroke="var(--subtext0)" strokeWidth={1} opacity={0.65} />
       </g>
     );
   }
@@ -60,10 +61,10 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
 
   return (
     <g>
-      <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--border-subtle)" />
-      <text x={x} y={y + 18} fill="var(--subtext0)" textAnchor="middle" fontSize={10} fontFamily="'Plus Jakarta Sans', sans-serif">
+      <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
+      <text x={x} y={y + 18} fill="var(--subtext1)" textAnchor="middle" fontSize={11} fontWeight={500} fontFamily="'Plus Jakarta Sans', sans-serif">
         <tspan>10</tspan>
-        <tspan baselineShift="super" fontSize={8}>{exponent}</tspan>
+        <tspan baselineShift="super" fontSize={8.5}>{exponent}</tspan>
       </text>
     </g>
   );
@@ -94,12 +95,12 @@ const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
   }
   return (
     <g>
-      <line x1={x} y1={y} x2={x - 6} y2={y} stroke="var(--border-subtle)" />
-      <text x={x - 10} y={y + 3} fill="var(--subtext0)" textAnchor="end" fontSize={10} fontFamily="'Plus Jakarta Sans', sans-serif" className="tabular-nums">
+      <line x1={x} y1={y} x2={x - 6} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
+      <text x={x - 10} y={y + 3.5} fill="var(--subtext1)" textAnchor="end" fontSize={11} fontWeight={500} fontFamily="'Plus Jakarta Sans', sans-serif" className="tabular-nums">
         {exponent !== null ? (
           <>
             <tspan>{mantissa}×10</tspan>
-            <tspan baselineShift="super" fontSize={8}>{exponent}</tspan>
+            <tspan baselineShift="super" fontSize={8.5}>{exponent}</tspan>
           </>
         ) : (
           label
@@ -201,8 +202,8 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
 };
 
 const CustomMinorYAxisTickLabel = ({ viewBox }: Partial<ViewBoxProps>) => {
-  if (!viewBox) return null;
-  return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 4} y2={viewBox.y} stroke="var(--border-subtle)" opacity={0.5} />;
+  if (!viewBox || typeof viewBox.x !== "number" || typeof viewBox.y !== "number") return null;
+  return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 3.5} y2={viewBox.y} stroke="var(--subtext0)" strokeWidth={1} opacity={0.65} />;
 };
 
 interface ScatterDotProps {
@@ -426,7 +427,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
-    downloadLink.download = "bioassay_plot_v0.7.6.svg";
+    downloadLink.download = "bioassay_plot_v0.7.7.svg";
     downloadLink.href = url;
     document.body.appendChild(downloadLink);
     downloadLink.click();
@@ -490,7 +491,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const pngUrl = canvas.toDataURL("image/png");
         const downloadLink = document.createElement("a");
         downloadLink.href = pngUrl;
-        downloadLink.download = "bioassay_plot_v0.7.6.png";
+        downloadLink.download = "bioassay_plot_v0.7.7.png";
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -747,19 +748,19 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} horizontalValues={yMajorTicks} opacity={0.6} />}
-            <ReferenceArea x1={breakStart} x2={breakEnd} y1={yDomain[0]} y2={yDomain[1]} fill="var(--mantle)" fillOpacity={1} strokeOpacity={0} style={{ pointerEvents: "none" }} />
             
             <XAxis 
-              dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--subtext0)" 
+              dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--subtext1)" 
               ticks={xTicks}
               interval={0}
               tickLine={false}
               axisLine={false}
               tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} />}
-              label={{ value: xAxisLabel, position: "bottom", fill: "var(--subtext0)", fontSize: 11, offset: 25, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              label={{ value: xAxisLabel, position: "bottom", fill: "var(--subtext1)", fontSize: 11.5, fontWeight: 600, offset: 25, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             />
             <YAxis 
-              stroke="var(--subtext0)" 
+              stroke="var(--subtext1)" 
+              strokeWidth={1.2}
               domain={yDomain} 
               ticks={yMajorTicks}
               interval={0}
@@ -767,7 +768,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               allowDataOverflow={true}
               tickLine={false}
               tick={<CustomYAxisTick />}
-              label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--subtext0)", fontSize: 11, offset: -5, fontFamily: "'Plus Jakarta Sans', sans-serif" }} 
+              label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--subtext1)", fontSize: 11.5, fontWeight: 600, offset: -5, fontFamily: "'Plus Jakarta Sans', sans-serif" }} 
             />
             <Tooltip 
               content={<CustomTooltip />} 
@@ -962,8 +963,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* Zero break tick axis line */}
-            <Line data={leftAxisData} dataKey="y" stroke="var(--subtext0)" strokeWidth={1} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
-            <Line data={rightAxisData} dataKey="y" stroke="var(--subtext0)" strokeWidth={1} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+            <Line data={leftAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
+            <Line data={rightAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" style={{ pointerEvents: "none" }} />
           </ComposedChart>
         </ResponsiveContainer>
         

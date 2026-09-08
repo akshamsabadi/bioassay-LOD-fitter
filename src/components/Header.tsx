@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div className="header-title-wrap">
             <h1 className="header-title">Bioassay LOD Fitter</h1>
-            <span className="header-version-pill">v0.7.6</span>
+            <span className="header-version-pill">v0.7.7</span>
           </div>
         </div>
         
