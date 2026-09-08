@@ -607,7 +607,7 @@ function App() {
 | :--- | :--- | :--- | :--- | :--- | :--- |
 `;
       leaderboardItems.forEach(item => {
-        leaderboardMarkdown += `| **${item.name}** | ${item.results.fit.method.toUpperCase()} | **${formatScientificUnicode(item.results.lodConc, 3)}** | [${formatScientificUnicode(item.results.lodCI.low, 2)}, ${formatScientificUnicode(item.results.lodCI.high, 2)}] | ${item.results.fit.metrics.r2.toFixed(4)} | ${item.foldChangeVsRef} |
+        leaderboardMarkdown += `| **${item.name}** | ${item.results.fit.method.toUpperCase()} | **${formatScientificUnicode(item.results.lodConc, 3)}** | [${formatScientificUnicode(item.results.lodCI.low, 3)}, ${formatScientificUnicode(item.results.lodCI.high, 3)}] | ${item.results.fit.metrics.r2.toFixed(4)} | ${item.foldChangeVsRef} |
 `;
       });
       leaderboardMarkdown += "\n";

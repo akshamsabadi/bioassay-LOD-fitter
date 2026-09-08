@@ -261,7 +261,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.76rem", color: "var(--subtext0)", marginTop: "8px", flexWrap: "wrap" }}>
                 <span>95% Confidence Interval:</span>
                 <span className="hero-ci-pill">
-                  {formatCIRange(activeResults.lodCI.low, activeResults.lodCI.high, 2)}
+                  {formatCIRange(activeResults.lodCI.low, activeResults.lodCI.high, 3)}
                   {cleanUnit && <span style={{ marginLeft: "4px", color: "var(--subtext0)" }}>{cleanUnit}</span>}
                 </span>
               </div>

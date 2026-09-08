@@ -30,10 +30,21 @@ export const Header: React.FC<HeaderProps> = ({
       <header className="app-header">
         <div className="header-brand">
           <div className="header-logo-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 19c3.5 0 5-6 8-6s4.5 6 10 6" />
-              <path d="M3 5c5.5 0 7 12 10 12s4.5-6 8-6" opacity="0.6" strokeDasharray="2 2" />
-              <circle cx="11" cy="13" r="2" fill="currentColor" />
+            <svg viewBox="0 0 32 32" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 4,4 L 4,28 L 28,28" stroke="#6c7086" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.6" />
+              <defs>
+                <linearGradient id="headerLogoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#fab387" />
+                  <stop offset="50%" stopColor="#cba6f7" />
+                  <stop offset="100%" stopColor="#89b4fa" />
+                </linearGradient>
+              </defs>
+              <path d="M 5,25 C 14,25 12,7 27,7" stroke="url(#headerLogoGrad)" strokeWidth="3" strokeLinecap="round" fill="none" />
+              <circle cx="8" cy="24" r="1.5" fill="#f38ba8" />
+              <circle cx="12" cy="22" r="1.5" fill="#f38ba8" />
+              <circle cx="16" cy="16" r="1.5" fill="#f38ba8" />
+              <circle cx="20" cy="10" r="1.5" fill="#f38ba8" />
+              <circle cx="24" cy="8" r="1.5" fill="#f38ba8" />
             </svg>
           </div>
           <div className="header-title-wrap">

@@ -91,9 +91,9 @@ export function formatScientificUnicode(val: number, precision = 2, unit?: strin
 }
 
 /**
- * Formats a confidence interval range (e.g. "[3.68 × 10⁻², 5.55 × 10⁻²]")
+ * Formats a confidence interval range (e.g. "[3.682 × 10⁻², 5.551 × 10⁻²]")
  */
-export function formatCIRange(low: number, high: number, precision = 2): string {
+export function formatCIRange(low: number, high: number, precision = 3): string {
   if (!isFinite(low) || !isFinite(high)) return "N/A";
   return `[${formatScientificUnicode(low, precision)}, ${formatScientificUnicode(high, precision)}]`;
 }
