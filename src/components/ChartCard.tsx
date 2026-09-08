@@ -39,7 +39,7 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
     );
   }
 
-  if (val === zeroX || val === 0 || isNaN(val)) {
+  if (val === 0 || (zeroX && Math.abs(val - zeroX) < 1e-10) || isNaN(val)) {
     return (
       <g>
         <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
@@ -252,7 +252,10 @@ export interface ScatterDotProps {
 const CustomScatterDot = (props: ScatterDotProps) => {
   const { cx = 0, cy = 0, payload, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve } = props;
   if (!payload) return null;
-  const isSelected = payload.id === tableHoveredRowId || payload.id === hoveredPointId;
+  const isSelected =
+    payload.id === tableHoveredRowId ||
+    payload.id === hoveredPointId ||
+    (tableHoveredRowId === "blank" && (payload.actualX === 0 || payload.id.endsWith("-blank")));
   const color = isSingleCurve ? "var(--red)" : (seriesColor || payload.color || "var(--red)");
   
   return (
@@ -469,20 +472,32 @@ interface CustomTooltipProps {
 
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, curveSeriesList, xDomain, breakStart }) => {
   if (!active || !payload || !payload.length) return null;
-  const x = payload[0]?.payload?.x;
+  const pData = payload[0]?.payload as (ChartCurvePoint & Partial<ChartScatterPoint>) | undefined;
+  const x = pData?.x;
   if (x === undefined || isNaN(x)) return null;
+
+  const actualX = pData?.actualX;
+  const isBlank = actualX !== undefined
+    ? actualX === 0
+    : (x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) || (breakStart && x <= breakStart));
+
+  const displayConc = isBlank
+    ? "0 (Blank)"
+    : formatScientificUnicode(actualX !== undefined ? (typeof actualX === "number" ? actualX : parseFloat(actualX)) : x, 3);
+
+  const evalX = isBlank ? 0 : x;
 
   return (
     <div className="custom-chart-tooltip">
       <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "4px", marginBottom: "2px", justifyContent: "space-between" }}>
         <span style={{ color: "var(--subtext0)", fontWeight: 600, fontSize: "0.72rem" }}>Concentration</span>
         <span style={{ fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">
-          {x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) || (breakStart && x <= breakStart) ? "0 (Blank)" : formatScientificUnicode(x, 3)}
+          {displayConc}
         </span>
       </div>
 
       {curveSeriesList.map(s => {
-        const pred = s.results.fit.predict(x);
+        const pred = s.results.fit.predict(evalX);
         return (
           <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px" }}>
             <span style={{ display: "flex", alignItems: "center", gap: "6px", color: s.color, fontWeight: s.isActive ? 700 : 500 }}>

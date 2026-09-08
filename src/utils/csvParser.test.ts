@@ -178,6 +178,24 @@ Concentration,Signals
   console.log("✓ testSingleSeriesName passed!");
 };
 
+const testPlateReaderBlankLabels = () => {
+  const content = `
+Concentration,Signal1,Signal2
+Background,0.05,0.06
+Zero,0.04,0.07
+0.1,0.15,0.18
+1.0,1.2,1.3
+`;
+  const result = parseCSVData(content);
+  if (result.blankSignals !== "0.05, 0.06, 0.04, 0.07") {
+    throw new Error(`Expected blanks "0.05, 0.06, 0.04, 0.07", got "${result.blankSignals}"`);
+  }
+  if (result.standards.length !== 2) {
+    throw new Error(`Expected 2 standards, got ${result.standards.length}`);
+  }
+  console.log("✓ testPlateReaderBlankLabels passed!");
+};
+
 const runAllTests = () => {
   testSimpleCSV();
   testTSVExcelClipboard();
@@ -186,6 +204,7 @@ const runAllTests = () => {
   testMultiSeriesCSV();
   testEuropeanCSV();
   testSingleSeriesName();
+  testPlateReaderBlankLabels();
   console.log("All CSV parser unit tests completed successfully!");
 };
 

@@ -56,7 +56,7 @@ export function getScientificParts(val: number, precision = 3): ScientificParts 
     // Compute decimal representation for subtext when exponent is moderately small (-1 to -4)
     let decimalEquivalent: string | undefined;
     if (exponent >= -4 && exponent < 0) {
-      decimalEquivalent = val.toFixed(Math.abs(exponent) + precision - 1);
+      decimalEquivalent = val.toFixed(Math.abs(exponent) + precision);
     }
 
     const plainText = `${mantissa} × 10^(${exponent})`;

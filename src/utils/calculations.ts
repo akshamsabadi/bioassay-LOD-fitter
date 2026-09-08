@@ -253,10 +253,11 @@ export const calculateAdvancedLoD = (
   };
 };
 
-export const computeSensitivityFoldChange = (currentLod: number, refLod: number): string => {
+export const computeSensitivityFoldChange = (currentLod: number, refLod: number, isReference = false): string => {
   if (!isFinite(currentLod) || !isFinite(refLod) || currentLod <= 0 || refLod <= 0) return "—";
+  if (isReference) return "1.0× (Ref)";
   const ratio = currentLod / refLod;
-  if (Math.abs(ratio - 1) < 0.01) return "1.0× (Ref)";
+  if (Math.abs(ratio - 1) < 0.01) return "1.0× (Equal)";
   if (ratio > 1) {
     return `${ratio >= 10 ? ratio.toFixed(1) : ratio.toFixed(2)}× lower`;
   } else {

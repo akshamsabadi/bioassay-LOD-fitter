@@ -73,7 +73,18 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
   const cleanUnit = useMemo(() => {
     if (!xAxisLabel) return "";
-    return xAxisLabel.includes("(") ? xAxisLabel.split("(")[1].replace(")", "").trim() : xAxisLabel.trim();
+    // Match units enclosed in parentheses (e.g. "(mM)", "(ng/mL)") or brackets (e.g. "[ug/mL]")
+    const bracketMatch = xAxisLabel.match(/\(([^)]+)\)|\[([^\]]+)\]/);
+    if (bracketMatch) {
+      return (bracketMatch[1] || bracketMatch[2] || "").trim();
+    }
+    // If no brackets, filter out descriptor words like "Concentration", "Dose", etc.
+    const trimmed = xAxisLabel.trim();
+    const descriptorWords = ["concentration", "conc", "dose", "amount", "signal", "dilution", "standard"];
+    if (descriptorWords.includes(trimmed.toLowerCase())) {
+      return "";
+    }
+    return trimmed.length <= 10 ? trimmed : "";
   }, [xAxisLabel]);
 
   // Model friendly names for clean modern wording

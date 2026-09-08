@@ -390,50 +390,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
           
           <div className="rows-container" style={{ flex: 1, overflowY: "auto", marginBottom: "8px", paddingRight: "6px" }}>
             {/* Blank Row (Conc = 0) */}
-            <div
-              className={`data-row ${blankStats && blankStats.cv > 15 ? "has-warning" : ""}`}
-              onMouseEnter={() => setTableHoveredRowId("blank")}
-              onMouseLeave={() => setTableHoveredRowId(null)}
-              title={blankStats ? `Blank (0 conc): n=${blankStats.n}, Mean=${blankStats.mean.toFixed(4)}, SD=${blankStats.sd.toFixed(4)}, CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Assay Blank (Conc = 0)"}
-            >
-              <div
-                className="conc-input disabled"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined,
-                  cursor: "default"
-                }}
-                title="Blank (0 Conc)"
-              >
-                0
-              </div>
-              <input
-                type="text"
-                className="signals-input"
-                placeholder="Blank signals (e.g. 0.08, 0.12)"
-                value={blankSignals}
-                onChange={e => setBlankSignals(e.target.value)}
-                onPaste={handleBlankPaste}
-                onKeyDown={e => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    document.getElementById("conc-input-0")?.focus();
-                  }
-                }}
-                style={{
-                  color: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined,
-                  borderColor: hoveredPoint?.id === "blank" ? "var(--pink)" : undefined
-                }}
-                title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
-              />
-              <div style={{ width: "24px", minWidth: "24px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {blankStats && blankStats.cv > 15 && (
-                  <span title={`High Variance: Blank CV is ${blankStats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
-                )}
-              </div>
-            </div>
+            {(() => {
+              const isBlankHovered = hoveredPoint?.id === "blank" || hoveredPoint?.id?.endsWith("-blank") || hoveredPoint?.conc === 0;
+              return (
+                <div
+                  className={`data-row ${isBlankHovered ? "row-hovered" : ""} ${blankStats && blankStats.cv > 15 ? "has-warning" : ""}`}
+                  onMouseEnter={() => setTableHoveredRowId("blank")}
+                  onMouseLeave={() => setTableHoveredRowId(null)}
+                  title={blankStats ? `Blank (0 conc): n=${blankStats.n}, Mean=${blankStats.mean.toFixed(4)}, SD=${blankStats.sd.toFixed(4)}, CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Assay Blank (Conc = 0)"}
+                >
+                  <div
+                    className="conc-input disabled"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: isBlankHovered ? "var(--pink)" : undefined,
+                      cursor: "default"
+                    }}
+                    title="Blank (0 Conc)"
+                  >
+                    0
+                  </div>
+                  <input
+                    type="text"
+                    className="signals-input"
+                    placeholder="Blank signals (e.g. 0.08, 0.12)"
+                    value={blankSignals}
+                    onChange={e => setBlankSignals(e.target.value)}
+                    onPaste={handleBlankPaste}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        document.getElementById("conc-input-0")?.focus();
+                      }
+                    }}
+                    style={{
+                      color: isBlankHovered ? "var(--pink)" : undefined,
+                      borderColor: isBlankHovered ? "var(--pink)" : undefined
+                    }}
+                    title={blankStats ? `Blanks: n=${blankStats.n} · Mean=${blankStats.mean.toFixed(4)} · CV=${blankStats.cv.toFixed(1)}%${blankStats.cv > 15 ? ' (⚠️ High Variance)' : ''}` : "Enter blank replicates separated by commas"}
+                  />
+                  <div style={{ width: "24px", minWidth: "24px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {blankStats && blankStats.cv > 15 && (
+                      <span title={`High Variance: Blank CV is ${blankStats.cv.toFixed(1)}% (>15%)`} style={{ fontSize: "0.8rem", cursor: "help", lineHeight: 1 }}>⚠️</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Standard Concentration Rows */}
             {standardRows.map((r, idx) => {

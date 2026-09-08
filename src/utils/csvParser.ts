@@ -20,14 +20,24 @@ export const parseSingleSeriesBlock = (lines: string[]): { blankSignals: string;
     const rawParts = trimmed.split(delimiter).map(part => part.trim().replace(/^["']|["']$/g, ""));
     // Normalize European decimal notation (comma to dot) when semicolon delimiter is used
     const parts = delimiter === ";"
-      ? rawParts.map(part => part.replace(",", "."))
+      ? rawParts.map(part => part.replaceAll(",", "."))
       : rawParts;
     if (parts.length < 2) return;
 
     const firstCol = parts[0].toLowerCase();
     
-    // Check for blanks
-    if (firstCol === "blank" || firstCol === "blanks" || parseFloat(parts[0]) === 0) {
+    // Check for blanks (support common plate reader labels: blank, background, bkg, zero, negative control)
+    if (
+      firstCol === "blank" ||
+      firstCol === "blanks" ||
+      firstCol === "background" ||
+      firstCol === "bkg" ||
+      firstCol === "zero" ||
+      firstCol.startsWith("neg") ||
+      firstCol.startsWith("ctrl") ||
+      firstCol.startsWith("control") ||
+      parseFloat(parts[0]) === 0
+    ) {
       const signals = parts.slice(1).map(p => parseFloat(p)).filter(n => !isNaN(n));
       if (signals.length > 0) {
         blanks.push(...signals);
@@ -36,8 +46,8 @@ export const parseSingleSeriesBlock = (lines: string[]): { blankSignals: string;
     }
 
     const concVal = parseFloat(parts[0]);
-    // Skip non-numeric header lines (e.g. "Concentration", "Dose", "Parameter")
-    if (isNaN(concVal)) {
+    // Skip non-numeric header lines (e.g. "Concentration", "Dose", "Parameter") and non-positive concentrations
+    if (isNaN(concVal) || concVal <= 0) {
       return;
     }
 

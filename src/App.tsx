@@ -90,13 +90,11 @@ function App() {
 
   const handleRemoveSeries = (id: string) => {
     if (seriesList.length <= 1) return;
-    setSeriesList(prev => {
-      const nextList = prev.filter(s => s.id !== id);
-      if (activeSeriesId === id) {
-        handleSelectSeries(nextList[0].id);
-      }
-      return nextList;
-    });
+    const nextList = seriesList.filter(s => s.id !== id);
+    setSeriesList(nextList);
+    if (activeSeriesId === id) {
+      handleSelectSeries(nextList[0].id);
+    }
   };
 
   const handleToggleSeriesVisibility = (id: string) => {
@@ -116,7 +114,7 @@ function App() {
     }
     standardRows.forEach((row) => {
       const c = parseFloat(row.conc);
-      if (isNaN(c)) return;
+      if (isNaN(c) || c <= 0) return;
       const sigs = row.signals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
       if (sigs.length > 1) {
         const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
@@ -133,10 +131,11 @@ function App() {
       .map(row => {
         const c = parseFloat(row.conc);
         const sigs = row.signals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-        const mean = sigs.length > 0 ? sigs.reduce((a, b) => a + b, 0) / sigs.length : 0;
+        if (isNaN(c) || c <= 0 || sigs.length === 0) return null;
+        const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
         return { conc: c, mean };
       })
-      .filter(item => !isNaN(item.conc))
+      .filter((item): item is { conc: number; mean: number } => item !== null)
       .sort((a, b) => a.conc - b.conc);
     if (sortedStandards.length > 2) {
       const means = sortedStandards.map(s => s.mean);
@@ -170,7 +169,7 @@ function App() {
         const standards: StandardData[] = [];
         s.standardRows.forEach(row => {
           const c = parseFloat(row.conc);
-          if (isNaN(c)) return;
+          if (isNaN(c) || c <= 0) return;
           row.signals.split(",").forEach(sig => {
             const val = parseFloat(sig.trim());
             if (!isNaN(val)) standards.push({ concentration: c, readout: val });
@@ -213,15 +212,23 @@ function App() {
     if (validVisibleSeries.length === 0) {
       return { xTicks: [], xDomain: [0, 0] as [number, number], breakStart: 0, breakEnd: 0 };
     }
-    const allX = validVisibleSeries.flatMap(item => item.results!.fit.actualX.filter(x => x > 0));
-    if (allX.length === 0) return { xTicks: [], xDomain: [0, 0] as [number, number], breakStart: 0, breakEnd: 0 };
+    const allPositiveStandards = validVisibleSeries.flatMap(item => item.results!.fit.actualX.filter(x => x > 0));
+    if (allPositiveStandards.length === 0) return { xTicks: [], xDomain: [0, 0] as [number, number], breakStart: 0, breakEnd: 0 };
 
-    const minX = Math.min(...allX);
-    const maxX = Math.max(...allX);
-    const zeroX = minX / 10;
-    const maxAxisValue = maxX * 1.5;
+    const validLODs = validVisibleSeries
+      .map(item => item.results!.lodConc)
+      .filter(lod => Number.isFinite(lod) && lod > 0);
+    const validCILows = validVisibleSeries
+      .map(item => item.results!.lodCI.low)
+      .filter(low => Number.isFinite(low) && low > 0);
+
+    const minPositiveCandidate = Math.min(...allPositiveStandards, ...validLODs, ...validCILows);
+    const maxPositiveCandidate = Math.max(...allPositiveStandards, ...validLODs);
+
+    const zeroX = minPositiveCandidate / 10;
+    const maxAxisValue = maxPositiveCandidate * 1.5;
     const logZero = Math.log10(zeroX);
-    const logMinPositive = Math.log10(minX);
+    const logMinPositive = Math.log10(minPositiveCandidate);
     const breakCenterLog = (logZero + logMinPositive) / 2;
     // Balanced break gap (0.26 decades wide) extending axes inward from both sides
     const breakHalfWidth = 0.13;
@@ -232,14 +239,14 @@ function App() {
     const ticks = [zeroX, breakStart, breakEnd];
     for (let i = logMin; i <= logMax; i++) {
       const majorVal = Math.pow(10, i);
-      if (majorVal <= maxAxisValue && majorVal >= minX - 1e-10) {
+      if (majorVal <= maxAxisValue && majorVal >= minPositiveCandidate - 1e-10) {
         if (majorVal < breakStart || majorVal > breakEnd) ticks.push(majorVal);
       }
       if (i < logMax) {
         for (let j = 2; j <= 9; j++) {
           const minorVal = j * Math.pow(10, i);
-          // Strictly only include minor ticks for calibrator standard concentrations (>= minX)
-          if (minorVal <= maxAxisValue && minorVal >= minX - 1e-10) {
+          // Strictly only include minor ticks for calibrator standard concentrations & LOD range (>= minPositiveCandidate)
+          if (minorVal <= maxAxisValue && minorVal >= minPositiveCandidate - 1e-10) {
             if (minorVal < breakStart || minorVal > breakEnd) ticks.push(minorVal);
           }
         }
@@ -415,7 +422,8 @@ function App() {
     return validVisibleSeries.map(item => {
       const s = item.series;
       const res = item.results!;
-      const fold = computeSensitivityFoldChange(res.lodConc, refLod);
+      const isRef = s.id === refItem?.series.id;
+      const fold = computeSensitivityFoldChange(res.lodConc, refLod, isRef);
       return {
         id: s.id,
         name: s.name,
@@ -464,6 +472,7 @@ function App() {
         handleSelectSeries(parsed.multiSeries[0].id);
         alert(`Successfully imported ${parsed.multiSeries.length} curves from file!`);
       } else if (parsed.blankSignals || parsed.standards.length > 0) {
+        if (parsed.seriesName) updateActiveSeriesField("name", parsed.seriesName);
         if (parsed.blankSignals) updateActiveSeriesField("blankSignals", parsed.blankSignals);
         if (parsed.standards.length > 0) updateActiveSeriesField("standardRows", parsed.standards);
         alert("Data imported successfully into current curve!");

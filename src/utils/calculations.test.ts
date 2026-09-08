@@ -1,4 +1,4 @@
-import { calculateAdvancedLoD, tinv } from './calculations';
+import { calculateAdvancedLoD, tinv, computeSensitivityFoldChange } from './calculations';
 
 const testExactTinv = () => {
   const t95_df2 = tinv(0.95, 2);
@@ -168,6 +168,22 @@ const testPositiveLODCILow = () => {
   console.log('✓ testPositiveLODCILow passed!');
 };
 
+const testSensitivityFoldChangeReference = () => {
+  const refFold = computeSensitivityFoldChange(0.05, 0.05, true);
+  if (refFold !== "1.0× (Ref)") {
+    throw new Error(`Expected "1.0× (Ref)", got "${refFold}"`);
+  }
+  const equalSampleFold = computeSensitivityFoldChange(0.0501, 0.05, false);
+  if (equalSampleFold !== "1.0× (Equal)") {
+    throw new Error(`Expected "1.0× (Equal)" for equal-sensitivity sample, got "${equalSampleFold}"`);
+  }
+  const higherSensFold = computeSensitivityFoldChange(0.005, 0.05, false);
+  if (!higherSensFold.includes("higher")) {
+    throw new Error(`Expected higher sensitivity, got "${higherSensFold}"`);
+  }
+  console.log('✓ testSensitivityFoldChangeReference passed!');
+};
+
 const runAllTests = () => {
   testExactTinv();
   testStandardLODCalculation();
@@ -177,6 +193,7 @@ const runAllTests = () => {
   testAutoModelDisqualifiesOverparameterized();
   testSingleBlankDivisionByZero();
   testPositiveLODCILow();
+  testSensitivityFoldChangeReference();
   console.log('All calculations and LOD statistical engine unit tests completed successfully!');
 };
 
