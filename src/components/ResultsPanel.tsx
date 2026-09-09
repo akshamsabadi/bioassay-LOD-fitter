@@ -263,7 +263,6 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   value={activeResults.lodConc} 
                   precision={3} 
                   unit={cleanUnit} 
-                  showSubDecimal={true} 
                 />
               </span>
             </div>
@@ -444,7 +443,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       </div>
 
       {/* SECTION 3: ASSAY STATISTICAL LIMITS */}
-      <div className="stats-card">
+      <div className="stats-card" style={{ overflow: "visible" }}>
         {/* Header */}
         <div 
           onClick={() => setShowStats(!showStats)}
