@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useEffect, useCallback } from "react";
 import {
   Scatter,
   XAxis,
@@ -10,11 +10,92 @@ import {
   ReferenceLine,
   ReferenceArea,
   Area,
-  Tooltip
+  Tooltip,
+  usePlotArea
 } from "recharts";
 import { type AdvancedLoDResult } from "../utils/calculations";
 import { formatScientificUnicode } from "../utils/formatters";
 import { APP_VERSION } from "../constants";
+
+export interface PlotArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const PlotAreaWatcher: React.FC<{ onPlotArea: (area: PlotArea) => void }> = ({ onPlotArea }) => {
+  const plotArea = usePlotArea();
+  useEffect(() => {
+    if (plotArea && plotArea.width > 0 && plotArea.height > 0) {
+      onPlotArea({
+        x: plotArea.x,
+        y: plotArea.y,
+        width: plotArea.width,
+        height: plotArea.height
+      });
+    }
+  }, [plotArea, onPlotArea]);
+  return null;
+};
+
+export function computeNiceTicks(min: number, max: number, maxTicks: number = 5): { majorTicks: number[]; allTicks: number[] } {
+  const span = max - min;
+  if (!Number.isFinite(span) || span <= 0) {
+    return { majorTicks: [min], allTicks: [min] };
+  }
+  const roughStep = span / maxTicks;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  const normalizedStep = roughStep / magnitude;
+
+  let multiplier = 1;
+  if (normalizedStep >= 1.5 && normalizedStep < 3.5) multiplier = 2;
+  else if (normalizedStep >= 3.5 && normalizedStep < 7.5) multiplier = 5;
+  else if (normalizedStep >= 7.5) multiplier = 10;
+
+  const niceStep = multiplier * magnitude;
+  const niceStart = Math.ceil(min / niceStep) * niceStep;
+
+  const majorTicks: number[] = [];
+  let t = niceStart;
+  let count = 0;
+  while (t <= max + 1e-10 && count < 100) {
+    const val = Math.abs(t) < 1e-12 ? 0 : Number(t.toFixed(8));
+    majorTicks.push(val);
+    t += niceStep;
+    count++;
+  }
+
+  const subDiv = multiplier === 2 ? 2 : 5;
+  const subStep = niceStep / subDiv;
+  const minorStart = Math.ceil(min / subStep) * subStep;
+  const allTicks: number[] = [];
+  t = minorStart;
+  count = 0;
+  while (t <= max + 1e-10 && count < 200) {
+    const val = Math.abs(t) < 1e-12 ? 0 : Number(t.toFixed(8));
+    allTicks.push(val);
+    t += subStep;
+    count++;
+  }
+
+  return { majorTicks, allTicks: allTicks.length <= 40 ? allTicks : majorTicks };
+}
+
+export function pixelToDataX(px: number, plotArea: PlotArea, xDomain: [number, number]): number {
+  const fraction = (px - plotArea.x) / plotArea.width;
+  const clampedFraction = Math.max(0, Math.min(1, fraction));
+  const logMin = Math.log10(xDomain[0]);
+  const logMax = Math.log10(xDomain[1]);
+  const logVal = logMin + clampedFraction * (logMax - logMin);
+  return Math.pow(10, logVal);
+}
+
+export function pixelToDataY(py: number, plotArea: PlotArea, yDomain: [number, number]): number {
+  const fraction = (plotArea.y + plotArea.height - py) / plotArea.height;
+  const clampedFraction = Math.max(0, Math.min(1, fraction));
+  return yDomain[0] + clampedFraction * (yDomain[1] - yDomain[0]);
+}
 
 interface XAxisTickProps {
   x?: number;
@@ -25,9 +106,11 @@ interface XAxisTickProps {
   zeroX: number;
   breakStart: number;
   breakEnd: number;
+  isZoomed?: boolean;
+  decades?: number;
 }
 
-const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }: XAxisTickProps) => {
+const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd, isZoomed, decades }: XAxisTickProps) => {
   if (!payload) return null;
   const val = payload.value;
   if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
@@ -51,6 +134,22 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd }:
   const isMajor = Math.abs(rawExponent - Math.round(rawExponent)) < 0.0001;
   
   if (!isMajor) {
+    if (isZoomed && decades !== undefined && decades < 1.5) {
+      let label = "";
+      if (Math.abs(val) >= 1000 || (Math.abs(val) > 0 && Math.abs(val) < 0.01)) {
+        label = formatScientificUnicode(val, 2);
+      } else {
+        label = parseFloat(val.toFixed(4)).toString();
+      }
+      return (
+        <g>
+          <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
+          <text x={x} y={y + 18} fill="var(--subtext1)" textAnchor="middle" fontSize={10} fontWeight={500} fontFamily="'Plus Jakarta Sans', sans-serif">
+            {label}
+          </text>
+        </g>
+      );
+    }
     return (
       <g>
         <line x1={x} y1={y - 3.5} x2={x} y2={y} stroke="var(--subtext0)" strokeWidth={1} opacity={0.65} />
@@ -505,9 +604,11 @@ interface CustomTooltipProps {
   breakStart: number;
   breakEnd?: number;
   hoveredPoint?: HoveredPointData | null;
+  isInteracting?: boolean;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, curveSeriesList, xDomain, breakStart, hoveredPoint }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, curveSeriesList, xDomain, breakStart, hoveredPoint, isInteracting }) => {
+  if (isInteracting) return null;
   // Disappear when hovering directly over a specific data measurement point (scatter-point-tooltip shows instead)
   if (hoveredPoint) return null;
   if (!active) return null;
@@ -598,7 +699,74 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = useState(700);
+  const [chartHeight, setChartHeight] = useState(500);
   const activeSeries = curveSeriesList.find(s => s.isActive) || curveSeriesList[0];
+
+  // Zoom and Pan state
+  const [zoomDomain, setZoomDomain] = useState<{ x: [number, number]; y: [number, number] } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+  const [dragBox, setDragBox] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+    svgStartPx: number;
+    svgStartPy: number;
+    svgCurrentPx: number;
+    svgCurrentPy: number;
+  } | null>(null);
+
+  const [, setPlotArea] = useState<PlotArea | null>(null);
+  const plotAreaRef = useRef<PlotArea | null>(null);
+
+  const handlePlotArea = useCallback((area: PlotArea) => {
+    plotAreaRef.current = area;
+    setPlotArea(prev => {
+      if (prev && prev.x === area.x && prev.y === area.y && prev.width === area.width && prev.height === area.height) {
+        return prev;
+      }
+      return area;
+    });
+  }, []);
+
+  const getEffectivePlotArea = (): PlotArea => {
+    if (plotAreaRef.current && plotAreaRef.current.width > 0 && plotAreaRef.current.height > 0) {
+      return plotAreaRef.current;
+    }
+    if (chartRef.current) {
+      const svg = chartRef.current.querySelector("svg.recharts-surface");
+      if (svg) {
+        const clipRect = svg.querySelector("clipPath rect");
+        if (clipRect) {
+          const x = parseFloat(clipRect.getAttribute("x") || "0");
+          const y = parseFloat(clipRect.getAttribute("y") || "0");
+          const width = parseFloat(clipRect.getAttribute("width") || "0");
+          const height = parseFloat(clipRect.getAttribute("height") || "0");
+          if (width > 0 && height > 0) {
+            const measured = { x, y, width, height };
+            plotAreaRef.current = measured;
+            return measured;
+          }
+        }
+        const svgRect = svg.getBoundingClientRect();
+        if (svgRect.width > 0 && svgRect.height > 0) {
+          return {
+            x: 88,
+            y: 15,
+            width: Math.max(10, svgRect.width - 88 - 35),
+            height: Math.max(10, svgRect.height - 15 - 65)
+          };
+        }
+      }
+    }
+    return {
+      x: 88,
+      y: 15,
+      width: Math.max(10, chartWidth - 88 - 35),
+      height: Math.max(10, chartHeight - 15 - 65)
+    };
+  };
 
   React.useEffect(() => {
     if (!chartRef.current) return;
@@ -607,10 +775,383 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         if (entry.contentRect.width) {
           setChartWidth(entry.contentRect.width);
         }
+        if (entry.contentRect.height) {
+          setChartHeight(entry.contentRect.height);
+        }
       }
     });
     observer.observe(chartRef.current);
     return () => observer.disconnect();
+  }, []);
+
+  // Automatically reset zoom whenever external base domain changes
+  const prevBaseXDomainRef = useRef(xDomain);
+  const prevBaseYDomainRef = useRef(yDomain);
+  React.useEffect(() => {
+    if (
+      prevBaseXDomainRef.current[0] !== xDomain[0] ||
+      prevBaseXDomainRef.current[1] !== xDomain[1] ||
+      prevBaseYDomainRef.current[0] !== yDomain[0] ||
+      prevBaseYDomainRef.current[1] !== yDomain[1]
+    ) {
+      prevBaseXDomainRef.current = xDomain;
+      prevBaseYDomainRef.current = yDomain;
+      setZoomDomain(null);
+    }
+  }, [xDomain, yDomain]);
+
+  // Active domains
+  const activeXDomain = useMemo<[number, number]>(() => {
+    return zoomDomain ? zoomDomain.x : xDomain;
+  }, [zoomDomain, xDomain]);
+
+  const activeYDomain = useMemo<[number, number]>(() => {
+    return zoomDomain ? zoomDomain.y : yDomain;
+  }, [zoomDomain, yDomain]);
+
+  const activeDecades = useMemo(() => {
+    if (activeXDomain[0] <= 0 || activeXDomain[1] <= 0) return 4;
+    return Math.log10(activeXDomain[1]) - Math.log10(activeXDomain[0]);
+  }, [activeXDomain]);
+
+  // Compute active X ticks
+  const activeXTicks = useMemo(() => {
+    if (!zoomDomain) return xTicks;
+    const [minX, maxX] = activeXDomain;
+    if (minX <= 0 || maxX <= minX) return xTicks;
+
+    const logMin = Math.log10(minX);
+    const logMax = Math.log10(maxX);
+    const decades = logMax - logMin;
+    const ticks: number[] = [];
+
+    // Break ticks if in range
+    if (breakStart && breakEnd && minX <= breakStart && maxX >= breakEnd) {
+      ticks.push(minX, breakStart, breakEnd);
+    }
+
+    if (decades >= 2) {
+      const startExp = Math.floor(logMin);
+      const endExp = Math.ceil(logMax);
+      for (let i = startExp; i <= endExp; i++) {
+        const pow10 = Math.pow(10, i);
+        if (pow10 >= minX - 1e-10 && pow10 <= maxX + 1e-10) {
+          if (!breakStart || !breakEnd || pow10 < breakStart || pow10 > breakEnd) {
+            ticks.push(pow10);
+          }
+        }
+        if (i < endExp) {
+          for (let j = 2; j <= 9; j++) {
+            const minorVal = j * Math.pow(10, i);
+            if (minorVal >= minX - 1e-10 && minorVal <= maxX + 1e-10) {
+              if (!breakStart || !breakEnd || minorVal < breakStart || minorVal > breakEnd) {
+                ticks.push(minorVal);
+              }
+            }
+          }
+        }
+      }
+    } else if (decades >= 0.8) {
+      const startExp = Math.floor(logMin);
+      const endExp = Math.ceil(logMax);
+      for (let i = startExp; i <= endExp; i++) {
+        for (const m of [1, 2, 5]) {
+          const val = m * Math.pow(10, i);
+          if (val >= minX - 1e-10 && val <= maxX + 1e-10) {
+            if (!breakStart || !breakEnd || val < breakStart || val > breakEnd) {
+              ticks.push(val);
+            }
+          }
+        }
+      }
+    } else {
+      const nice = computeNiceTicks(minX, maxX, 5);
+      ticks.push(...nice.majorTicks);
+    }
+
+    return Array.from(new Set(ticks.map(t => Number(t.toPrecision(8))))).sort((a, b) => a - b);
+  }, [zoomDomain, activeXDomain, xTicks, breakStart, breakEnd]);
+
+  // Compute active Y ticks
+  const { activeYMajorTicks, activeYAllTicks } = useMemo(() => {
+    if (!zoomDomain) {
+      return { activeYMajorTicks: yMajorTicks, activeYAllTicks: yTicks };
+    }
+    const [minY, maxY] = activeYDomain;
+    const nice = computeNiceTicks(minY, maxY, 5);
+    return { activeYMajorTicks: nice.majorTicks, activeYAllTicks: nice.allTicks };
+  }, [zoomDomain, activeYDomain, yMajorTicks, yTicks]);
+
+  // Compute active bottom axis lines
+  const activeLeftAxisData = useMemo(() => {
+    if (!zoomDomain) return leftAxisData;
+    const [minX, maxX] = activeXDomain;
+    const minY = activeYDomain[0];
+    if (!breakStart || !breakEnd) {
+      return [{ x: minX, y: minY }, { x: maxX, y: minY }];
+    }
+    if (minX <= breakStart && maxX >= breakEnd) {
+      return [{ x: minX, y: minY }, { x: breakStart, y: minY }];
+    }
+    if (maxX <= breakStart) {
+      return [{ x: minX, y: minY }, { x: maxX, y: minY }];
+    }
+    return [];
+  }, [zoomDomain, leftAxisData, activeXDomain, activeYDomain, breakStart, breakEnd]);
+
+  const activeRightAxisData = useMemo(() => {
+    if (!zoomDomain) return rightAxisData;
+    const [minX, maxX] = activeXDomain;
+    const minY = activeYDomain[0];
+    if (!breakStart || !breakEnd) {
+      return [];
+    }
+    if (minX <= breakStart && maxX >= breakEnd) {
+      return [{ x: breakEnd, y: minY }, { x: maxX, y: minY }];
+    }
+    if (minX >= breakEnd) {
+      return [{ x: minX, y: minY }, { x: maxX, y: minY }];
+    }
+    return [];
+  }, [zoomDomain, rightAxisData, activeXDomain, activeYDomain, breakStart, breakEnd]);
+
+  // Dense fitted curves when zoomed
+  const zoomedSeriesMap = useMemo(() => {
+    if (!zoomDomain) return null;
+    const [minX, maxX] = activeXDomain;
+    const logMin = Math.log10(minX);
+    const logMax = Math.log10(maxX);
+    const steps = 120;
+    const xGrid: number[] = [];
+    for (let i = 0; i <= steps; i++) {
+      xGrid.push(Math.pow(10, logMin + i * (logMax - logMin) / steps));
+    }
+
+    const map = new Map<string, { chartData: ChartCurvePoint[]; lcData: ChartLinePoint[]; ldData: ChartLinePoint[] }>();
+
+    curveSeriesList.forEach(s => {
+      const xSet = new Set(xGrid);
+      s.scatterData.forEach(pt => {
+        if (typeof pt.actualX === "number" && pt.actualX >= minX && pt.actualX <= maxX) {
+          xSet.add(pt.actualX);
+        }
+      });
+      if (s.results.lodConc >= minX && s.results.lodConc <= maxX) {
+        xSet.add(s.results.lodConc);
+      }
+      const sortedX = Array.from(xSet).sort((a, b) => a - b);
+      const chartData = sortedX.map(x => {
+        const evalX = (xDomain && Math.abs(x - xDomain[0]) < 1e-9) ? 0 : x;
+        const pred = s.results.fit.predict(evalX);
+        const ci = s.results.fit.getCI ? s.results.fit.getCI(evalX) : { low: pred, high: pred };
+        return {
+          x,
+          trend: pred,
+          ciRange: [ci.low, ci.high] as [number, number]
+        };
+      });
+
+      const lcData = [{ x: minX, y: s.results.lc }, { x: maxX, y: s.results.lc }];
+      const ldData = [{ x: minX, y: s.results.ld }, { x: maxX, y: s.results.ld }];
+
+      map.set(s.id, { chartData, lcData, ldData });
+    });
+
+    return map;
+  }, [zoomDomain, activeXDomain, curveSeriesList, xDomain]);
+
+  // Interaction tracking refs
+  const isMouseDownRef = useRef(false);
+  const activeButtonRef = useRef<number | null>(null);
+  const dragStartRef = useRef<{ px: number; py: number; clientX: number; clientY: number } | null>(null);
+  const panStartRef = useRef<{ clientX: number; clientY: number; xDomain: [number, number]; yDomain: [number, number] } | null>(null);
+  const dragBoxRef = useRef(dragBox);
+  dragBoxRef.current = dragBox;
+  const currentXDomainRef = useRef(activeXDomain);
+  currentXDomainRef.current = activeXDomain;
+  const currentYDomainRef = useRef(activeYDomain);
+  currentYDomainRef.current = activeYDomain;
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest(".custom-chart-legend")) return;
+    if ((e.target as HTMLElement).closest("button")) return;
+
+    const area = getEffectivePlotArea();
+    const svg = chartRef.current?.querySelector("svg.recharts-surface") as SVGSVGElement | null;
+    if (!svg) return;
+
+    const svgRect = svg.getBoundingClientRect();
+    const px = e.clientX - svgRect.left;
+    const py = e.clientY - svgRect.top;
+
+    const inPlot = px >= area.x - 4 && px <= area.x + area.width + 4 && py >= area.y - 4 && py <= area.y + area.height + 4;
+    if (!inPlot) return;
+
+    if (e.button === 0) {
+      dragStartRef.current = { px, py, clientX: e.clientX, clientY: e.clientY };
+      isMouseDownRef.current = true;
+      activeButtonRef.current = 0;
+    } else if (e.button === 2) {
+      e.preventDefault();
+      panStartRef.current = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        xDomain: activeXDomain,
+        yDomain: activeYDomain
+      };
+      isMouseDownRef.current = true;
+      activeButtonRef.current = 2;
+      setIsPanning(true);
+      document.body.style.cursor = "grabbing";
+    }
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest(".custom-chart-legend")) return;
+    if ((e.target as HTMLElement).closest("button")) return;
+    setZoomDomain(null);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  React.useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isMouseDownRef.current) return;
+      const area = getEffectivePlotArea();
+      const svg = chartRef.current?.querySelector("svg.recharts-surface") as SVGSVGElement | null;
+      if (!svg) return;
+      const svgRect = svg.getBoundingClientRect();
+      const frameRect = chartRef.current?.getBoundingClientRect();
+      if (!frameRect) return;
+
+      if (activeButtonRef.current === 0 && dragStartRef.current) {
+        const dist = Math.hypot(e.clientX - dragStartRef.current.clientX, e.clientY - dragStartRef.current.clientY);
+        if (dist >= 5) {
+          setIsDragging(true);
+          document.body.style.cursor = "crosshair";
+
+          const currentPx = Math.max(area.x, Math.min(area.x + area.width, e.clientX - svgRect.left));
+          const currentPy = Math.max(area.y, Math.min(area.y + area.height, e.clientY - svgRect.top));
+
+          const frameStartX = dragStartRef.current.clientX - frameRect.left;
+          const frameStartY = dragStartRef.current.clientY - frameRect.top;
+          const frameCurrentX = e.clientX - frameRect.left;
+          const frameCurrentY = e.clientY - frameRect.top;
+
+          setDragBox({
+            startX: frameStartX,
+            startY: frameStartY,
+            currentX: frameCurrentX,
+            currentY: frameCurrentY,
+            svgStartPx: dragStartRef.current.px,
+            svgStartPy: dragStartRef.current.py,
+            svgCurrentPx: currentPx,
+            svgCurrentPy: currentPy
+          });
+        }
+      } else if (activeButtonRef.current === 2 && panStartRef.current) {
+        e.preventDefault();
+        const dx = e.clientX - panStartRef.current.clientX;
+        const dy = e.clientY - panStartRef.current.clientY;
+
+        const [startMinX, startMaxX] = panStartRef.current.xDomain;
+        const [startMinY, startMaxY] = panStartRef.current.yDomain;
+
+        const logMin = Math.log10(startMinX);
+        const logMax = Math.log10(startMaxX);
+        const logSpan = logMax - logMin;
+        const dLog = -(dx / area.width) * logSpan;
+
+        let newLogMin = logMin + dLog;
+        let newLogMax = logMax + dLog;
+        if (newLogMin < -12) {
+          newLogMin = -12;
+          newLogMax = newLogMin + logSpan;
+        } else if (newLogMax > 12) {
+          newLogMax = 12;
+          newLogMin = newLogMax - logSpan;
+        }
+        const newXDomain: [number, number] = [Math.pow(10, newLogMin), Math.pow(10, newLogMax)];
+
+        const ySpan = startMaxY - startMinY;
+        const dY = (dy / area.height) * ySpan;
+        const newYDomain: [number, number] = [startMinY + dY, startMaxY + dY];
+
+        setZoomDomain({ x: newXDomain, y: newYDomain });
+      }
+    };
+
+    const onMouseUp = () => {
+      if (!isMouseDownRef.current) return;
+      const area = getEffectivePlotArea();
+
+      if (activeButtonRef.current === 0) {
+        if (dragBoxRef.current) {
+          const box = dragBoxRef.current;
+          const px1 = Math.min(box.svgStartPx, box.svgCurrentPx);
+          const px2 = Math.max(box.svgStartPx, box.svgCurrentPx);
+          const py1 = Math.min(box.svgStartPy, box.svgCurrentPy);
+          const py2 = Math.max(box.svgStartPy, box.svgCurrentPy);
+          const width = px2 - px1;
+          const height = py2 - py1;
+
+          const currentX = currentXDomainRef.current;
+          const currentY = currentYDomainRef.current;
+
+          if (width >= 8 && height >= 8) {
+            const newXMin = pixelToDataX(px1, area, currentX);
+            const newXMax = pixelToDataX(px2, area, currentX);
+            const newYMax = pixelToDataY(py1, area, currentY);
+            const newYMin = pixelToDataY(py2, area, currentY);
+
+            if (newXMin > 0 && newXMax > newXMin && newYMax > newYMin) {
+              setZoomDomain({ x: [newXMin, newXMax], y: [newYMin, newYMax] });
+            }
+          } else if (width >= 15 && height < 8) {
+            const newXMin = pixelToDataX(px1, area, currentX);
+            const newXMax = pixelToDataX(px2, area, currentX);
+            if (newXMin > 0 && newXMax > newXMin) {
+              setZoomDomain({ x: [newXMin, newXMax], y: currentY });
+            }
+          } else if (height >= 15 && width < 8) {
+            const newYMax = pixelToDataY(py1, area, currentY);
+            const newYMin = pixelToDataY(py2, area, currentY);
+            if (newYMax > newYMin) {
+              setZoomDomain({ x: currentX, y: [newYMin, newYMax] });
+            }
+          }
+        }
+        setDragBox(null);
+        setIsDragging(false);
+      } else if (activeButtonRef.current === 2) {
+        setIsPanning(false);
+      }
+
+      isMouseDownRef.current = false;
+      activeButtonRef.current = null;
+      dragStartRef.current = null;
+      panStartRef.current = null;
+      document.body.style.cursor = "";
+    };
+
+    const onWindowContextMenu = (e: MouseEvent) => {
+      if (chartRef.current && chartRef.current.contains(e.target as Node)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("contextmenu", onWindowContextMenu);
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("contextmenu", onWindowContextMenu);
+      document.body.style.cursor = "";
+    };
   }, []);
 
   // Layer Visibility Toggles
@@ -876,7 +1417,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         </div>
       </div>
       
-      <div className="chart-frame" ref={chartRef}>
+      <div 
+        className={`chart-frame ${isPanning ? "panning" : ""}`} 
+        ref={chartRef}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
+      >
         <ChartLegend
           curveSeriesList={curveSeriesList}
           showCI={showCI}
@@ -887,24 +1434,47 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           setHoveredSeriesId={setHoveredSeriesId}
           onSelectSeries={onSelectSeries}
         />
+
+        {/* Selection Rectangle Overlay during click & drag to zoom */}
+        {dragBox && (() => {
+          const boxLeft = Math.min(dragBox.startX, dragBox.currentX);
+          const boxTop = Math.min(dragBox.startY, dragBox.currentY);
+          const boxWidth = Math.abs(dragBox.currentX - dragBox.startX);
+          const boxHeight = Math.abs(dragBox.currentY - dragBox.startY);
+          if (boxWidth < 2 && boxHeight < 2) return null;
+          return (
+            <div
+              className="chart-zoom-box"
+              style={{
+                left: boxLeft,
+                top: boxTop,
+                width: boxWidth,
+                height: boxHeight
+              }}
+            />
+          );
+        })()}
+
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
-            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} horizontalValues={yMajorTicks} opacity={0.6} />}
+            <PlotAreaWatcher onPlotArea={handlePlotArea} />
+
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} horizontalValues={activeYMajorTicks} opacity={0.6} />}
             
             <XAxis 
-              dataKey="x" type="number" scale="log" domain={xDomain} allowDataOverflow={true} stroke="var(--subtext1)" 
-              ticks={xTicks}
+              dataKey="x" type="number" scale="log" domain={activeXDomain} allowDataOverflow={true} stroke="var(--subtext1)" 
+              ticks={activeXTicks}
               interval={0}
               tickLine={false}
               axisLine={false}
-              tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} />}
+              tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} isZoomed={zoomDomain !== null} decades={activeDecades} />}
               label={{ value: xAxisLabel, position: "bottom", fill: "var(--subtext1)", fontSize: 11.5, fontWeight: 600, offset: 25, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             />
             <YAxis 
               stroke="var(--subtext1)" 
               strokeWidth={1.2}
-              domain={yDomain} 
-              ticks={yMajorTicks}
+              domain={activeYDomain} 
+              ticks={activeYMajorTicks}
               interval={0}
               tickMargin={0}
               allowDataOverflow={true}
@@ -919,16 +1489,17 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                 <CustomTooltip 
                   {...props} 
                   curveSeriesList={curveSeriesList} 
-                  xDomain={xDomain} 
+                  xDomain={activeXDomain} 
                   breakStart={breakStart} 
                   breakEnd={breakEnd}
                   hoveredPoint={hoveredPoint}
+                  isInteracting={isDragging || isPanning}
                 />
               )} 
               cursor={{ stroke: "var(--indigo)", strokeDasharray: "4 4", strokeWidth: 1.5, opacity: 0.7 }} 
             />
             
-            {yTicks && yTicks.filter(t => !yMajorTicks.some(m => Math.abs(m - t) < 1e-9)).map(tick => (
+            {activeYAllTicks && activeYAllTicks.filter(t => !activeYMajorTicks.some(m => Math.abs(m - t) < 1e-9)).map(tick => (
               <ReferenceLine 
                 key={`minor-y-${tick}`} 
                 y={tick} 
@@ -941,6 +1512,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             {showCI && curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.14 : 0.08);
+              if (zoomDomain && zoomedSeriesMap) {
+                const zData = zoomedSeriesMap.get(s.id)?.chartData || s.rightChartData;
+                return (
+                  <Area key={`ci-band-zoom-${s.id}`} data={zData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                );
+              }
               return (
                 <React.Fragment key={`ci-band-${s.id}`}>
                   <Area data={s.leftChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
@@ -950,7 +1527,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* 95% CI LOD Range Areas for Every Series */}
-            {showLodZone && curveSeriesList.filter(s => Number.isFinite(s.results?.lodCI?.low) && Number.isFinite(s.results?.lodCI?.high) && s.results.lodCI.high > s.results.lodCI.low).map(s => {
+            {showLodZone && curveSeriesList.filter(s => Number.isFinite(s.results?.lodCI?.low) && Number.isFinite(s.results?.lodCI?.high) && s.results.lodCI.high > s.results.lodCI.low && s.results.lodCI.high >= activeXDomain[0] && s.results.lodCI.low <= activeXDomain[1]).map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.14 : 0.07);
               const isMulti = curveSeriesList.length > 1;
@@ -972,17 +1549,29 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             {/* Active Series Statistical Decision Limits (LC / LD) */}
             {activeSeries && (
               <>
-                {showLc && (
+                {showLc && activeSeries.results.lc >= activeYDomain[0] && activeSeries.results.lc <= activeYDomain[1] && (
                   <>
-                    <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                    <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                    {zoomDomain && zoomedSeriesMap ? (
+                      <Line data={zoomedSeriesMap.get(activeSeries.id)?.lcData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                    ) : (
+                      <>
+                        <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                        <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                      </>
+                    )}
                     <ReferenceLine y={activeSeries.results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: "none" }} />
                   </>
                 )}
-                {showLd && (
+                {showLd && activeSeries.results.ld >= activeYDomain[0] && activeSeries.results.ld <= activeYDomain[1] && (
                   <>
-                    <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                    <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                    {zoomDomain && zoomedSeriesMap ? (
+                      <Line data={zoomedSeriesMap.get(activeSeries.id)?.ldData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                    ) : (
+                      <>
+                        <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                        <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+                      </>
+                    )}
                     <ReferenceLine y={activeSeries.results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: "none" }} />
                   </>
                 )}
@@ -992,6 +1581,24 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             {/* 1. Render Fitted Curves for Every Series */}
             {curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+              if (zoomDomain && zoomedSeriesMap) {
+                const zData = zoomedSeriesMap.get(s.id)?.chartData || s.rightChartData;
+                return (
+                  <Line 
+                    key={`series-trend-zoom-${s.id}`}
+                    data={zData} 
+                    dataKey="trend" 
+                    stroke={s.color} 
+                    strokeWidth={s.isActive ? 3 : 2.2} 
+                    strokeOpacity={isDimmed ? 0.25 : 1}
+                    dot={false} 
+                    activeDot={false} 
+                    isAnimationActive={false} 
+                    legendType="none" 
+                    style={{ pointerEvents: "none" }} 
+                  />
+                );
+              }
               return (
                 <React.Fragment key={`series-trend-${s.id}`}>
                   <Line 
@@ -1023,7 +1630,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* 2. Render Vertical LOD Dashed Lines */}
-            {curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0).map(s => {
+            {curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0 && s.results.lodConc >= activeXDomain[0] && s.results.lodConc <= activeXDomain[1]).map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const isMulti = curveSeriesList.length > 1;
               const lodColor = isMulti ? s.color : "var(--yellow)";
@@ -1092,7 +1699,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* 3. Render All LOD Labels on TOP of all elements */}
-            {curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0).map(s => {
+            {curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0 && s.results.lodConc >= activeXDomain[0] && s.results.lodConc <= activeXDomain[1]).map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               const isMulti = curveSeriesList.length > 1;
               const lodColor = isMulti ? s.color : "var(--yellow)";
@@ -1118,12 +1725,16 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             })}
 
             {/* Zero break tick axis line */}
-            <Line data={leftAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-            <Line data={rightAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+            {activeLeftAxisData.length > 0 && (
+              <Line data={activeLeftAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+            )}
+            {activeRightAxisData.length > 0 && (
+              <Line data={activeRightAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
         
-        {hoveredPoint && hoveredPoint.cx != null && hoveredPoint.cy != null && (() => {
+        {hoveredPoint && !isDragging && !isPanning && hoveredPoint.cx != null && hoveredPoint.cy != null && (() => {
           const frameWidth = chartWidth || 700;
           const isRight = hoveredPoint.cx > frameWidth - 190;
           const left = isRight ? hoveredPoint.cx - 175 : hoveredPoint.cx + 15;

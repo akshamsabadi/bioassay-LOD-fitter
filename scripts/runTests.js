@@ -9,7 +9,8 @@ const rootDir = path.join(__dirname, '..');
 
 const testFiles = [
   'src/utils/csvParser.test.ts',
-  'src/utils/calculations.test.ts'
+  'src/utils/calculations.test.ts',
+  'src/utils/zoom.test.ts'
 ];
 
 for (const relPath of testFiles) {
