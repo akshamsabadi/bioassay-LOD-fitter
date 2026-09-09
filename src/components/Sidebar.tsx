@@ -303,7 +303,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       <aside className={`sidebar ${isCollapsed ? "collapsed" : ""}`} onPaste={handleGlobalPaste}>
         
-        {/* SECTION 0: MULTI-CURVE SERIES SELECTOR PILLS */}
+        {/* SECTION: PLOT AXES & TITLE */}
+        <section className="sidebar-section" style={{ margin: 0, paddingBottom: "12px", borderBottom: "1px solid var(--border-subtle)" }}>
+          <details style={{ margin: 0, fontSize: "0.8rem" }}>
+            <summary style={{
+              cursor: "pointer",
+              fontWeight: 600,
+              color: "var(--subtext0)",
+              userSelect: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "4px 0"
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span>Plot Axes & Title</span>
+            </summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+              <input 
+                type="text" 
+                className="text-input" 
+                placeholder="Chart Title" 
+                value={plotTitle} 
+                onChange={e => setPlotTitle(e.target.value)} 
+              />
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  placeholder="X Axis (Conc)" 
+                  value={xAxisLabel} 
+                  onChange={e => setXAxisLabel(e.target.value)} 
+                  style={{ flex: 1, minWidth: 0 }} 
+                />
+                <input 
+                  type="text" 
+                  className="text-input" 
+                  placeholder="Y Axis (Signal)" 
+                  value={yAxisLabel} 
+                  onChange={e => setYAxisLabel(e.target.value)} 
+                  style={{ flex: 1, minWidth: 0 }} 
+                />
+              </div>
+            </div>
+          </details>
+        </section>
+
+        {/* SECTION: CURVES & CONDITIONS */}
         <section className="sidebar-section" style={{ margin: 0, paddingBottom: "12px", borderBottom: "1px solid var(--border-subtle)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
             <span className="section-title">Curves & Conditions</span>
@@ -406,55 +455,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               placeholder="Series Name"
             />
           </div>
-        </section>
-
-        {/* SECTION 1: AXIS LABELS & TITLE */}
-        <section className="sidebar-section" style={{ margin: 0, paddingBottom: "12px", borderBottom: "1px solid var(--border-subtle)" }}>
-          <details style={{ margin: 0, fontSize: "0.8rem" }}>
-            <summary style={{
-              cursor: "pointer",
-              fontWeight: 600,
-              color: "var(--subtext0)",
-              userSelect: "none",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 0"
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-              <span>Axis Labels & Title</span>
-            </summary>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
-              <input 
-                type="text" 
-                className="text-input" 
-                placeholder="Chart Title" 
-                value={plotTitle} 
-                onChange={e => setPlotTitle(e.target.value)} 
-              />
-              <div style={{ display: "flex", gap: "8px" }}>
-                <input 
-                  type="text" 
-                  className="text-input" 
-                  placeholder="X Axis (Conc)" 
-                  value={xAxisLabel} 
-                  onChange={e => setXAxisLabel(e.target.value)} 
-                  style={{ flex: 1, minWidth: 0 }} 
-                />
-                <input 
-                  type="text" 
-                  className="text-input" 
-                  placeholder="Y Axis (Signal)" 
-                  value={yAxisLabel} 
-                  onChange={e => setYAxisLabel(e.target.value)} 
-                  style={{ flex: 1, minWidth: 0 }} 
-                />
-              </div>
-            </div>
-          </details>
         </section>
 
         {/* UNIFIED DATA ENTRY TABLE */}

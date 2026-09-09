@@ -12,3 +12,7 @@ body {
 button:focus, button:focus-visible {
   outline: none;
 }
+
+svg:focus, svg:focus-visible {
+  outline: none !important;
+}

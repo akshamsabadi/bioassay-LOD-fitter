@@ -1574,7 +1574,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         })()}
 
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
+          <ComposedChart accessibilityLayer={false} margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
             <PlotAreaWatcher onPlotArea={handlePlotArea} />
 
             {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} horizontalValues={activeYMajorTicks} opacity={0.6} />}
