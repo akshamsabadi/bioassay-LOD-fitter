@@ -97,6 +97,34 @@ export function pixelToDataY(py: number, plotArea: PlotArea, yDomain: [number, n
   return yDomain[0] + clampedFraction * (yDomain[1] - yDomain[0]);
 }
 
+export function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
+}
+
+export function interpolateDomain(
+  fromDomain: { x: [number, number]; y: [number, number] },
+  toDomain: { x: [number, number]; y: [number, number] },
+  progress: number
+): { x: [number, number]; y: [number, number] } {
+  const p = Math.max(0, Math.min(1, progress));
+
+  const fromLogMinX = Math.log10(Math.max(fromDomain.x[0], 1e-12));
+  const fromLogMaxX = Math.log10(Math.max(fromDomain.x[1], 1e-12));
+  const toLogMinX = Math.log10(Math.max(toDomain.x[0], 1e-12));
+  const toLogMaxX = Math.log10(Math.max(toDomain.x[1], 1e-12));
+
+  const currLogMinX = fromLogMinX + (toLogMinX - fromLogMinX) * p;
+  const currLogMaxX = fromLogMaxX + (toLogMaxX - fromLogMaxX) * p;
+
+  const currMinY = fromDomain.y[0] + (toDomain.y[0] - fromDomain.y[0]) * p;
+  const currMaxY = fromDomain.y[1] + (toDomain.y[1] - fromDomain.y[1]) * p;
+
+  return {
+    x: [Math.pow(10, currLogMinX), Math.pow(10, currLogMaxX)],
+    y: [currMinY, currMaxY]
+  };
+}
+
 interface XAxisTickProps {
   x?: number;
   y?: number;
@@ -355,10 +383,11 @@ export interface ScatterDotProps {
   seriesColor?: string;
   isDimmed?: boolean;
   isSingleCurve?: boolean;
+  isAnimating?: boolean;
 }
 
 const CustomScatterDot = (props: ScatterDotProps) => {
-  const { cx = 0, cy = 0, payload, hoveredPoint, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve } = props;
+  const { cx = 0, cy = 0, payload, hoveredPoint, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve, isAnimating } = props;
   if (!payload) return null;
 
   // When hovering directly over a point: ONLY that specific point is selected!
@@ -395,6 +424,7 @@ const CustomScatterDot = (props: ScatterDotProps) => {
         r={isSelected ? 6 : 4}
         fill={isSelected ? "var(--pink)" : color}
         onMouseEnter={() => {
+          if (isAnimating) return;
           if (setHoveredPoint) {
             setHoveredPoint({
               id: payload.id,
@@ -706,6 +736,31 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const [zoomDomain, setZoomDomain] = useState<{ x: [number, number]; y: [number, number] } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const isAnimatingRef = useRef(false);
+  const animationRafRef = useRef<number | null>(null);
+  const targetDomainRef = useRef<{ x: [number, number]; y: [number, number] } | null>(null);
+
+  const cancelAnimation = useCallback(() => {
+    if (animationRafRef.current !== null) {
+      cancelAnimationFrame(animationRafRef.current);
+      animationRafRef.current = null;
+    }
+    targetDomainRef.current = null;
+    if (isAnimatingRef.current) {
+      isAnimatingRef.current = false;
+      setIsAnimating(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      if (animationRafRef.current !== null) {
+        cancelAnimationFrame(animationRafRef.current);
+      }
+    };
+  }, []);
+
   const [dragBox, setDragBox] = useState<{
     startX: number;
     startY: number;
@@ -796,9 +851,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     ) {
       prevBaseXDomainRef.current = xDomain;
       prevBaseYDomainRef.current = yDomain;
+      cancelAnimation();
       setZoomDomain(null);
     }
-  }, [xDomain, yDomain]);
+  }, [xDomain, yDomain, cancelAnimation]);
 
   // Active domains
   const activeXDomain = useMemo<[number, number]>(() => {
@@ -972,9 +1028,65 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const currentYDomainRef = useRef(activeYDomain);
   currentYDomainRef.current = activeYDomain;
 
+  const animateToDomain = useCallback((targetDomain: { x: [number, number]; y: [number, number] } | null) => {
+    if (animationRafRef.current !== null) {
+      cancelAnimationFrame(animationRafRef.current);
+      animationRafRef.current = null;
+    }
+
+    const startDomain: { x: [number, number]; y: [number, number] } = {
+      x: [...currentXDomainRef.current] as [number, number],
+      y: [...currentYDomainRef.current] as [number, number]
+    };
+
+    const endDomain: { x: [number, number]; y: [number, number] } = targetDomain ?? {
+      x: [...xDomain] as [number, number],
+      y: [...yDomain] as [number, number]
+    };
+
+    const isSameX = Math.abs(startDomain.x[0] - endDomain.x[0]) < 1e-12 && Math.abs(startDomain.x[1] - endDomain.x[1]) < 1e-12;
+    const isSameY = Math.abs(startDomain.y[0] - endDomain.y[0]) < 1e-12 && Math.abs(startDomain.y[1] - endDomain.y[1]) < 1e-12;
+    if ((isSameX && isSameY) || endDomain.x[0] <= 0 || endDomain.x[1] <= endDomain.x[0] || endDomain.y[1] <= endDomain.y[0]) {
+      targetDomainRef.current = null;
+      isAnimatingRef.current = false;
+      setIsAnimating(false);
+      setZoomDomain(targetDomain);
+      return;
+    }
+
+    targetDomainRef.current = targetDomain;
+    isAnimatingRef.current = true;
+    setIsAnimating(true);
+
+    const duration = 240; // ms: fast and smooth transition
+    const startTime = performance.now();
+
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const eased = easeOutCubic(progress);
+
+      if (progress < 1) {
+        const interpolated = interpolateDomain(startDomain, endDomain, eased);
+        setZoomDomain(interpolated);
+        animationRafRef.current = requestAnimationFrame(step);
+      } else {
+        animationRafRef.current = null;
+        targetDomainRef.current = null;
+        isAnimatingRef.current = false;
+        setIsAnimating(false);
+        setZoomDomain(targetDomain);
+      }
+    };
+
+    animationRafRef.current = requestAnimationFrame(step);
+  }, [xDomain, yDomain]);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest(".custom-chart-legend")) return;
     if ((e.target as HTMLElement).closest("button")) return;
+
+    cancelAnimation();
 
     const area = getEffectivePlotArea();
     const svg = chartRef.current?.querySelector("svg.recharts-surface") as SVGSVGElement | null;
@@ -1009,7 +1121,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest(".custom-chart-legend")) return;
     if ((e.target as HTMLElement).closest("button")) return;
-    setZoomDomain(null);
+    if (!zoomDomain && !isAnimatingRef.current) return;
+    if (isAnimatingRef.current && targetDomainRef.current === null) return;
+    setHoveredPoint(null);
+    animateToDomain(null);
   };
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1107,19 +1222,22 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             const newYMin = pixelToDataY(py2, area, currentY);
 
             if (newXMin > 0 && newXMax > newXMin && newYMax > newYMin) {
-              setZoomDomain({ x: [newXMin, newXMax], y: [newYMin, newYMax] });
+              setHoveredPoint(null);
+              animateToDomain({ x: [newXMin, newXMax], y: [newYMin, newYMax] });
             }
           } else if (width >= 15 && height < 8) {
             const newXMin = pixelToDataX(px1, area, currentX);
             const newXMax = pixelToDataX(px2, area, currentX);
             if (newXMin > 0 && newXMax > newXMin) {
-              setZoomDomain({ x: [newXMin, newXMax], y: currentY });
+              setHoveredPoint(null);
+              animateToDomain({ x: [newXMin, newXMax], y: currentY });
             }
           } else if (height >= 15 && width < 8) {
             const newYMax = pixelToDataY(py1, area, currentY);
             const newYMin = pixelToDataY(py2, area, currentY);
             if (newYMax > newYMin) {
-              setZoomDomain({ x: currentX, y: [newYMin, newYMax] });
+              setHoveredPoint(null);
+              animateToDomain({ x: currentX, y: [newYMin, newYMax] });
             }
           }
         }
@@ -1467,7 +1585,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               interval={0}
               tickLine={false}
               axisLine={false}
-              tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} isZoomed={zoomDomain !== null} decades={activeDecades} />}
+              tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} isZoomed={zoomDomain !== null || isAnimating} decades={activeDecades} />}
               label={{ value: xAxisLabel, position: "bottom", fill: "var(--subtext1)", fontSize: 11.5, fontWeight: 600, offset: 25, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             />
             <YAxis 
@@ -1493,10 +1611,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                   breakStart={breakStart} 
                   breakEnd={breakEnd}
                   hoveredPoint={hoveredPoint}
-                  isInteracting={isDragging || isPanning}
+                  isInteracting={isDragging || isPanning || isAnimating}
                 />
               )} 
-              cursor={{ stroke: "var(--indigo)", strokeDasharray: "4 4", strokeWidth: 1.5, opacity: 0.7 }} 
+              cursor={isDragging || isPanning || isAnimating ? false : { stroke: "var(--indigo)", strokeDasharray: "4 4", strokeWidth: 1.5, opacity: 0.7 }} 
             />
             
             {activeYAllTicks && activeYAllTicks.filter(t => !activeYMajorTicks.some(m => Math.abs(m - t) < 1e-9)).map(tick => (
@@ -1692,6 +1810,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                       seriesColor={s.color}
                       isDimmed={isDimmed}
                       isSingleCurve={curveSeriesList.length === 1}
+                      isAnimating={isAnimating}
                     />
                   )} 
                 />
@@ -1734,7 +1853,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </ComposedChart>
         </ResponsiveContainer>
         
-        {hoveredPoint && !isDragging && !isPanning && hoveredPoint.cx != null && hoveredPoint.cy != null && (() => {
+        {hoveredPoint && !isDragging && !isPanning && !isAnimating && hoveredPoint.cx != null && hoveredPoint.cy != null && (() => {
           const frameWidth = chartWidth || 700;
           const isRight = hoveredPoint.cx > frameWidth - 190;
           const left = isRight ? hoveredPoint.cx - 175 : hoveredPoint.cx + 15;

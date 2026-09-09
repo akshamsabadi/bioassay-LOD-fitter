@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.8.3";
+export const APP_VERSION = "0.8.4";
 
 // Replicate variation thresholds (%) for bioassay quality checks
 export const BLANK_CV_WARNING_THRESHOLD = 50; // Background blank signals naturally exhibit higher relative variance
