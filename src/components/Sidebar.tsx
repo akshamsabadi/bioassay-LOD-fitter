@@ -307,9 +307,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <section className="sidebar-section" style={{ margin: 0, paddingBottom: "12px", borderBottom: "1px solid var(--border-subtle)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
             <span className="section-title">Curves & Conditions</span>
-            <span style={{ fontSize: "0.68rem", padding: "1px 6px", borderRadius: "var(--radius-pill)", backgroundColor: "var(--surface1)", color: "var(--subtext0)" }}>
-              {seriesList.length} {seriesList.length === 1 ? "curve" : "curves"}
-            </span>
           </div>
 
           <div style={{
@@ -469,9 +466,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {seriesList.length > 1 ? `${activeSeries.name} Data` : "Calibration Data"}
               </span>
             </div>
-            <span style={{ fontSize: "0.68rem", color: "var(--subtext0)", cursor: "help" }} title="Paste table from Excel or Google Sheets (Ctrl+V into any cell)">
-              📋 Excel paste
-            </span>
           </div>
 
           {/* Table Column Headers */}

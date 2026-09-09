@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://akshamsabadi.github.io/bioassay-LOD-fitter/"><img src="https://img.shields.io/badge/Live%20App-GitHub%20Pages-3ca951?style=for-the-badge&logo=github&logoColor=white" alt="Live Demo" /></a>
-  <img src="https://img.shields.io/badge/version-v0.8.0-4269d0?style=for-the-badge" alt="Version" />
+  <img src="https://img.shields.io/badge/version-v0.8.1-4269d0?style=for-the-badge" alt="Version" />
   <img src="https://img.shields.io/badge/tests-17%2F17%20passing-3ca951?style=for-the-badge" alt="Tests" />
   <img src="https://img.shields.io/badge/license-MIT-a463f2?style=for-the-badge" alt="License" />
 </p>

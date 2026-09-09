@@ -532,7 +532,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             fontWeight: 700,
             border: "none",
             fontSize: "0.78rem",
-            boxShadow: "0 2px 10px rgba(16, 185, 129, 0.3)",
+            boxShadow: "none",
             height: "40px"
           }}
           title="Download experimental audit as CSV"

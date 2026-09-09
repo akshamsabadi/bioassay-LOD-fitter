@@ -146,8 +146,8 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 className={`help-info-btn ${showImportHelp ? "active" : ""}`}
                 onClick={() => setShowImportHelp(prev => !prev)}
-                aria-label="CSV and TSV file import instructions and formatting guide"
-                title="CSV/TSV Import Guide & Tips"
+                aria-label="Data input and CSV/TSV import instructions and formatting guide"
+                title="Data Input & Import Guide"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
@@ -159,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
               {showImportHelp && (
                 <div className="help-popover-card" role="tooltip">
                   <div className="help-popover-header">
-                    <span className="help-popover-title">CSV & TSV Import Guide</span>
+                    <span className="help-popover-title">Data Input & Import Guide</span>
                     <button 
                       type="button" 
                       className="help-popover-close" 
@@ -170,6 +170,10 @@ export const Header: React.FC<HeaderProps> = ({
                     </button>
                   </div>
                   <div className="help-popover-body">
+                    <div className="help-rule-item">
+                      <span className="rule-badge">Paste</span>
+                      <div><strong>Excel / Google Sheets:</strong> Copy cells directly from your spreadsheet and paste (<code>Ctrl+V</code> / <code>Cmd+V</code>) anywhere into the table.</div>
+                    </div>
                     <div className="help-rule-item">
                       <span className="rule-badge">Col 1</span>
                       <div><strong>Concentrations:</strong> Standard concentrations (numeric). For blanks, use <code>0</code>, <code>blank</code>, or <code>blanks</code>.</div>
