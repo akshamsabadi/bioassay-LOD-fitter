@@ -11,19 +11,141 @@ import {
   ReferenceArea,
   Area,
   Tooltip,
-  usePlotArea
+  usePlotArea,
 } from "recharts";
 import { type AdvancedLoDResult } from "../utils/calculations";
 import { formatScientificUnicode } from "../utils/formatters";
 import { APP_VERSION } from "../constants";
+import {
+  computeNiceTicks,
+  easeOutCubic,
+  interpolateDomain,
+  computePannedDomain,
+  resolveDragZoomDomain,
+  computeZoomedXTicks,
+  computeAxisBreakSegments,
+  computeLodBadgeTiers,
+  type PlotArea,
+} from "../utils/zoom";
+import { downloadChartAsSVG, downloadChartAsPNG } from "../utils/reportExporters";
 
-export interface PlotArea {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+export type { PlotArea };
 
+/** Default fallback chart container width in pixels prior to ResizeObserver measurement. */
+const _DEFAULT_CHART_WIDTH_PX = 700;
+
+/** Default fallback chart container height in pixels prior to ResizeObserver measurement. */
+const _DEFAULT_CHART_HEIGHT_PX = 500;
+
+/** Fallback left X coordinate of the plot area when SVG clipRect is unavailable. */
+const _FALLBACK_PLOT_LEFT_PX = 88;
+
+/** Fallback top Y coordinate of the plot area when SVG clipRect is unavailable. */
+const _FALLBACK_PLOT_TOP_PX = 15;
+
+/** Fallback right margin subtracted from container width when estimating plot area. */
+const _FALLBACK_PLOT_RIGHT_MARGIN_PX = 35;
+
+/** Fallback bottom margin subtracted from container height when estimating plot area. */
+const _FALLBACK_PLOT_BOTTOM_MARGIN_PX = 65;
+
+/** Minimum fallback plot area width/height in pixels. */
+const _MIN_PLOT_DIMENSION_PX = 10;
+
+/** Default decade span fallback when active X domain bounds are non-positive. */
+const _DEFAULT_VISIBLE_DECADES = 4;
+
+/** Number of log-spaced interpolation steps when rendering zoomed fitted curves. */
+const _ZOOM_CURVE_GRID_STEPS = 120;
+
+/** Duration (in milliseconds) of the cubic ease-out zoom transition animation. */
+const _ZOOM_ANIMATION_DURATION_MS = 240;
+
+/** Pixel tolerance around the plot boundary for initiating mouse drag/pan gestures. */
+const _PLOT_HIT_PADDING_PX = 4;
+
+/** Minimum pointer displacement (in pixels) before a left-click drag starts a zoom box. */
+const _DRAG_START_THRESHOLD_PX = 5;
+
+/** Vertical spacing (in pixels) between staggered LOD badge tiers in multi-curve mode. */
+const _LOD_BADGE_TIER_HEIGHT_PX = 24;
+
+/** Height (in pixels) of the pill badge rendered at the top of each LOD reference line. */
+const _LOD_PILL_HEIGHT_PX = 20;
+
+/** Top offset (in pixels) of the LOD pill badge from the top of the plot area. */
+const _LOD_PILL_TOP_OFFSET_PX = 2;
+
+/** Minimum width or height (in pixels) required before rendering the visual drag-zoom box. */
+const _MIN_ZOOM_BOX_RENDER_PX = 2;
+
+/** Distance from the right edge of the chart frame (in pixels) at which the scatter tooltip flips left. */
+const _SCATTER_TOOLTIP_RIGHT_FLIP_MARGIN_PX = 190;
+
+/** Horizontal offset (in pixels) when the scatter point tooltip is flipped to the left of the cursor. */
+const _SCATTER_TOOLTIP_LEFT_OFFSET_PX = 175;
+
+/** Horizontal offset (in pixels) when the scatter point tooltip is placed to the right of the cursor. */
+const _SCATTER_TOOLTIP_RIGHT_OFFSET_PX = 15;
+
+/** Vertical upward offset (in pixels) for the scatter point tooltip relative to the data point. */
+const _SCATTER_TOOLTIP_TOP_OFFSET_PX = 15;
+
+/** Minimum top coordinate (in pixels) for clamping the scatter point tooltip inside the chart frame. */
+const _SCATTER_TOOLTIP_MIN_TOP_PX = 8;
+
+/** Maximum character length for an LOD pill badge label before truncation with an ellipsis. */
+const _MAX_LOD_LABEL_CHARS = 18;
+
+/** Prefix character count preserved when truncating a long LOD pill badge label. */
+const _TRUNCATED_LOD_LABEL_CHARS = 15;
+
+/** Approximate width per character (in pixels) used to size the SVG LOD pill badge. */
+const _LOD_LABEL_CHAR_WIDTH_PX = 6.4;
+
+/** Horizontal padding (in pixels) added to the estimated text width of an LOD pill badge. */
+const _LOD_PILL_HORIZONTAL_PADDING_PX = 16;
+
+/** Minimum width (in pixels) of an SVG LOD pill badge. */
+const _LOD_PILL_MIN_WIDTH_PX = 42;
+
+/** Maximum width (in pixels) of an SVG LOD pill badge. */
+const _LOD_PILL_MAX_WIDTH_PX = 136;
+
+/** Horizontal margin (in pixels) keeping LOD pill badges inside the plot area bounds. */
+const _LOD_PILL_EDGE_PADDING_PX = 6;
+
+/** Maximum visible decades at which minor X-axis ticks display numeric labels during deep zoom. */
+const _ZOOMED_MINOR_LABEL_MAX_DECADES = 1.5;
+
+/** Upper threshold for formatting zoomed minor X-axis tick labels in scientific notation. */
+const _SCIENTIFIC_FORMAT_UPPER_BOUND = 1000;
+
+/** Lower threshold for formatting zoomed minor X-axis tick labels in scientific notation. */
+const _SCIENTIFIC_FORMAT_LOWER_BOUND = 0.01;
+
+/** Upper threshold for formatting Y-axis tick labels in scientific notation. */
+const _Y_AXIS_SCIENTIFIC_UPPER_BOUND = 10000;
+
+/** Lower threshold for formatting Y-axis tick labels in scientific notation. */
+const _Y_AXIS_SCIENTIFIC_LOWER_BOUND = 0.001;
+
+/** Floating-point tolerance for matching tick coordinates. */
+const _TICK_MATCH_EPSILON = 1e-9;
+
+/** Tolerance for matching axis break tick coordinates. */
+const _BREAK_TICK_EPSILON = 1e-10;
+
+/** Tolerance for detecting integer log10 exponents on major X-axis ticks. */
+const _MAJOR_EXPONENT_EPSILON = 0.0001;
+
+/** Tolerance for detecting domain equality prior to starting a zoom animation. */
+const _DOMAIN_EQUALITY_EPSILON = 1e-12;
+
+/**
+ * Internal Recharts helper component that observes the active plot area and forwards
+ * positive dimensions to the parent `ChartCard`.
+ */
 const PlotAreaWatcher: React.FC<{ onPlotArea: (area: PlotArea) => void }> = ({ onPlotArea }) => {
   const plotArea = usePlotArea();
   useEffect(() => {
@@ -32,98 +154,12 @@ const PlotAreaWatcher: React.FC<{ onPlotArea: (area: PlotArea) => void }> = ({ o
         x: plotArea.x,
         y: plotArea.y,
         width: plotArea.width,
-        height: plotArea.height
+        height: plotArea.height,
       });
     }
   }, [plotArea, onPlotArea]);
   return null;
 };
-
-export function computeNiceTicks(min: number, max: number, maxTicks: number = 5): { majorTicks: number[]; allTicks: number[] } {
-  const span = max - min;
-  if (!Number.isFinite(span) || span <= 0) {
-    return { majorTicks: [min], allTicks: [min] };
-  }
-  const roughStep = span / maxTicks;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));
-  const normalizedStep = roughStep / magnitude;
-
-  let multiplier = 1;
-  if (normalizedStep >= 1.5 && normalizedStep < 3.5) multiplier = 2;
-  else if (normalizedStep >= 3.5 && normalizedStep < 7.5) multiplier = 5;
-  else if (normalizedStep >= 7.5) multiplier = 10;
-
-  const niceStep = multiplier * magnitude;
-  const niceStart = Math.ceil(min / niceStep) * niceStep;
-
-  const majorTicks: number[] = [];
-  let t = niceStart;
-  let count = 0;
-  while (t <= max + 1e-10 && count < 100) {
-    const val = Math.abs(t) < 1e-12 ? 0 : Number(t.toFixed(8));
-    majorTicks.push(val);
-    t += niceStep;
-    count++;
-  }
-
-  const subDiv = multiplier === 2 ? 2 : 5;
-  const subStep = niceStep / subDiv;
-  const minorStart = Math.ceil(min / subStep) * subStep;
-  const allTicks: number[] = [];
-  t = minorStart;
-  count = 0;
-  while (t <= max + 1e-10 && count < 200) {
-    const val = Math.abs(t) < 1e-12 ? 0 : Number(t.toFixed(8));
-    allTicks.push(val);
-    t += subStep;
-    count++;
-  }
-
-  return { majorTicks, allTicks: allTicks.length <= 40 ? allTicks : majorTicks };
-}
-
-export function pixelToDataX(px: number, plotArea: PlotArea, xDomain: [number, number]): number {
-  const fraction = (px - plotArea.x) / plotArea.width;
-  const clampedFraction = Math.max(0, Math.min(1, fraction));
-  const logMin = Math.log10(xDomain[0]);
-  const logMax = Math.log10(xDomain[1]);
-  const logVal = logMin + clampedFraction * (logMax - logMin);
-  return Math.pow(10, logVal);
-}
-
-export function pixelToDataY(py: number, plotArea: PlotArea, yDomain: [number, number]): number {
-  const fraction = (plotArea.y + plotArea.height - py) / plotArea.height;
-  const clampedFraction = Math.max(0, Math.min(1, fraction));
-  return yDomain[0] + clampedFraction * (yDomain[1] - yDomain[0]);
-}
-
-export function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
-}
-
-export function interpolateDomain(
-  fromDomain: { x: [number, number]; y: [number, number] },
-  toDomain: { x: [number, number]; y: [number, number] },
-  progress: number
-): { x: [number, number]; y: [number, number] } {
-  const p = Math.max(0, Math.min(1, progress));
-
-  const fromLogMinX = Math.log10(Math.max(fromDomain.x[0], 1e-12));
-  const fromLogMaxX = Math.log10(Math.max(fromDomain.x[1], 1e-12));
-  const toLogMinX = Math.log10(Math.max(toDomain.x[0], 1e-12));
-  const toLogMaxX = Math.log10(Math.max(toDomain.x[1], 1e-12));
-
-  const currLogMinX = fromLogMinX + (toLogMinX - fromLogMinX) * p;
-  const currLogMaxX = fromLogMaxX + (toLogMaxX - fromLogMaxX) * p;
-
-  const currMinY = fromDomain.y[0] + (toDomain.y[0] - fromDomain.y[0]) * p;
-  const currMaxY = fromDomain.y[1] + (toDomain.y[1] - fromDomain.y[1]) * p;
-
-  return {
-    x: [Math.pow(10, currLogMinX), Math.pow(10, currLogMaxX)],
-    y: [currMinY, currMaxY]
-  };
-}
 
 interface XAxisTickProps {
   x?: number;
@@ -138,33 +174,55 @@ interface XAxisTickProps {
   decades?: number;
 }
 
-const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd, isZoomed, decades }: XAxisTickProps) => {
+/**
+ * Custom SVG tick renderer for the logarithmic X-axis with synthetic zero and axis-break ticks.
+ */
+const CustomXAxisTick = ({
+  x = 0,
+  y = 0,
+  payload,
+  zeroX,
+  breakStart,
+  breakEnd,
+  isZoomed,
+  decades,
+}: XAxisTickProps): React.ReactElement | null => {
   if (!payload) return null;
   const val = payload.value;
-  if (breakStart && (Math.abs(val - breakStart) < 1e-10 || Math.abs(val - breakEnd) < 1e-10)) {
+  if (breakStart && (Math.abs(val - breakStart) < _BREAK_TICK_EPSILON || Math.abs(val - breakEnd) < _BREAK_TICK_EPSILON)) {
     return (
       <g>
-        {/* Extended vertical break tick */}
         <line x1={x} y1={y - 16} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
       </g>
     );
   }
 
-  if (val === 0 || (zeroX && Math.abs(val - zeroX) < 1e-10) || isNaN(val)) {
+  if (val === 0 || (zeroX && Math.abs(val - zeroX) < _BREAK_TICK_EPSILON) || isNaN(val)) {
     return (
       <g>
         <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
-        <text x={x} y={y + 18} fill="var(--subtext1)" textAnchor="middle" fontSize={11} fontWeight={500} fontFamily="'Plus Jakarta Sans', sans-serif">0</text>
+        <text
+          x={x}
+          y={y + 18}
+          fill="var(--subtext1)"
+          textAnchor="middle"
+          fontSize={11}
+          fontWeight={500}
+          fontFamily="'Plus Jakarta Sans', sans-serif"
+        >
+          0
+        </text>
       </g>
     );
   }
+
   const rawExponent = Math.log10(Math.abs(val));
-  const isMajor = Math.abs(rawExponent - Math.round(rawExponent)) < 0.0001;
-  
+  const isMajor = Math.abs(rawExponent - Math.round(rawExponent)) < _MAJOR_EXPONENT_EPSILON;
+
   if (!isMajor) {
-    if (isZoomed && decades !== undefined && decades < 1.5) {
+    if (isZoomed && decades !== undefined && decades < _ZOOMED_MINOR_LABEL_MAX_DECADES) {
       let label = "";
-      if (Math.abs(val) >= 1000 || (Math.abs(val) > 0 && Math.abs(val) < 0.01)) {
+      if (Math.abs(val) >= _SCIENTIFIC_FORMAT_UPPER_BOUND || (Math.abs(val) > 0 && Math.abs(val) < _SCIENTIFIC_FORMAT_LOWER_BOUND)) {
         label = formatScientificUnicode(val, 2);
       } else {
         label = parseFloat(val.toFixed(4)).toString();
@@ -172,7 +230,15 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd, i
       return (
         <g>
           <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
-          <text x={x} y={y + 18} fill="var(--subtext1)" textAnchor="middle" fontSize={10} fontWeight={500} fontFamily="'Plus Jakarta Sans', sans-serif">
+          <text
+            x={x}
+            y={y + 18}
+            fill="var(--subtext1)"
+            textAnchor="middle"
+            fontSize={10}
+            fontWeight={500}
+            fontFamily="'Plus Jakarta Sans', sans-serif"
+          >
             {label}
           </text>
         </g>
@@ -190,9 +256,19 @@ const CustomXAxisTick = ({ x = 0, y = 0, payload, zeroX, breakStart, breakEnd, i
   return (
     <g>
       <line x1={x} y1={y - 6} x2={x} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
-      <text x={x} y={y + 18} fill="var(--subtext1)" textAnchor="middle" fontSize={11} fontWeight={500} fontFamily="'Plus Jakarta Sans', sans-serif">
+      <text
+        x={x}
+        y={y + 18}
+        fill="var(--subtext1)"
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight={500}
+        fontFamily="'Plus Jakarta Sans', sans-serif"
+      >
         <tspan>10</tspan>
-        <tspan baselineShift="super" fontSize={8.5}>{exponent}</tspan>
+        <tspan baselineShift="super" fontSize={8.5}>
+          {exponent}
+        </tspan>
       </text>
     </g>
   );
@@ -206,14 +282,17 @@ interface YAxisTickProps {
   };
 }
 
-const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
+/**
+ * Custom SVG tick renderer for the linear Y-axis supporting automatic scientific notation.
+ */
+const _CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps): React.ReactElement | null => {
   if (!payload) return null;
   const val = payload.value;
   let label = val.toString();
   let mantissa = "";
   let exponent: number | null = null;
 
-  if (Math.abs(val) >= 10000 || (Math.abs(val) > 0 && Math.abs(val) < 0.001)) {
+  if (Math.abs(val) >= _Y_AXIS_SCIENTIFIC_UPPER_BOUND || (Math.abs(val) > 0 && Math.abs(val) < _Y_AXIS_SCIENTIFIC_LOWER_BOUND)) {
     const expStr = val.toExponential(1);
     const [m, e] = expStr.split("e");
     mantissa = m;
@@ -224,11 +303,22 @@ const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
   return (
     <g>
       <line x1={x} y1={y} x2={x - 6} y2={y} stroke="var(--subtext1)" strokeWidth={1.2} />
-      <text x={x - 10} y={y + 3.5} fill="var(--subtext1)" textAnchor="end" fontSize={11} fontWeight={500} fontFamily="'Plus Jakarta Sans', sans-serif" className="tabular-nums">
+      <text
+        x={x - 10}
+        y={y + 3.5}
+        fill="var(--subtext1)"
+        textAnchor="end"
+        fontSize={11}
+        fontWeight={500}
+        fontFamily="'Plus Jakarta Sans', sans-serif"
+        className="tabular-nums"
+      >
         {exponent !== null ? (
           <>
             <tspan>{mantissa}×10</tspan>
-            <tspan baselineShift="super" fontSize={8.5}>{exponent}</tspan>
+            <tspan baselineShift="super" fontSize={8.5}>
+              {exponent}
+            </tspan>
           </>
         ) : (
           label
@@ -237,7 +327,6 @@ const CustomYAxisTick = ({ x = 0, y = 0, payload }: YAxisTickProps) => {
     </g>
   );
 };
-
 
 interface ViewBoxProps {
   viewBox?: {
@@ -248,22 +337,42 @@ interface ViewBoxProps {
   };
 }
 
-const CustomLcLabel = ({ viewBox }: ViewBoxProps) => {
+/**
+ * Renders the right-margin $L_C$ label beside the critical decision limit line.
+ */
+const _CustomLcLabel = ({ viewBox }: ViewBoxProps): React.ReactElement | null => {
   if (!viewBox) return null;
   return (
     <g style={{ pointerEvents: "none" }}>
-      <text x={viewBox.x + viewBox.width + 5} y={viewBox.y + 8} fill="var(--peach)" fontSize={10} fontWeight={700} fontFamily="'Plus Jakarta Sans', sans-serif">
+      <text
+        x={viewBox.x + viewBox.width + 5}
+        y={viewBox.y + 8}
+        fill="var(--peach)"
+        fontSize={10}
+        fontWeight={700}
+        fontFamily="'Plus Jakarta Sans', sans-serif"
+      >
         L<tspan dy="0.3em" fontSize={7.5}>C</tspan>
       </text>
     </g>
   );
 };
 
-const CustomLdLabel = ({ viewBox }: ViewBoxProps) => {
+/**
+ * Renders the right-margin $L_D$ label beside the detection limit signal line.
+ */
+const _CustomLdLabel = ({ viewBox }: ViewBoxProps): React.ReactElement | null => {
   if (!viewBox) return null;
   return (
     <g style={{ pointerEvents: "none" }}>
-      <text x={viewBox.x + viewBox.width + 5} y={viewBox.y - 2} fill="var(--green)" fontSize={10} fontWeight={700} fontFamily="'Plus Jakarta Sans', sans-serif">
+      <text
+        x={viewBox.x + viewBox.width + 5}
+        y={viewBox.y - 2}
+        fill="var(--green)"
+        fontSize={10}
+        fontWeight={700}
+        fontFamily="'Plus Jakarta Sans', sans-serif"
+      >
         L<tspan dy="0.3em" fontSize={7.5}>D</tspan>
       </text>
     </g>
@@ -283,22 +392,42 @@ interface LodLabelProps {
   opacity?: number;
 }
 
-const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", offsetY = 0, opacity = 1 }: LodLabelProps) => {
-  if (!viewBox || typeof viewBox.x !== "number" || isNaN(viewBox.x) || typeof viewBox.y !== "number" || isNaN(viewBox.y)) {
+/**
+ * Renders the rounded pill badge at the top of a vertical LOD reference line.
+ */
+const _CustomLodLabel = ({
+  viewBox,
+  labelText = "LOD",
+  color = "var(--yellow)",
+  offsetY = 0,
+  opacity = 1,
+}: LodLabelProps): React.ReactElement | null => {
+  if (
+    !viewBox ||
+    typeof viewBox.x !== "number" ||
+    isNaN(viewBox.x) ||
+    typeof viewBox.y !== "number" ||
+    isNaN(viewBox.y)
+  ) {
     return null;
   }
-  const displayLabel = labelText.length > 18 ? labelText.slice(0, 15) + "…" : labelText;
-  const charWidth = 6.4;
-  const pillWidth = Math.min(Math.max(displayLabel.length * charWidth + 16, 42), 136);
+  const displayLabel =
+    labelText.length > _MAX_LOD_LABEL_CHARS
+      ? labelText.slice(0, _TRUNCATED_LOD_LABEL_CHARS) + "…"
+      : labelText;
+  const pillWidth = Math.min(
+    Math.max(displayLabel.length * _LOD_LABEL_CHAR_WIDTH_PX + _LOD_PILL_HORIZONTAL_PADDING_PX, _LOD_PILL_MIN_WIDTH_PX),
+    _LOD_PILL_MAX_WIDTH_PX
+  );
   const halfWidth = pillWidth / 2;
 
   let x = viewBox.x;
   if (typeof viewBox.width === "number" && viewBox.width > 0) {
-    const minX = halfWidth + 6;
-    const maxX = viewBox.width - halfWidth - 6;
+    const minX = halfWidth + _LOD_PILL_EDGE_PADDING_PX;
+    const maxX = viewBox.width - halfWidth - _LOD_PILL_EDGE_PADDING_PX;
     x = Math.max(minX, Math.min(x, maxX));
   }
-  const y = viewBox.y + 2 + offsetY;
+  const y = viewBox.y + _LOD_PILL_TOP_OFFSET_PX + offsetY;
 
   return (
     <g style={{ pointerEvents: "none", opacity }}>
@@ -306,7 +435,7 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
         x={x - halfWidth}
         y={y}
         width={pillWidth}
-        height={20}
+        height={_LOD_PILL_HEIGHT_PX}
         rx={7}
         ry={7}
         fill="var(--card-bg)"
@@ -329,17 +458,36 @@ const CustomLodLabel = ({ viewBox, labelText = "LOD", color = "var(--yellow)", o
   );
 };
 
-const CustomMinorYAxisTickLabel = ({ viewBox }: Partial<ViewBoxProps>) => {
+/**
+ * Renders a short horizontal tick mark along the Y-axis for minor subdivisions.
+ */
+const _CustomMinorYAxisTickLabel = ({ viewBox }: Partial<ViewBoxProps>): React.ReactElement | null => {
   if (!viewBox || typeof viewBox.x !== "number" || typeof viewBox.y !== "number") return null;
-  return <line x1={viewBox.x} y1={viewBox.y} x2={viewBox.x - 3.5} y2={viewBox.y} stroke="var(--subtext0)" strokeWidth={1} opacity={0.65} />;
+  return (
+    <line
+      x1={viewBox.x}
+      y1={viewBox.y}
+      x2={viewBox.x - 3.5}
+      y2={viewBox.y}
+      stroke="var(--subtext0)"
+      strokeWidth={1}
+      opacity={0.65}
+    />
+  );
 };
 
+/**
+ * Sampled point along a fitted regression curve and its 95% confidence band.
+ */
 export interface ChartCurvePoint {
   x: number;
   trend?: number;
   ciRange?: [number, number] | number[];
 }
 
+/**
+ * Individual measured replicate data point plotted as a scatter dot.
+ */
 export interface ChartScatterPoint {
   x: number;
   y: number;
@@ -354,11 +502,17 @@ export interface ChartScatterPoint {
   color?: string;
 }
 
+/**
+ * Two-point line segment endpoint used for $L_C$, $L_D$, and axis-break segments.
+ */
 export interface ChartLinePoint {
   x: number;
   y: number;
 }
 
+/**
+ * Metadata for the currently hovered scatter replicate point.
+ */
 export interface HoveredPointData {
   id: string;
   pointId?: string;
@@ -372,6 +526,9 @@ export interface HoveredPointData {
   seriesName?: string;
 }
 
+/**
+ * Props passed to the custom SVG scatter dot renderer.
+ */
 export interface ScatterDotProps {
   cx?: number;
   cy?: number;
@@ -386,24 +543,42 @@ export interface ScatterDotProps {
   isAnimating?: boolean;
 }
 
-const CustomScatterDot = (props: ScatterDotProps) => {
-  const { cx = 0, cy = 0, payload, hoveredPoint, setHoveredPoint, tableHoveredRowId, hoveredPointId, seriesColor, isDimmed, isSingleCurve, isAnimating } = props;
+/**
+ * Custom interactive SVG scatter dot supporting per-replicate hover halos and sidebar row highlighting.
+ */
+const _CustomScatterDot = (props: ScatterDotProps): React.ReactElement | null => {
+  const {
+    cx = 0,
+    cy = 0,
+    payload,
+    hoveredPoint,
+    setHoveredPoint,
+    tableHoveredRowId,
+    hoveredPointId,
+    seriesColor,
+    isDimmed,
+    isSingleCurve,
+    isAnimating,
+  } = props;
   if (!payload) return null;
 
-  // When hovering directly over a point: ONLY that specific point is selected!
-  // When hovering from the sidebar table row: all points for that row are selected.
-  const isDirectlyHovered = hoveredPoint && payload.pointId
-    ? payload.pointId === hoveredPoint.pointId
-    : (hoveredPointId ? payload.id === hoveredPointId : false);
+  const isDirectlyHovered =
+    hoveredPoint && payload.pointId
+      ? payload.pointId === hoveredPoint.pointId
+      : hoveredPointId
+        ? payload.id === hoveredPointId
+        : false;
 
   const isTableHovered = tableHoveredRowId
-    ? (payload.rowId === tableHoveredRowId || payload.id === tableHoveredRowId ||
-       (tableHoveredRowId === "blank" && (payload.actualX === 0 || payload.rowId === "blank" || payload.id.endsWith("-blank"))))
+    ? payload.rowId === tableHoveredRowId ||
+      payload.id === tableHoveredRowId ||
+      (tableHoveredRowId === "blank" &&
+        (payload.actualX === 0 || payload.rowId === "blank" || payload.id.endsWith("-blank")))
     : false;
 
   const isSelected = isDirectlyHovered || (!hoveredPoint && isTableHovered);
-  const color = isSingleCurve ? "var(--red)" : (seriesColor || payload.color || "var(--red)");
-  
+  const color = isSingleCurve ? "var(--red)" : seriesColor || payload.color || "var(--red)";
+
   return (
     <g opacity={isDimmed ? 0.25 : 1}>
       {isSelected && (
@@ -436,7 +611,7 @@ const CustomScatterDot = (props: ScatterDotProps) => {
               cy,
               conc: payload.actualX,
               seriesId: payload.seriesId,
-              seriesName: payload.seriesName
+              seriesName: payload.seriesName,
             });
           }
         }}
@@ -449,6 +624,9 @@ const CustomScatterDot = (props: ScatterDotProps) => {
   );
 };
 
+/**
+ * Precomputed curve, scatter, and threshold line series data for rendering a visible curve on the chart.
+ */
 export interface MultiCurvePlotSeries {
   id: string;
   name: string;
@@ -465,10 +643,13 @@ export interface MultiCurvePlotSeries {
   ldRightData: ChartLinePoint[];
 }
 
-interface ChartCardProps {
+/**
+ * Props for the `ChartCard` component.
+ */
+export interface ChartCardProps {
   plotTitle: string;
-  activeResults: AdvancedLoDResult;
-  activeSeriesName: string;
+  activeResults?: AdvancedLoDResult;
+  activeSeriesName?: string;
   curveSeriesList: MultiCurvePlotSeries[];
   xAxisLabel: string;
   yAxisLabel: string;
@@ -501,7 +682,10 @@ interface ChartLegendProps {
   onSelectSeries?: (id: string) => void;
 }
 
-const ChartLegend: React.FC<ChartLegendProps> = ({
+/**
+ * Interactive floating chart legend for single-curve and multi-curve overlays.
+ */
+const _ChartLegend: React.FC<ChartLegendProps> = ({
   curveSeriesList,
   showCI,
   showLc,
@@ -520,29 +704,56 @@ const ChartLegend: React.FC<ChartLegendProps> = ({
         </div>
         {showLodZone && (
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--yellow) 22%, transparent)", border: "1px dashed var(--yellow)", borderRadius: "var(--radius-xs)" }} />
+            <span
+              style={{
+                width: "10px",
+                height: "10px",
+                backgroundColor: "color-mix(in srgb, var(--yellow) 22%, transparent)",
+                border: "1px dashed var(--yellow)",
+                borderRadius: "var(--radius-xs)",
+              }}
+            />
             <span style={{ color: "var(--subtext1)" }}>95% CI LOD</span>
           </div>
         )}
         {showLc && (
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--peach)" }} />
-            <span style={{ color: "var(--subtext1)" }}>L<sub>C</sub></span>
+            <span style={{ color: "var(--subtext1)" }}>
+              L<sub>C</sub>
+            </span>
           </div>
         )}
         {showLd && (
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ width: "14px", height: "0", borderTop: "2px dashed var(--green)" }} />
-            <span style={{ color: "var(--subtext1)" }}>L<sub>D</sub></span>
+            <span style={{ color: "var(--subtext1)" }}>
+              L<sub>D</sub>
+            </span>
           </div>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ width: "14px", height: "2.5px", backgroundColor: "var(--blue)", borderRadius: "var(--radius-pill)" }} />
+          <span
+            style={{
+              width: "14px",
+              height: "2.5px",
+              backgroundColor: "var(--blue)",
+              borderRadius: "var(--radius-pill)",
+            }}
+          />
           <span style={{ color: "var(--subtext1)" }}>Model Fit</span>
         </div>
         {showCI && (
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--blue) 22%, transparent)", border: "1px solid var(--blue)", borderRadius: "var(--radius-xs)" }} />
+            <span
+              style={{
+                width: "10px",
+                height: "10px",
+                backgroundColor: "color-mix(in srgb, var(--blue) 22%, transparent)",
+                border: "1px solid var(--blue)",
+                borderRadius: "var(--radius-xs)",
+              }}
+            />
             <span style={{ color: "var(--subtext1)" }}>95% CI Fit</span>
           </div>
         )}
@@ -559,7 +770,7 @@ const ChartLegend: React.FC<ChartLegendProps> = ({
       {curveSeriesList.map(s => {
         const isHovered = hoveredSeriesId === s.id;
         return (
-          <div 
+          <div
             key={s.id}
             onClick={() => onSelectSeries && onSelectSeries(s.id)}
             onMouseEnter={() => setHoveredSeriesId(s.id)}
@@ -571,9 +782,9 @@ const ChartLegend: React.FC<ChartLegendProps> = ({
               cursor: "pointer",
               padding: "3px 8px",
               borderRadius: "var(--radius-sm)",
-              backgroundColor: s.isActive ? "var(--surface1)" : (isHovered ? "var(--surface0)" : "transparent"),
+              backgroundColor: s.isActive ? "var(--surface1)" : isHovered ? "var(--surface0)" : "transparent",
               border: s.isActive ? `1px solid ${s.color}` : "1px solid transparent",
-              transition: "all 0.15s ease"
+              transition: "all 0.15s ease",
             }}
             title={`Click to focus ${s.name} (LOD: ${formatScientificUnicode(s.results.lodConc, 2)})`}
           >
@@ -587,28 +798,57 @@ const ChartLegend: React.FC<ChartLegendProps> = ({
       })}
 
       {(showLc || showLd || showLodZone || showCI) && (
-        <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "6px", marginTop: "2px", display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div
+          style={{
+            borderTop: "1px solid var(--border-subtle)",
+            paddingTop: "6px",
+            marginTop: "2px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+          }}
+        >
           {showLc && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
               <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--peach)" }} />
-              <span style={{ color: "var(--subtext1)" }}>L<sub>C</sub></span>
+              <span style={{ color: "var(--subtext1)" }}>
+                L<sub>C</sub>
+              </span>
             </div>
           )}
           {showLd && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
               <span style={{ width: "12px", height: "0", borderTop: "2px dashed var(--green)" }} />
-              <span style={{ color: "var(--subtext1)" }}>L<sub>D</sub></span>
+              <span style={{ color: "var(--subtext1)" }}>
+                L<sub>D</sub>
+              </span>
             </div>
           )}
           {showCI && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)", border: "1px solid var(--overlay1)", borderRadius: "var(--radius-xs)" }} />
+              <span
+                style={{
+                  width: "10px",
+                  height: "10px",
+                  backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)",
+                  border: "1px solid var(--overlay1)",
+                  borderRadius: "var(--radius-xs)",
+                }}
+              />
               <span style={{ color: "var(--subtext1)" }}>95% CI Fit</span>
             </div>
           )}
           {showLodZone && (
             <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 6px" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)", border: "1px dashed var(--overlay1)", borderRadius: "var(--radius-xs)" }} />
+              <span
+                style={{
+                  width: "10px",
+                  height: "10px",
+                  backgroundColor: "color-mix(in srgb, var(--overlay1) 22%, transparent)",
+                  border: "1px dashed var(--overlay1)",
+                  borderRadius: "var(--radius-xs)",
+                }}
+              />
               <span style={{ color: "var(--subtext1)" }}>95% CI LOD</span>
             </div>
           )}
@@ -637,18 +877,25 @@ interface CustomTooltipProps {
   isInteracting?: boolean;
 }
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, curveSeriesList, xDomain, breakStart, hoveredPoint, isInteracting }) => {
-  if (isInteracting) return null;
-  // Disappear when hovering directly over a specific data measurement point (scatter-point-tooltip shows instead)
-  if (hoveredPoint) return null;
-  if (!active) return null;
+/**
+ * Crosshair tooltip displaying predicted signals across all visible curves at the hovered concentration.
+ */
+const _CustomTooltip: React.FC<CustomTooltipProps> = ({
+  active,
+  payload,
+  label,
+  curveSeriesList,
+  xDomain,
+  breakStart,
+  hoveredPoint,
+  isInteracting,
+}) => {
+  if (isInteracting || hoveredPoint || !active) return null;
 
-  // 1. Try to find line entry with valid x from payload
   const lineEntry = payload?.find(p => p?.payload && typeof p.payload.x === "number" && !isNaN(p.payload.x));
   let x = lineEntry?.payload?.x;
   let actualX = lineEntry?.payload?.actualX;
 
-  // 2. Fallback to any payload entry with x
   if (x === undefined || isNaN(x)) {
     const p0 = payload?.[0]?.payload as (ChartCurvePoint & Partial<ChartScatterPoint>) | undefined;
     if (p0 && typeof p0.x === "number" && !isNaN(p0.x)) {
@@ -657,7 +904,6 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, c
     }
   }
 
-  // 3. Fallback to label if provided by Recharts axis
   if (x === undefined || isNaN(x)) {
     if (typeof label === "number" && !isNaN(label)) {
       x = label;
@@ -668,19 +914,31 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, c
 
   if (x === undefined || isNaN(x)) return null;
 
-  const isBlank = actualX !== undefined
-    ? actualX === 0
-    : (x === 0 || (xDomain && Math.abs(x - xDomain[0]) < 1e-9) || (breakStart && x <= breakStart));
+  const isBlank =
+    actualX !== undefined
+      ? actualX === 0
+      : x === 0 || (xDomain && Math.abs(x - xDomain[0]) < _TICK_MATCH_EPSILON) || (breakStart && x <= breakStart);
 
   const displayConc = isBlank
     ? "0 (Blank)"
-    : formatScientificUnicode(actualX !== undefined ? (typeof actualX === "number" ? actualX : parseFloat(actualX)) : x, 3);
+    : formatScientificUnicode(
+        actualX !== undefined ? (typeof actualX === "number" ? actualX : parseFloat(actualX)) : x,
+        3
+      );
 
   const evalX = isBlank ? 0 : x;
 
   return (
     <div className="custom-chart-tooltip">
-      <div style={{ display: "flex", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "4px", marginBottom: "2px", justifyContent: "space-between" }}>
+      <div
+        style={{
+          display: "flex",
+          borderBottom: "1px solid var(--border-subtle)",
+          paddingBottom: "4px",
+          marginBottom: "2px",
+          justifyContent: "space-between",
+        }}
+      >
         <span style={{ color: "var(--subtext0)", fontWeight: 600, fontSize: "0.72rem" }}>Concentration</span>
         <span style={{ fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">
           {displayConc}
@@ -691,7 +949,15 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, c
         const pred = s.results.fit.predict(evalX);
         return (
           <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: "6px", color: s.color, fontWeight: s.isActive ? 700 : 500 }}>
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: s.color,
+                fontWeight: s.isActive ? 700 : 500,
+              }}
+            >
               <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: s.color }} />
               {s.name}:
             </span>
@@ -705,6 +971,121 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label, c
   );
 };
 
+interface DragBoxOverlayState {
+  startX: number;
+  startY: number;
+  currentX: number;
+  currentY: number;
+  svgStartPx: number;
+  svgStartPy: number;
+  svgCurrentPx: number;
+  svgCurrentPy: number;
+}
+
+/**
+ * Renders the translucent selection rectangle during a left-click drag-to-zoom gesture.
+ */
+const _ZoomSelectionBox: React.FC<{ dragBox: DragBoxOverlayState | null }> = ({ dragBox }) => {
+  if (!dragBox) return null;
+  const boxLeft = Math.min(dragBox.startX, dragBox.currentX);
+  const boxTop = Math.min(dragBox.startY, dragBox.currentY);
+  const boxWidth = Math.abs(dragBox.currentX - dragBox.startX);
+  const boxHeight = Math.abs(dragBox.currentY - dragBox.startY);
+  if (boxWidth < _MIN_ZOOM_BOX_RENDER_PX && boxHeight < _MIN_ZOOM_BOX_RENDER_PX) return null;
+  return (
+    <div
+      className="chart-zoom-box"
+      style={{
+        left: boxLeft,
+        top: boxTop,
+        width: boxWidth,
+        height: boxHeight,
+      }}
+    />
+  );
+};
+
+/**
+ * Renders the floating tooltip anchored to an individual hovered replicate scatter point.
+ */
+const _ScatterPointTooltip: React.FC<{
+  hoveredPoint: HoveredPointData | null;
+  isInteracting: boolean;
+  chartWidth: number;
+}> = ({ hoveredPoint, isInteracting, chartWidth }) => {
+  if (!hoveredPoint || isInteracting || hoveredPoint.cx == null || hoveredPoint.cy == null) {
+    return null;
+  }
+  const frameWidth = chartWidth || _DEFAULT_CHART_WIDTH_PX;
+  const isRight = hoveredPoint.cx > frameWidth - _SCATTER_TOOLTIP_RIGHT_FLIP_MARGIN_PX;
+  const left = isRight
+    ? hoveredPoint.cx - _SCATTER_TOOLTIP_LEFT_OFFSET_PX
+    : hoveredPoint.cx + _SCATTER_TOOLTIP_RIGHT_OFFSET_PX;
+  const top = Math.max(_SCATTER_TOOLTIP_MIN_TOP_PX, hoveredPoint.cy - _SCATTER_TOOLTIP_TOP_OFFSET_PX);
+
+  return (
+    <div
+      className="scatter-point-tooltip"
+      style={{
+        position: "absolute",
+        left,
+        top,
+        backgroundColor: "var(--card-glass)",
+        backdropFilter: "var(--glass-blur)",
+        WebkitBackdropFilter: "var(--glass-blur)",
+        border: "1px solid var(--pink)",
+        borderRadius: "var(--radius-sm)",
+        padding: "10px 14px",
+        fontSize: "0.78rem",
+        color: "var(--text)",
+        pointerEvents: "none",
+        zIndex: 100,
+        boxShadow: "var(--shadow-md)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+      }}
+    >
+      {hoveredPoint.seriesName && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "16px",
+            borderBottom: "1px solid var(--border-subtle)",
+            paddingBottom: "3px",
+          }}
+        >
+          <span style={{ color: "var(--subtext0)" }}>Curve</span>
+          <span style={{ fontWeight: 700, color: "var(--text)" }}>{hoveredPoint.seriesName}</span>
+        </div>
+      )}
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+        <span style={{ color: "var(--subtext0)" }}>Concentration</span>
+        <span
+          style={{ fontWeight: 700, color: "var(--text)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          className="tabular-nums"
+        >
+          {hoveredPoint.conc}
+        </span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+        <span style={{ color: "var(--subtext0)" }}>Signal</span>
+        <span
+          style={{ fontWeight: 700, color: "var(--pink)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          className="tabular-nums"
+        >
+          {hoveredPoint.y.toFixed(4)}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Interactive multi-curve dose-response chart card supporting selective drag-to-zoom,
+ * right-click panning, double-click reset, layer visibility toggles, and SVG/PNG/CSV exports.
+ */
 export const ChartCard: React.FC<ChartCardProps> = ({
   plotTitle,
   curveSeriesList,
@@ -728,20 +1109,35 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   onSelectSeries,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [chartWidth, setChartWidth] = useState(700);
-  const [chartHeight, setChartHeight] = useState(500);
+  const [chartWidth, setChartWidth] = useState(_DEFAULT_CHART_WIDTH_PX);
+  const [chartHeight, setChartHeight] = useState(_DEFAULT_CHART_HEIGHT_PX);
   const activeSeries = curveSeriesList.find(s => s.isActive) || curveSeriesList[0];
 
-  // Zoom and Pan state
-  const [zoomDomain, setZoomDomain] = useState<{ x: [number, number]; y: [number, number] } | null>(null);
+  const baseDomainKey = `${xDomain[0]},${xDomain[1]},${yDomain[0]},${yDomain[1]}`;
+  const [zoomState, setZoomState] = useState<{
+    domainKey: string;
+    domain: { x: [number, number]; y: [number, number] };
+  } | null>(null);
+  const zoomDomain = useMemo<{ x: [number, number]; y: [number, number] } | null>(() => {
+    return zoomState && zoomState.domainKey === baseDomainKey ? zoomState.domain : null;
+  }, [zoomState, baseDomainKey]);
+
+  const setZoomDomain = useCallback(
+    (nextDomain: { x: [number, number]; y: [number, number] } | null): void => {
+      setZoomState(nextDomain ? { domainKey: baseDomainKey, domain: nextDomain } : null);
+    },
+    [baseDomainKey]
+  );
+
   const [isDragging, setIsDragging] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [animatingDomainKey, setAnimatingDomainKey] = useState<string | null>(null);
+  const isAnimating = animatingDomainKey === baseDomainKey;
   const isAnimatingRef = useRef(false);
   const animationRafRef = useRef<number | null>(null);
   const targetDomainRef = useRef<{ x: [number, number]; y: [number, number] } | null>(null);
 
-  const cancelAnimation = useCallback(() => {
+  const cancelAnimation = useCallback((): void => {
     if (animationRafRef.current !== null) {
       cancelAnimationFrame(animationRafRef.current);
       animationRafRef.current = null;
@@ -749,43 +1145,42 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     targetDomainRef.current = null;
     if (isAnimatingRef.current) {
       isAnimatingRef.current = false;
-      setIsAnimating(false);
+      setAnimatingDomainKey(null);
     }
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (animationRafRef.current !== null) {
         cancelAnimationFrame(animationRafRef.current);
+        animationRafRef.current = null;
       }
+      targetDomainRef.current = null;
+      isAnimatingRef.current = false;
     };
-  }, []);
+  }, [baseDomainKey]);
 
-  const [dragBox, setDragBox] = useState<{
-    startX: number;
-    startY: number;
-    currentX: number;
-    currentY: number;
-    svgStartPx: number;
-    svgStartPy: number;
-    svgCurrentPx: number;
-    svgCurrentPy: number;
-  } | null>(null);
-
+  const [dragBox, setDragBox] = useState<DragBoxOverlayState | null>(null);
   const [, setPlotArea] = useState<PlotArea | null>(null);
   const plotAreaRef = useRef<PlotArea | null>(null);
 
-  const handlePlotArea = useCallback((area: PlotArea) => {
+  const handlePlotArea = useCallback((area: PlotArea): void => {
     plotAreaRef.current = area;
     setPlotArea(prev => {
-      if (prev && prev.x === area.x && prev.y === area.y && prev.width === area.width && prev.height === area.height) {
+      if (
+        prev &&
+        prev.x === area.x &&
+        prev.y === area.y &&
+        prev.width === area.width &&
+        prev.height === area.height
+      ) {
         return prev;
       }
       return area;
     });
   }, []);
 
-  const getEffectivePlotArea = (): PlotArea => {
+  const getEffectivePlotArea = useCallback((): PlotArea => {
     if (plotAreaRef.current && plotAreaRef.current.width > 0 && plotAreaRef.current.height > 0) {
       return plotAreaRef.current;
     }
@@ -807,25 +1202,37 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         const svgRect = svg.getBoundingClientRect();
         if (svgRect.width > 0 && svgRect.height > 0) {
           return {
-            x: 88,
-            y: 15,
-            width: Math.max(10, svgRect.width - 88 - 35),
-            height: Math.max(10, svgRect.height - 15 - 65)
+            x: _FALLBACK_PLOT_LEFT_PX,
+            y: _FALLBACK_PLOT_TOP_PX,
+            width: Math.max(
+              _MIN_PLOT_DIMENSION_PX,
+              svgRect.width - _FALLBACK_PLOT_LEFT_PX - _FALLBACK_PLOT_RIGHT_MARGIN_PX
+            ),
+            height: Math.max(
+              _MIN_PLOT_DIMENSION_PX,
+              svgRect.height - _FALLBACK_PLOT_TOP_PX - _FALLBACK_PLOT_BOTTOM_MARGIN_PX
+            ),
           };
         }
       }
     }
     return {
-      x: 88,
-      y: 15,
-      width: Math.max(10, chartWidth - 88 - 35),
-      height: Math.max(10, chartHeight - 15 - 65)
+      x: _FALLBACK_PLOT_LEFT_PX,
+      y: _FALLBACK_PLOT_TOP_PX,
+      width: Math.max(
+        _MIN_PLOT_DIMENSION_PX,
+        chartWidth - _FALLBACK_PLOT_LEFT_PX - _FALLBACK_PLOT_RIGHT_MARGIN_PX
+      ),
+      height: Math.max(
+        _MIN_PLOT_DIMENSION_PX,
+        chartHeight - _FALLBACK_PLOT_TOP_PX - _FALLBACK_PLOT_BOTTOM_MARGIN_PX
+      ),
     };
-  };
+  }, [chartWidth, chartHeight]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!chartRef.current) return;
-    const observer = new ResizeObserver((entries) => {
+    const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         if (entry.contentRect.width) {
           setChartWidth(entry.contentRect.width);
@@ -839,24 +1246,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // Automatically reset zoom whenever external base domain changes
-  const prevBaseXDomainRef = useRef(xDomain);
-  const prevBaseYDomainRef = useRef(yDomain);
-  React.useEffect(() => {
-    if (
-      prevBaseXDomainRef.current[0] !== xDomain[0] ||
-      prevBaseXDomainRef.current[1] !== xDomain[1] ||
-      prevBaseYDomainRef.current[0] !== yDomain[0] ||
-      prevBaseYDomainRef.current[1] !== yDomain[1]
-    ) {
-      prevBaseXDomainRef.current = xDomain;
-      prevBaseYDomainRef.current = yDomain;
-      cancelAnimation();
-      setZoomDomain(null);
-    }
-  }, [xDomain, yDomain, cancelAnimation]);
-
-  // Active domains
   const activeXDomain = useMemo<[number, number]>(() => {
     return zoomDomain ? zoomDomain.x : xDomain;
   }, [zoomDomain, xDomain]);
@@ -865,70 +1254,16 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     return zoomDomain ? zoomDomain.y : yDomain;
   }, [zoomDomain, yDomain]);
 
-  const activeDecades = useMemo(() => {
-    if (activeXDomain[0] <= 0 || activeXDomain[1] <= 0) return 4;
+  const activeDecades = useMemo<number>(() => {
+    if (activeXDomain[0] <= 0 || activeXDomain[1] <= 0) return _DEFAULT_VISIBLE_DECADES;
     return Math.log10(activeXDomain[1]) - Math.log10(activeXDomain[0]);
   }, [activeXDomain]);
 
-  // Compute active X ticks
-  const activeXTicks = useMemo(() => {
+  const activeXTicks = useMemo<number[]>(() => {
     if (!zoomDomain) return xTicks;
-    const [minX, maxX] = activeXDomain;
-    if (minX <= 0 || maxX <= minX) return xTicks;
-
-    const logMin = Math.log10(minX);
-    const logMax = Math.log10(maxX);
-    const decades = logMax - logMin;
-    const ticks: number[] = [];
-
-    // Break ticks if in range
-    if (breakStart && breakEnd && minX <= breakStart && maxX >= breakEnd) {
-      ticks.push(minX, breakStart, breakEnd);
-    }
-
-    if (decades >= 2) {
-      const startExp = Math.floor(logMin);
-      const endExp = Math.ceil(logMax);
-      for (let i = startExp; i <= endExp; i++) {
-        const pow10 = Math.pow(10, i);
-        if (pow10 >= minX - 1e-10 && pow10 <= maxX + 1e-10) {
-          if (!breakStart || !breakEnd || pow10 < breakStart || pow10 > breakEnd) {
-            ticks.push(pow10);
-          }
-        }
-        if (i < endExp) {
-          for (let j = 2; j <= 9; j++) {
-            const minorVal = j * Math.pow(10, i);
-            if (minorVal >= minX - 1e-10 && minorVal <= maxX + 1e-10) {
-              if (!breakStart || !breakEnd || minorVal < breakStart || minorVal > breakEnd) {
-                ticks.push(minorVal);
-              }
-            }
-          }
-        }
-      }
-    } else if (decades >= 0.8) {
-      const startExp = Math.floor(logMin);
-      const endExp = Math.ceil(logMax);
-      for (let i = startExp; i <= endExp; i++) {
-        for (const m of [1, 2, 5]) {
-          const val = m * Math.pow(10, i);
-          if (val >= minX - 1e-10 && val <= maxX + 1e-10) {
-            if (!breakStart || !breakEnd || val < breakStart || val > breakEnd) {
-              ticks.push(val);
-            }
-          }
-        }
-      }
-    } else {
-      const nice = computeNiceTicks(minX, maxX, 5);
-      ticks.push(...nice.majorTicks);
-    }
-
-    return Array.from(new Set(ticks.map(t => Number(t.toPrecision(8))))).sort((a, b) => a - b);
+    return computeZoomedXTicks(activeXDomain, xTicks, breakStart, breakEnd);
   }, [zoomDomain, activeXDomain, xTicks, breakStart, breakEnd]);
 
-  // Compute active Y ticks
   const { activeYMajorTicks, activeYAllTicks } = useMemo(() => {
     if (!zoomDomain) {
       return { activeYMajorTicks: yMajorTicks, activeYAllTicks: yTicks };
@@ -938,52 +1273,28 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     return { activeYMajorTicks: nice.majorTicks, activeYAllTicks: nice.allTicks };
   }, [zoomDomain, activeYDomain, yMajorTicks, yTicks]);
 
-  // Compute active bottom axis lines
-  const activeLeftAxisData = useMemo(() => {
-    if (!zoomDomain) return leftAxisData;
-    const [minX, maxX] = activeXDomain;
-    const minY = activeYDomain[0];
-    if (!breakStart || !breakEnd) {
-      return [{ x: minX, y: minY }, { x: maxX, y: minY }];
+  const { activeLeftAxisData, activeRightAxisData } = useMemo(() => {
+    if (!zoomDomain) {
+      return { activeLeftAxisData: leftAxisData, activeRightAxisData: rightAxisData };
     }
-    if (minX <= breakStart && maxX >= breakEnd) {
-      return [{ x: minX, y: minY }, { x: breakStart, y: minY }];
-    }
-    if (maxX <= breakStart) {
-      return [{ x: minX, y: minY }, { x: maxX, y: minY }];
-    }
-    return [];
-  }, [zoomDomain, leftAxisData, activeXDomain, activeYDomain, breakStart, breakEnd]);
+    const segments = computeAxisBreakSegments(activeXDomain, activeYDomain[0], breakStart, breakEnd);
+    return { activeLeftAxisData: segments.leftSegment, activeRightAxisData: segments.rightSegment };
+  }, [zoomDomain, leftAxisData, rightAxisData, activeXDomain, activeYDomain, breakStart, breakEnd]);
 
-  const activeRightAxisData = useMemo(() => {
-    if (!zoomDomain) return rightAxisData;
-    const [minX, maxX] = activeXDomain;
-    const minY = activeYDomain[0];
-    if (!breakStart || !breakEnd) {
-      return [];
-    }
-    if (minX <= breakStart && maxX >= breakEnd) {
-      return [{ x: breakEnd, y: minY }, { x: maxX, y: minY }];
-    }
-    if (minX >= breakEnd) {
-      return [{ x: minX, y: minY }, { x: maxX, y: minY }];
-    }
-    return [];
-  }, [zoomDomain, rightAxisData, activeXDomain, activeYDomain, breakStart, breakEnd]);
-
-  // Dense fitted curves when zoomed
   const zoomedSeriesMap = useMemo(() => {
     if (!zoomDomain) return null;
     const [minX, maxX] = activeXDomain;
     const logMin = Math.log10(minX);
     const logMax = Math.log10(maxX);
-    const steps = 120;
     const xGrid: number[] = [];
-    for (let i = 0; i <= steps; i++) {
-      xGrid.push(Math.pow(10, logMin + i * (logMax - logMin) / steps));
+    for (let i = 0; i <= _ZOOM_CURVE_GRID_STEPS; i++) {
+      xGrid.push(Math.pow(10, logMin + (i * (logMax - logMin)) / _ZOOM_CURVE_GRID_STEPS));
     }
 
-    const map = new Map<string, { chartData: ChartCurvePoint[]; lcData: ChartLinePoint[]; ldData: ChartLinePoint[] }>();
+    const map = new Map<
+      string,
+      { chartData: ChartCurvePoint[]; lcData: ChartLinePoint[]; ldData: ChartLinePoint[] }
+    >();
 
     curveSeriesList.forEach(s => {
       const xSet = new Set(xGrid);
@@ -997,18 +1308,24 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       }
       const sortedX = Array.from(xSet).sort((a, b) => a - b);
       const chartData = sortedX.map(x => {
-        const evalX = (xDomain && Math.abs(x - xDomain[0]) < 1e-9) ? 0 : x;
+        const evalX = xDomain && Math.abs(x - xDomain[0]) < _TICK_MATCH_EPSILON ? 0 : x;
         const pred = s.results.fit.predict(evalX);
         const ci = s.results.fit.getCI ? s.results.fit.getCI(evalX) : { low: pred, high: pred };
         return {
           x,
           trend: pred,
-          ciRange: [ci.low, ci.high] as [number, number]
+          ciRange: [ci.low, ci.high] as [number, number],
         };
       });
 
-      const lcData = [{ x: minX, y: s.results.lc }, { x: maxX, y: s.results.lc }];
-      const ldData = [{ x: minX, y: s.results.ld }, { x: maxX, y: s.results.ld }];
+      const lcData = [
+        { x: minX, y: s.results.lc },
+        { x: maxX, y: s.results.lc },
+      ];
+      const ldData = [
+        { x: minX, y: s.results.ld },
+        { x: maxX, y: s.results.ld },
+      ];
 
       map.set(s.id, { chartData, lcData, ldData });
     });
@@ -1016,73 +1333,94 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     return map;
   }, [zoomDomain, activeXDomain, curveSeriesList, xDomain]);
 
-  // Interaction tracking refs
   const isMouseDownRef = useRef(false);
   const activeButtonRef = useRef<number | null>(null);
   const dragStartRef = useRef<{ px: number; py: number; clientX: number; clientY: number } | null>(null);
-  const panStartRef = useRef<{ clientX: number; clientY: number; xDomain: [number, number]; yDomain: [number, number] } | null>(null);
-  const dragBoxRef = useRef(dragBox);
-  dragBoxRef.current = dragBox;
-  const currentXDomainRef = useRef(activeXDomain);
-  currentXDomainRef.current = activeXDomain;
-  const currentYDomainRef = useRef(activeYDomain);
-  currentYDomainRef.current = activeYDomain;
+  const panStartRef = useRef<{
+    clientX: number;
+    clientY: number;
+    xDomain: [number, number];
+    yDomain: [number, number];
+  } | null>(null);
+  const dragBoxRef = useRef<DragBoxOverlayState | null>(null);
+  const currentXDomainRef = useRef<[number, number]>(activeXDomain);
+  const currentYDomainRef = useRef<[number, number]>(activeYDomain);
 
-  const animateToDomain = useCallback((targetDomain: { x: [number, number]; y: [number, number] } | null) => {
-    if (animationRafRef.current !== null) {
-      cancelAnimationFrame(animationRafRef.current);
-      animationRafRef.current = null;
-    }
+  useEffect(() => {
+    dragBoxRef.current = dragBox;
+  }, [dragBox]);
 
-    const startDomain: { x: [number, number]; y: [number, number] } = {
-      x: [...currentXDomainRef.current] as [number, number],
-      y: [...currentYDomainRef.current] as [number, number]
-    };
+  useEffect(() => {
+    currentXDomainRef.current = activeXDomain;
+    currentYDomainRef.current = activeYDomain;
+  }, [activeXDomain, activeYDomain]);
 
-    const endDomain: { x: [number, number]; y: [number, number] } = targetDomain ?? {
-      x: [...xDomain] as [number, number],
-      y: [...yDomain] as [number, number]
-    };
-
-    const isSameX = Math.abs(startDomain.x[0] - endDomain.x[0]) < 1e-12 && Math.abs(startDomain.x[1] - endDomain.x[1]) < 1e-12;
-    const isSameY = Math.abs(startDomain.y[0] - endDomain.y[0]) < 1e-12 && Math.abs(startDomain.y[1] - endDomain.y[1]) < 1e-12;
-    if ((isSameX && isSameY) || endDomain.x[0] <= 0 || endDomain.x[1] <= endDomain.x[0] || endDomain.y[1] <= endDomain.y[0]) {
-      targetDomainRef.current = null;
-      isAnimatingRef.current = false;
-      setIsAnimating(false);
-      setZoomDomain(targetDomain);
-      return;
-    }
-
-    targetDomainRef.current = targetDomain;
-    isAnimatingRef.current = true;
-    setIsAnimating(true);
-
-    const duration = 240; // ms: fast and smooth transition
-    const startTime = performance.now();
-
-    const step = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(1, elapsed / duration);
-      const eased = easeOutCubic(progress);
-
-      if (progress < 1) {
-        const interpolated = interpolateDomain(startDomain, endDomain, eased);
-        setZoomDomain(interpolated);
-        animationRafRef.current = requestAnimationFrame(step);
-      } else {
+  const animateToDomain = useCallback(
+    (targetDomain: { x: [number, number]; y: [number, number] } | null): void => {
+      if (animationRafRef.current !== null) {
+        cancelAnimationFrame(animationRafRef.current);
         animationRafRef.current = null;
+      }
+
+      const startDomain: { x: [number, number]; y: [number, number] } = {
+        x: [...currentXDomainRef.current] as [number, number],
+        y: [...currentYDomainRef.current] as [number, number],
+      };
+
+      const endDomain: { x: [number, number]; y: [number, number] } = targetDomain ?? {
+        x: [...xDomain] as [number, number],
+        y: [...yDomain] as [number, number],
+      };
+
+      const isSameX =
+        Math.abs(startDomain.x[0] - endDomain.x[0]) < _DOMAIN_EQUALITY_EPSILON &&
+        Math.abs(startDomain.x[1] - endDomain.x[1]) < _DOMAIN_EQUALITY_EPSILON;
+      const isSameY =
+        Math.abs(startDomain.y[0] - endDomain.y[0]) < _DOMAIN_EQUALITY_EPSILON &&
+        Math.abs(startDomain.y[1] - endDomain.y[1]) < _DOMAIN_EQUALITY_EPSILON;
+      if (
+        (isSameX && isSameY) ||
+        endDomain.x[0] <= 0 ||
+        endDomain.x[1] <= endDomain.x[0] ||
+        endDomain.y[1] <= endDomain.y[0]
+      ) {
         targetDomainRef.current = null;
         isAnimatingRef.current = false;
-        setIsAnimating(false);
+        setAnimatingDomainKey(null);
         setZoomDomain(targetDomain);
+        return;
       }
-    };
 
-    animationRafRef.current = requestAnimationFrame(step);
-  }, [xDomain, yDomain]);
+      targetDomainRef.current = targetDomain;
+      isAnimatingRef.current = true;
+      setAnimatingDomainKey(baseDomainKey);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+      const startTime = performance.now();
+
+      const step = (currentTime: number): void => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(1, elapsed / _ZOOM_ANIMATION_DURATION_MS);
+        const eased = easeOutCubic(progress);
+
+        if (progress < 1) {
+          const interpolated = interpolateDomain(startDomain, endDomain, eased);
+          setZoomDomain(interpolated);
+          animationRafRef.current = requestAnimationFrame(step);
+        } else {
+          animationRafRef.current = null;
+          targetDomainRef.current = null;
+          isAnimatingRef.current = false;
+          setAnimatingDomainKey(null);
+          setZoomDomain(targetDomain);
+        }
+      };
+
+      animationRafRef.current = requestAnimationFrame(step);
+    },
+    [xDomain, yDomain, baseDomainKey, setZoomDomain]
+  );
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     if ((e.target as HTMLElement).closest(".custom-chart-legend")) return;
     if ((e.target as HTMLElement).closest("button")) return;
 
@@ -1096,7 +1434,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     const px = e.clientX - svgRect.left;
     const py = e.clientY - svgRect.top;
 
-    const inPlot = px >= area.x - 4 && px <= area.x + area.width + 4 && py >= area.y - 4 && py <= area.y + area.height + 4;
+    const inPlot =
+      px >= area.x - _PLOT_HIT_PADDING_PX &&
+      px <= area.x + area.width + _PLOT_HIT_PADDING_PX &&
+      py >= area.y - _PLOT_HIT_PADDING_PX &&
+      py <= area.y + area.height + _PLOT_HIT_PADDING_PX;
     if (!inPlot) return;
 
     if (e.button === 0) {
@@ -1109,7 +1451,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         clientX: e.clientX,
         clientY: e.clientY,
         xDomain: activeXDomain,
-        yDomain: activeYDomain
+        yDomain: activeYDomain,
       };
       isMouseDownRef.current = true;
       activeButtonRef.current = 2;
@@ -1118,7 +1460,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     }
   };
 
-  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>): void => {
     if ((e.target as HTMLElement).closest(".custom-chart-legend")) return;
     if ((e.target as HTMLElement).closest("button")) return;
     if (!zoomDomain && !isAnimatingRef.current) return;
@@ -1127,12 +1469,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     animateToDomain(null);
   };
 
-  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>): void => {
     e.preventDefault();
   };
 
-  React.useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent): void => {
       if (!isMouseDownRef.current) return;
       const area = getEffectivePlotArea();
       const svg = chartRef.current?.querySelector("svg.recharts-surface") as SVGSVGElement | null;
@@ -1142,105 +1484,57 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       if (!frameRect) return;
 
       if (activeButtonRef.current === 0 && dragStartRef.current) {
-        const dist = Math.hypot(e.clientX - dragStartRef.current.clientX, e.clientY - dragStartRef.current.clientY);
-        if (dist >= 5) {
+        const dist = Math.hypot(
+          e.clientX - dragStartRef.current.clientX,
+          e.clientY - dragStartRef.current.clientY
+        );
+        if (dist >= _DRAG_START_THRESHOLD_PX) {
           setIsDragging(true);
           document.body.style.cursor = "crosshair";
 
           const currentPx = Math.max(area.x, Math.min(area.x + area.width, e.clientX - svgRect.left));
           const currentPy = Math.max(area.y, Math.min(area.y + area.height, e.clientY - svgRect.top));
 
-          const frameStartX = dragStartRef.current.clientX - frameRect.left;
-          const frameStartY = dragStartRef.current.clientY - frameRect.top;
-          const frameCurrentX = e.clientX - frameRect.left;
-          const frameCurrentY = e.clientY - frameRect.top;
-
-          setDragBox({
-            startX: frameStartX,
-            startY: frameStartY,
-            currentX: frameCurrentX,
-            currentY: frameCurrentY,
+          const nextBox: DragBoxOverlayState = {
+            startX: dragStartRef.current.clientX - frameRect.left,
+            startY: dragStartRef.current.clientY - frameRect.top,
+            currentX: e.clientX - frameRect.left,
+            currentY: e.clientY - frameRect.top,
             svgStartPx: dragStartRef.current.px,
             svgStartPy: dragStartRef.current.py,
             svgCurrentPx: currentPx,
-            svgCurrentPy: currentPy
-          });
+            svgCurrentPy: currentPy,
+          };
+          dragBoxRef.current = nextBox;
+          setDragBox(nextBox);
         }
       } else if (activeButtonRef.current === 2 && panStartRef.current) {
         e.preventDefault();
         const dx = e.clientX - panStartRef.current.clientX;
         const dy = e.clientY - panStartRef.current.clientY;
-
-        const [startMinX, startMaxX] = panStartRef.current.xDomain;
-        const [startMinY, startMaxY] = panStartRef.current.yDomain;
-
-        const logMin = Math.log10(startMinX);
-        const logMax = Math.log10(startMaxX);
-        const logSpan = logMax - logMin;
-        const dLog = -(dx / area.width) * logSpan;
-
-        let newLogMin = logMin + dLog;
-        let newLogMax = logMax + dLog;
-        if (newLogMin < -12) {
-          newLogMin = -12;
-          newLogMax = newLogMin + logSpan;
-        } else if (newLogMax > 12) {
-          newLogMax = 12;
-          newLogMin = newLogMax - logSpan;
-        }
-        const newXDomain: [number, number] = [Math.pow(10, newLogMin), Math.pow(10, newLogMax)];
-
-        const ySpan = startMaxY - startMinY;
-        const dY = (dy / area.height) * ySpan;
-        const newYDomain: [number, number] = [startMinY + dY, startMaxY + dY];
-
-        setZoomDomain({ x: newXDomain, y: newYDomain });
+        const panned = computePannedDomain(panStartRef.current, dx, dy, area);
+        setZoomDomain(panned);
       }
     };
 
-    const onMouseUp = () => {
+    const onMouseUp = (): void => {
       if (!isMouseDownRef.current) return;
       const area = getEffectivePlotArea();
 
       if (activeButtonRef.current === 0) {
         if (dragBoxRef.current) {
-          const box = dragBoxRef.current;
-          const px1 = Math.min(box.svgStartPx, box.svgCurrentPx);
-          const px2 = Math.max(box.svgStartPx, box.svgCurrentPx);
-          const py1 = Math.min(box.svgStartPy, box.svgCurrentPy);
-          const py2 = Math.max(box.svgStartPy, box.svgCurrentPy);
-          const width = px2 - px1;
-          const height = py2 - py1;
-
-          const currentX = currentXDomainRef.current;
-          const currentY = currentYDomainRef.current;
-
-          if (width >= 8 && height >= 8) {
-            const newXMin = pixelToDataX(px1, area, currentX);
-            const newXMax = pixelToDataX(px2, area, currentX);
-            const newYMax = pixelToDataY(py1, area, currentY);
-            const newYMin = pixelToDataY(py2, area, currentY);
-
-            if (newXMin > 0 && newXMax > newXMin && newYMax > newYMin) {
-              setHoveredPoint(null);
-              animateToDomain({ x: [newXMin, newXMax], y: [newYMin, newYMax] });
-            }
-          } else if (width >= 15 && height < 8) {
-            const newXMin = pixelToDataX(px1, area, currentX);
-            const newXMax = pixelToDataX(px2, area, currentX);
-            if (newXMin > 0 && newXMax > newXMin) {
-              setHoveredPoint(null);
-              animateToDomain({ x: [newXMin, newXMax], y: currentY });
-            }
-          } else if (height >= 15 && width < 8) {
-            const newYMax = pixelToDataY(py1, area, currentY);
-            const newYMin = pixelToDataY(py2, area, currentY);
-            if (newYMax > newYMin) {
-              setHoveredPoint(null);
-              animateToDomain({ x: currentX, y: [newYMin, newYMax] });
-            }
+          const nextZoom = resolveDragZoomDomain(
+            dragBoxRef.current,
+            area,
+            currentXDomainRef.current,
+            currentYDomainRef.current
+          );
+          if (nextZoom) {
+            setHoveredPoint(null);
+            animateToDomain(nextZoom);
           }
         }
+        dragBoxRef.current = null;
         setDragBox(null);
         setIsDragging(false);
       } else if (activeButtonRef.current === 2) {
@@ -1254,7 +1548,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       document.body.style.cursor = "";
     };
 
-    const onWindowContextMenu = (e: MouseEvent) => {
+    const onWindowContextMenu = (e: MouseEvent): void => {
       if (chartRef.current && chartRef.current.contains(e.target as Node)) {
         e.preventDefault();
       }
@@ -1270,170 +1564,29 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       window.removeEventListener("contextmenu", onWindowContextMenu);
       document.body.style.cursor = "";
     };
-  }, []);
+  }, [animateToDomain, getEffectivePlotArea, setHoveredPoint, setZoomDomain]);
 
-  // Layer Visibility Toggles
   const [showCI, setShowCI] = useState(true);
   const [showLc, setShowLc] = useState(true);
   const [showLd, setShowLd] = useState(true);
   const [showLodZone, setShowLodZone] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
 
-  // Compute collision-free vertical tiers for LOD badges
-  const lodTierMap = useMemo(() => {
-    if (curveSeriesList.length <= 1) {
-      return new Map<string, number>();
-    }
-    const valid = curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0);
-    const sorted = [...valid].sort((a, b) => a.results.lodConc - b.results.lodConc);
-    const tierLastLogX: number[] = [];
-    const map = new Map<string, number>();
-
-    for (const s of sorted) {
-      const logX = Math.log10(Math.max(s.results.lodConc, 1e-12));
-      let assignedTier = -1;
-
-      for (let t = 0; t < tierLastLogX.length; t++) {
-        if (logX - tierLastLogX[t] >= 1.0) {
-          assignedTier = t;
-          tierLastLogX[t] = logX;
-          break;
-        }
-      }
-
-      if (assignedTier === -1) {
-        assignedTier = tierLastLogX.length;
-        tierLastLogX.push(logX);
-      }
-
-      map.set(s.id, assignedTier);
-    }
-
-    return map;
+  const lodTierMap = useMemo<Map<string, number>>(() => {
+    return computeLodBadgeTiers(
+      curveSeriesList.map(s => ({ id: s.id, lodConc: s.results?.lodConc ?? NaN }))
+    );
   }, [curveSeriesList]);
 
-  const handleDownloadSVG = () => {
-    if (!chartRef.current) return;
-    const svgElement = chartRef.current.querySelector("svg");
-    if (!svgElement) return;
-
-    const rect = svgElement.getBoundingClientRect();
-    const width = rect.width || 800;
-    const height = rect.height || 500;
-
-    const clone = svgElement.cloneNode(true) as SVGSVGElement;
-    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-    clone.setAttribute("width", width.toString());
-    clone.setAttribute("height", height.toString());
-    clone.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    clone.setAttribute("font-family", "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif");
-
-    const docStyle = getComputedStyle(document.documentElement);
-    const currentBg = docStyle.getPropertyValue("--base").trim() || "#141824";
-
-    const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    bgRect.setAttribute("width", "100%");
-    bgRect.setAttribute("height", "100%");
-    bgRect.setAttribute("fill", currentBg);
-    clone.insertBefore(bgRect, clone.firstChild);
-
-    const serializer = new XMLSerializer();
-    let svgString = serializer.serializeToString(clone);
-
-    const varNames = [
-      "--rosewater", "--flamingo", "--pink", "--mauve", "--red", "--maroon", 
-      "--peach", "--yellow", "--green", "--teal", "--sky", "--sapphire", 
-      "--blue", "--lavender", "--text", "--subtext1", "--subtext0", 
-      "--overlay2", "--overlay1", "--overlay0", "--surface2", "--surface1", 
-      "--surface0", "--base", "--mantle", "--crust", "--border-subtle",
-      "--card-bg", "--indigo", "--radius-pill", "--radius-sm", "--radius-xs"
-    ];
-    
-    for (const v of varNames) {
-      const c = docStyle.getPropertyValue(v).trim();
-      if (c) {
-        svgString = svgString.split(`var(${v})`).join(c);
-      }
-    }
-
-    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
-    const downloadLink = document.createElement("a");
-    downloadLink.download = `bioassay_plot_v${APP_VERSION}.svg`;
-    downloadLink.href = url;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    URL.revokeObjectURL(url);
+  const handleDownloadSVG = (): void => {
+    downloadChartAsSVG(chartRef.current, `bioassay_plot_v${APP_VERSION}.svg`);
   };
 
-  const handleDownloadPlot = () => {
-    if (!chartRef.current) return;
-    const svgElement = chartRef.current.querySelector("svg");
-    if (!svgElement) return;
-
-    const rect = svgElement.getBoundingClientRect();
-    const width = rect.width || 800;
-    const height = rect.height || 500;
-
-    const clone = svgElement.cloneNode(true) as SVGSVGElement;
-    clone.setAttribute("width", width.toString());
-    clone.setAttribute("height", height.toString());
-    clone.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    clone.style.backgroundColor = "transparent";
-
-    const serializer = new XMLSerializer();
-    let svgString = serializer.serializeToString(clone);
-
-    const docStyle = getComputedStyle(document.documentElement);
-    const varNames = [
-      "--rosewater", "--flamingo", "--pink", "--mauve", "--red", "--maroon", 
-      "--peach", "--yellow", "--green", "--teal", "--sky", "--sapphire", 
-      "--blue", "--lavender", "--text", "--subtext1", "--subtext0", 
-      "--overlay2", "--overlay1", "--overlay0", "--surface2", "--surface1", 
-      "--surface0", "--base", "--mantle", "--crust", "--border-subtle",
-      "--card-bg", "--indigo", "--radius-pill", "--radius-sm", "--radius-xs"
-    ];
-    
-    for (const v of varNames) {
-      const c = docStyle.getPropertyValue(v).trim();
-      if (c) {
-        svgString = svgString.split(`var(${v})`).join(c);
-      }
-    }
-
-    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-    const DOMURL = window.URL || window.webkitURL || window;
-    const url = DOMURL.createObjectURL(svgBlob);
-    
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const scale = 300 / 96;
-      canvas.width = width * scale;
-      canvas.height = height * scale;
-      
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.scale(scale, scale);
-        const currentBg = docStyle.getPropertyValue("--base").trim() || "#141824";
-        ctx.fillStyle = currentBg;
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        const pngUrl = canvas.toDataURL("image/png");
-        const downloadLink = document.createElement("a");
-        downloadLink.href = pngUrl;
-        downloadLink.download = `bioassay_plot_v${APP_VERSION}.png`;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-      }
-      DOMURL.revokeObjectURL(url);
-    };
-    img.src = url;
+  const handleDownloadPlot = (): void => {
+    downloadChartAsPNG(chartRef.current, `bioassay_plot_v${APP_VERSION}.png`);
   };
+
+  const isInteracting = isDragging || isPanning || isAnimating;
 
   return (
     <div className="chart-card">
@@ -1442,15 +1595,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           <h2 className="chart-title">
             {plotTitle}
             {curveSeriesList.length > 1 && (
-              <span className="curve-badge">
-                {curveSeriesList.length} curves overlaid
-              </span>
+              <span className="curve-badge">{curveSeriesList.length} curves overlaid</span>
             )}
           </h2>
 
-          {/* LAYER TOGGLE PILLS WITH GLOWING DOTS */}
           <div className="layer-toggles-bar">
-            <button 
+            <button
               className={`layer-toggle-pill ${showCI ? "active" : ""}`}
               onClick={() => setShowCI(!showCI)}
               title="Toggle 95% Confidence Interval band"
@@ -1458,23 +1608,27 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               <span className="layer-indicator-dot" style={{ backgroundColor: "var(--blue)" }} />
               <span>95% CI</span>
             </button>
-            <button 
+            <button
               className={`layer-toggle-pill ${showLc ? "active" : ""}`}
               onClick={() => setShowLc(!showLc)}
               title="Toggle Critical Limit (LC) Decision Threshold Line"
             >
               <span className="layer-indicator-dot" style={{ backgroundColor: "var(--peach)" }} />
-              <span>L<sub>C</sub></span>
+              <span>
+                L<sub>C</sub>
+              </span>
             </button>
-            <button 
+            <button
               className={`layer-toggle-pill ${showLd ? "active" : ""}`}
               onClick={() => setShowLd(!showLd)}
               title="Toggle Detection Limit (LD) Minimum Detectable Signal Line"
             >
               <span className="layer-indicator-dot" style={{ backgroundColor: "var(--green)" }} />
-              <span>L<sub>D</sub></span>
+              <span>
+                L<sub>D</sub>
+              </span>
             </button>
-            <button 
+            <button
               className={`layer-toggle-pill ${showLodZone ? "active" : ""}`}
               onClick={() => setShowLodZone(!showLodZone)}
               title="Toggle Shaded Limit of Detection Range"
@@ -1482,7 +1636,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               <span className="layer-indicator-dot" style={{ backgroundColor: "var(--yellow)" }} />
               <span>LOD Zone</span>
             </button>
-            <button 
+            <button
               className={`layer-toggle-pill ${showGrid ? "active" : ""}`}
               onClick={() => setShowGrid(!showGrid)}
               title="Toggle Cartesian Grid"
@@ -1492,15 +1646,23 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             </button>
           </div>
         </div>
-        
-        {/* EXPORT ACTION BUTTONS */}
+
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <button 
-            className="action-btn-pill" 
-            onClick={handleExportCSV} 
+          <button
+            className="action-btn-pill"
+            onClick={handleExportCSV}
             title="Download Full Multi-Curve Analytical Report as CSV"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
               <line x1="16" y1="13" x2="8" y2="13" />
@@ -1508,24 +1670,42 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             </svg>
             <span>CSV</span>
           </button>
-          <button 
-            className="action-btn-pill" 
-            onClick={handleDownloadPlot} 
+          <button
+            className="action-btn-pill"
+            onClick={handleDownloadPlot}
             title="Download Publication-Ready Raster PNG Image"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
               <circle cx="8.5" cy="8.5" r="1.5" />
               <polyline points="21 15 16 10 5 21" />
             </svg>
             <span>PNG</span>
           </button>
-          <button 
-            className="action-btn-pill" 
-            onClick={handleDownloadSVG} 
+          <button
+            className="action-btn-pill"
+            onClick={handleDownloadSVG}
             title="Download High-Resolution Scalable Vector Graphics (SVG)"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polygon points="12 2 2 7 12 12 22 7 12 2" />
               <polyline points="2 17 12 22 22 17" />
               <polyline points="2 12 12 17 22 12" />
@@ -1534,15 +1714,15 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </button>
         </div>
       </div>
-      
-      <div 
-        className={`chart-frame ${isPanning ? "panning" : ""}`} 
+
+      <div
+        className={`chart-frame ${isPanning ? "panning" : ""}`}
         ref={chartRef}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
       >
-        <ChartLegend
+        <_ChartLegend
           curveSeriesList={curveSeriesList}
           showCI={showCI}
           showLc={showLc}
@@ -1553,348 +1733,513 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           onSelectSeries={onSelectSeries}
         />
 
-        {/* Selection Rectangle Overlay during click & drag to zoom */}
-        {dragBox && (() => {
-          const boxLeft = Math.min(dragBox.startX, dragBox.currentX);
-          const boxTop = Math.min(dragBox.startY, dragBox.currentY);
-          const boxWidth = Math.abs(dragBox.currentX - dragBox.startX);
-          const boxHeight = Math.abs(dragBox.currentY - dragBox.startY);
-          if (boxWidth < 2 && boxHeight < 2) return null;
-          return (
-            <div
-              className="chart-zoom-box"
-              style={{
-                left: boxLeft,
-                top: boxTop,
-                width: boxWidth,
-                height: boxHeight
-              }}
-            />
-          );
-        })()}
+        <_ZoomSelectionBox dragBox={dragBox} />
 
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart accessibilityLayer={false} margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
             <PlotAreaWatcher onPlotArea={handlePlotArea} />
 
-            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} horizontalValues={activeYMajorTicks} opacity={0.6} />}
-            
-            <XAxis 
-              dataKey="x" type="number" scale="log" domain={activeXDomain} allowDataOverflow={true} stroke="var(--subtext1)" 
+            {showGrid && (
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--border-subtle)"
+                vertical={false}
+                horizontalValues={activeYMajorTicks}
+                opacity={0.6}
+              />
+            )}
+
+            <XAxis
+              dataKey="x"
+              type="number"
+              scale="log"
+              domain={activeXDomain}
+              allowDataOverflow={true}
+              stroke="var(--subtext1)"
               ticks={activeXTicks}
               interval={0}
               tickLine={false}
               axisLine={false}
-              tick={<CustomXAxisTick zeroX={xDomain[0]} breakStart={breakStart} breakEnd={breakEnd} isZoomed={zoomDomain !== null || isAnimating} decades={activeDecades} />}
-              label={{ value: xAxisLabel, position: "bottom", fill: "var(--subtext1)", fontSize: 11.5, fontWeight: 600, offset: 25, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              tick={
+                <CustomXAxisTick
+                  zeroX={xDomain[0]}
+                  breakStart={breakStart}
+                  breakEnd={breakEnd}
+                  isZoomed={zoomDomain !== null || isAnimating}
+                  decades={activeDecades}
+                />
+              }
+              label={{
+                value: xAxisLabel,
+                position: "bottom",
+                fill: "var(--subtext1)",
+                fontSize: 11.5,
+                fontWeight: 600,
+                offset: 25,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
             />
-            <YAxis 
-              stroke="var(--subtext1)" 
+            <YAxis
+              stroke="var(--subtext1)"
               strokeWidth={1.2}
-              domain={activeYDomain} 
+              domain={activeYDomain}
               ticks={activeYMajorTicks}
               interval={0}
               tickMargin={0}
               allowDataOverflow={true}
               tickLine={false}
-              tick={<CustomYAxisTick />}
-              label={{ value: yAxisLabel, angle: -90, position: "insideLeft", fill: "var(--subtext1)", fontSize: 11.5, fontWeight: 600, offset: -5, fontFamily: "'Plus Jakarta Sans', sans-serif" }} 
+              tick={<_CustomYAxisTick />}
+              label={{
+                value: yAxisLabel,
+                angle: -90,
+                position: "insideLeft",
+                fill: "var(--subtext1)",
+                fontSize: 11.5,
+                fontWeight: 600,
+                offset: -5,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}
             />
-            <Tooltip 
+            <Tooltip
               isAnimationActive={false}
               filterNull={false}
-              content={(props) => (
-                <CustomTooltip 
-                  {...props} 
-                  curveSeriesList={curveSeriesList} 
-                  xDomain={activeXDomain} 
-                  breakStart={breakStart} 
+              content={props => (
+                <_CustomTooltip
+                  {...props}
+                  curveSeriesList={curveSeriesList}
+                  xDomain={activeXDomain}
+                  breakStart={breakStart}
                   breakEnd={breakEnd}
                   hoveredPoint={hoveredPoint}
-                  isInteracting={isDragging || isPanning || isAnimating}
+                  isInteracting={isInteracting}
                 />
-              )} 
-              cursor={isDragging || isPanning || isAnimating ? false : { stroke: "var(--indigo)", strokeDasharray: "4 4", strokeWidth: 1.5, opacity: 0.7 }} 
-            />
-            
-            {activeYAllTicks && activeYAllTicks.filter(t => !activeYMajorTicks.some(m => Math.abs(m - t) < 1e-9)).map(tick => (
-              <ReferenceLine 
-                key={`minor-y-${tick}`} 
-                y={tick} 
-                stroke="none" 
-                label={<CustomMinorYAxisTickLabel />} 
-              />
-            ))}
-
-            {/* 95% CI Fit Bands for Every Series */}
-            {showCI && curveSeriesList.map(s => {
-              const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
-              const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.14 : 0.08);
-              if (zoomDomain && zoomedSeriesMap) {
-                const zData = zoomedSeriesMap.get(s.id)?.chartData || s.rightChartData;
-                return (
-                  <Area key={`ci-band-zoom-${s.id}`} data={zData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                );
+              )}
+              cursor={
+                isInteracting
+                  ? false
+                  : { stroke: "var(--indigo)", strokeDasharray: "4 4", strokeWidth: 1.5, opacity: 0.7 }
               }
-              return (
-                <React.Fragment key={`ci-band-${s.id}`}>
-                  <Area data={s.leftChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                  <Area data={s.rightChartData} dataKey="ciRange" stroke="none" fill={s.color} fillOpacity={fillOp} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                </React.Fragment>
-              );
-            })}
+            />
 
-            {/* 95% CI LOD Range Areas for Every Series */}
-            {showLodZone && curveSeriesList.filter(s => Number.isFinite(s.results?.lodCI?.low) && Number.isFinite(s.results?.lodCI?.high) && s.results.lodCI.high > s.results.lodCI.low && s.results.lodCI.high >= activeXDomain[0] && s.results.lodCI.low <= activeXDomain[1]).map(s => {
-              const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
-              const fillOp = isDimmed ? 0.03 : (s.isActive ? 0.14 : 0.07);
-              const isMulti = curveSeriesList.length > 1;
-              const lodColor = isMulti ? s.color : "var(--yellow)";
-              return (
-                <ReferenceArea 
-                  key={`lod-zone-${s.id}`}
-                  x1={s.results.lodCI.low} 
-                  x2={s.results.lodCI.high} 
-                  fill={lodColor} 
-                  fillOpacity={fillOp} 
-                  strokeOpacity={0} 
-                  ifOverflow="hidden" 
-                  style={{ pointerEvents: "none" }} 
-                />
-              );
-            })}
+            {activeYAllTicks &&
+              activeYAllTicks
+                .filter(t => !activeYMajorTicks.some(m => Math.abs(m - t) < _TICK_MATCH_EPSILON))
+                .map(tick => (
+                  <ReferenceLine
+                    key={`minor-y-${tick}`}
+                    y={tick}
+                    stroke="none"
+                    label={<_CustomMinorYAxisTickLabel />}
+                  />
+                ))}
 
-            {/* Active Series Statistical Decision Limits (LC / LD) */}
+            {showCI &&
+              curveSeriesList.map(s => {
+                const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+                const fillOp = isDimmed ? 0.03 : s.isActive ? 0.14 : 0.08;
+                if (zoomDomain && zoomedSeriesMap) {
+                  const zData = zoomedSeriesMap.get(s.id)?.chartData || s.rightChartData;
+                  return (
+                    <Area
+                      key={`ci-band-zoom-${s.id}`}
+                      data={zData}
+                      dataKey="ciRange"
+                      stroke="none"
+                      fill={s.color}
+                      fillOpacity={fillOp}
+                      activeDot={false}
+                      isAnimationActive={false}
+                      legendType="none"
+                      tooltipType="none"
+                      style={{ pointerEvents: "none" }}
+                    />
+                  );
+                }
+                return (
+                  <React.Fragment key={`ci-band-${s.id}`}>
+                    <Area
+                      data={s.leftChartData}
+                      dataKey="ciRange"
+                      stroke="none"
+                      fill={s.color}
+                      fillOpacity={fillOp}
+                      activeDot={false}
+                      isAnimationActive={false}
+                      legendType="none"
+                      tooltipType="none"
+                      style={{ pointerEvents: "none" }}
+                    />
+                    <Area
+                      data={s.rightChartData}
+                      dataKey="ciRange"
+                      stroke="none"
+                      fill={s.color}
+                      fillOpacity={fillOp}
+                      activeDot={false}
+                      isAnimationActive={false}
+                      legendType="none"
+                      tooltipType="none"
+                      style={{ pointerEvents: "none" }}
+                    />
+                  </React.Fragment>
+                );
+              })}
+
+            {showLodZone &&
+              curveSeriesList
+                .filter(
+                  s =>
+                    Number.isFinite(s.results?.lodCI?.low) &&
+                    Number.isFinite(s.results?.lodCI?.high) &&
+                    s.results.lodCI.high > s.results.lodCI.low &&
+                    s.results.lodCI.high >= activeXDomain[0] &&
+                    s.results.lodCI.low <= activeXDomain[1]
+                )
+                .map(s => {
+                  const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+                  const fillOp = isDimmed ? 0.03 : s.isActive ? 0.14 : 0.07;
+                  const isMulti = curveSeriesList.length > 1;
+                  const lodColor = isMulti ? s.color : "var(--yellow)";
+                  return (
+                    <ReferenceArea
+                      key={`lod-zone-${s.id}`}
+                      x1={s.results.lodCI.low}
+                      x2={s.results.lodCI.high}
+                      fill={lodColor}
+                      fillOpacity={fillOp}
+                      strokeOpacity={0}
+                      ifOverflow="hidden"
+                      style={{ pointerEvents: "none" }}
+                    />
+                  );
+                })}
+
             {activeSeries && (
               <>
-                {showLc && activeSeries.results.lc >= activeYDomain[0] && activeSeries.results.lc <= activeYDomain[1] && (
-                  <>
-                    {zoomDomain && zoomedSeriesMap ? (
-                      <Line data={zoomedSeriesMap.get(activeSeries.id)?.lcData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                    ) : (
-                      <>
-                        <Line data={activeSeries.lcLeftData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                        <Line data={activeSeries.lcRightData} dataKey="y" stroke="var(--peach)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                      </>
-                    )}
-                    <ReferenceLine y={activeSeries.results.lc} stroke="none" label={<CustomLcLabel />} style={{ pointerEvents: "none" }} />
-                  </>
-                )}
-                {showLd && activeSeries.results.ld >= activeYDomain[0] && activeSeries.results.ld <= activeYDomain[1] && (
-                  <>
-                    {zoomDomain && zoomedSeriesMap ? (
-                      <Line data={zoomedSeriesMap.get(activeSeries.id)?.ldData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                    ) : (
-                      <>
-                        <Line data={activeSeries.ldLeftData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                        <Line data={activeSeries.ldRightData} dataKey="y" stroke="var(--green)" strokeOpacity={0.65} strokeDasharray="4 4" dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
-                      </>
-                    )}
-                    <ReferenceLine y={activeSeries.results.ld} stroke="none" label={<CustomLdLabel />} style={{ pointerEvents: "none" }} />
-                  </>
-                )}
+                {showLc &&
+                  activeSeries.results.lc >= activeYDomain[0] &&
+                  activeSeries.results.lc <= activeYDomain[1] && (
+                    <>
+                      {zoomDomain && zoomedSeriesMap ? (
+                        <Line
+                          data={zoomedSeriesMap.get(activeSeries.id)?.lcData}
+                          dataKey="y"
+                          stroke="var(--peach)"
+                          strokeOpacity={0.65}
+                          strokeDasharray="4 4"
+                          dot={false}
+                          activeDot={false}
+                          isAnimationActive={false}
+                          legendType="none"
+                          tooltipType="none"
+                          style={{ pointerEvents: "none" }}
+                        />
+                      ) : (
+                        <>
+                          <Line
+                            data={activeSeries.lcLeftData}
+                            dataKey="y"
+                            stroke="var(--peach)"
+                            strokeOpacity={0.65}
+                            strokeDasharray="4 4"
+                            dot={false}
+                            activeDot={false}
+                            isAnimationActive={false}
+                            legendType="none"
+                            tooltipType="none"
+                            style={{ pointerEvents: "none" }}
+                          />
+                          <Line
+                            data={activeSeries.lcRightData}
+                            dataKey="y"
+                            stroke="var(--peach)"
+                            strokeOpacity={0.65}
+                            strokeDasharray="4 4"
+                            dot={false}
+                            activeDot={false}
+                            isAnimationActive={false}
+                            legendType="none"
+                            tooltipType="none"
+                            style={{ pointerEvents: "none" }}
+                          />
+                        </>
+                      )}
+                      <ReferenceLine
+                        y={activeSeries.results.lc}
+                        stroke="none"
+                        label={<_CustomLcLabel />}
+                        style={{ pointerEvents: "none" }}
+                      />
+                    </>
+                  )}
+                {showLd &&
+                  activeSeries.results.ld >= activeYDomain[0] &&
+                  activeSeries.results.ld <= activeYDomain[1] && (
+                    <>
+                      {zoomDomain && zoomedSeriesMap ? (
+                        <Line
+                          data={zoomedSeriesMap.get(activeSeries.id)?.ldData}
+                          dataKey="y"
+                          stroke="var(--green)"
+                          strokeOpacity={0.65}
+                          strokeDasharray="4 4"
+                          dot={false}
+                          activeDot={false}
+                          isAnimationActive={false}
+                          legendType="none"
+                          tooltipType="none"
+                          style={{ pointerEvents: "none" }}
+                        />
+                      ) : (
+                        <>
+                          <Line
+                            data={activeSeries.ldLeftData}
+                            dataKey="y"
+                            stroke="var(--green)"
+                            strokeOpacity={0.65}
+                            strokeDasharray="4 4"
+                            dot={false}
+                            activeDot={false}
+                            isAnimationActive={false}
+                            legendType="none"
+                            tooltipType="none"
+                            style={{ pointerEvents: "none" }}
+                          />
+                          <Line
+                            data={activeSeries.ldRightData}
+                            dataKey="y"
+                            stroke="var(--green)"
+                            strokeOpacity={0.65}
+                            strokeDasharray="4 4"
+                            dot={false}
+                            activeDot={false}
+                            isAnimationActive={false}
+                            legendType="none"
+                            tooltipType="none"
+                            style={{ pointerEvents: "none" }}
+                          />
+                        </>
+                      )}
+                      <ReferenceLine
+                        y={activeSeries.results.ld}
+                        stroke="none"
+                        label={<_CustomLdLabel />}
+                        style={{ pointerEvents: "none" }}
+                      />
+                    </>
+                  )}
               </>
             )}
 
-            {/* 1. Render Fitted Curves for Every Series */}
             {curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               if (zoomDomain && zoomedSeriesMap) {
                 const zData = zoomedSeriesMap.get(s.id)?.chartData || s.rightChartData;
                 return (
-                  <Line 
+                  <Line
                     key={`series-trend-zoom-${s.id}`}
-                    data={zData} 
-                    dataKey="trend" 
-                    stroke={s.color} 
-                    strokeWidth={s.isActive ? 3 : 2.2} 
+                    data={zData}
+                    dataKey="trend"
+                    stroke={s.color}
+                    strokeWidth={s.isActive ? 3 : 2.2}
                     strokeOpacity={isDimmed ? 0.25 : 1}
-                    dot={false} 
-                    activeDot={false} 
-                    isAnimationActive={false} 
-                    legendType="none" 
-                    style={{ pointerEvents: "none" }} 
+                    dot={false}
+                    activeDot={false}
+                    isAnimationActive={false}
+                    legendType="none"
+                    style={{ pointerEvents: "none" }}
                   />
                 );
               }
               return (
                 <React.Fragment key={`series-trend-${s.id}`}>
-                  <Line 
-                    data={s.leftChartData} 
-                    dataKey="trend" 
-                    stroke={s.color} 
-                    strokeWidth={s.isActive ? 3 : 2.2} 
+                  <Line
+                    data={s.leftChartData}
+                    dataKey="trend"
+                    stroke={s.color}
+                    strokeWidth={s.isActive ? 3 : 2.2}
                     strokeOpacity={isDimmed ? 0.25 : 1}
-                    dot={false} 
-                    activeDot={false} 
-                    isAnimationActive={false} 
-                    legendType="none" 
-                    style={{ pointerEvents: "none" }} 
+                    dot={false}
+                    activeDot={false}
+                    isAnimationActive={false}
+                    legendType="none"
+                    style={{ pointerEvents: "none" }}
                   />
-                  <Line 
-                    data={s.rightChartData} 
-                    dataKey="trend" 
-                    stroke={s.color} 
-                    strokeWidth={s.isActive ? 3 : 2.2} 
+                  <Line
+                    data={s.rightChartData}
+                    dataKey="trend"
+                    stroke={s.color}
+                    strokeWidth={s.isActive ? 3 : 2.2}
                     strokeOpacity={isDimmed ? 0.25 : 1}
-                    dot={false} 
-                    activeDot={false} 
-                    isAnimationActive={false} 
-                    legendType="none" 
-                    style={{ pointerEvents: "none" }} 
+                    dot={false}
+                    activeDot={false}
+                    isAnimationActive={false}
+                    legendType="none"
+                    style={{ pointerEvents: "none" }}
                   />
                 </React.Fragment>
               );
             })}
 
-            {/* 2. Render Vertical LOD Dashed Lines */}
-            {curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0 && s.results.lodConc >= activeXDomain[0] && s.results.lodConc <= activeXDomain[1]).map(s => {
-              const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
-              const isMulti = curveSeriesList.length > 1;
-              const lodColor = isMulti ? s.color : "var(--yellow)";
-              const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
-              const offsetY = isMulti ? tier * 24 : 0;
+            {curveSeriesList
+              .filter(
+                s =>
+                  Number.isFinite(s.results?.lodConc) &&
+                  s.results.lodConc > 0 &&
+                  s.results.lodConc >= activeXDomain[0] &&
+                  s.results.lodConc <= activeXDomain[1]
+              )
+              .map(s => {
+                const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+                const isMulti = curveSeriesList.length > 1;
+                const lodColor = isMulti ? s.color : "var(--yellow)";
+                const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
+                const offsetY = isMulti ? tier * _LOD_BADGE_TIER_HEIGHT_PX : 0;
 
-              return (
-                <ReferenceLine 
-                  key={`lod-line-${s.id}`} 
-                  x={s.results.lodConc} 
-                  stroke={lodColor} 
-                  strokeWidth={s.isActive ? 2.2 : 1.4} 
-                  strokeDasharray="4 4" 
-                  strokeOpacity={isDimmed ? 0.2 : (s.isActive ? 1 : 0.75)}
-                  shape={(lineProps: { x1?: number; y1?: number; x2?: number; y2?: number; stroke?: string; strokeWidth?: number; strokeDasharray?: string; strokeOpacity?: number }) => {
-                    if (!lineProps || typeof lineProps.x1 !== "number" || typeof lineProps.y1 !== "number" || typeof lineProps.y2 !== "number") {
-                      return <line stroke="none" />;
-                    }
-                    const chartTop = Math.min(lineProps.y1, lineProps.y2);
-                    const chartBottom = Math.max(lineProps.y1, lineProps.y2);
-                    const pillBottom = chartTop + 2 + offsetY + 20;
-                    return (
-                      <line
-                        x1={lineProps.x1}
-                        y1={Math.min(pillBottom, chartBottom)}
-                        x2={lineProps.x2}
-                        y2={chartBottom}
-                        stroke={lineProps.stroke}
-                        strokeWidth={lineProps.strokeWidth}
-                        strokeDasharray={lineProps.strokeDasharray || "4 4"}
-                        strokeOpacity={lineProps.strokeOpacity}
-                        style={{ pointerEvents: "none" }}
-                      />
-                    );
-                  }}
-                  style={{ pointerEvents: "none" }} 
-                />
-              );
-            })}
+                return (
+                  <ReferenceLine
+                    key={`lod-line-${s.id}`}
+                    x={s.results.lodConc}
+                    stroke={lodColor}
+                    strokeWidth={s.isActive ? 2.2 : 1.4}
+                    strokeDasharray="4 4"
+                    strokeOpacity={isDimmed ? 0.2 : s.isActive ? 1 : 0.75}
+                    shape={(lineProps: {
+                      x1?: number;
+                      y1?: number;
+                      x2?: number;
+                      y2?: number;
+                      stroke?: string;
+                      strokeWidth?: number;
+                      strokeDasharray?: string;
+                      strokeOpacity?: number;
+                    }) => {
+                      if (
+                        !lineProps ||
+                        typeof lineProps.x1 !== "number" ||
+                        typeof lineProps.y1 !== "number" ||
+                        typeof lineProps.y2 !== "number"
+                      ) {
+                        return <line stroke="none" />;
+                      }
+                      const chartTop = Math.min(lineProps.y1, lineProps.y2);
+                      const chartBottom = Math.max(lineProps.y1, lineProps.y2);
+                      const pillBottom = chartTop + _LOD_PILL_TOP_OFFSET_PX + offsetY + _LOD_PILL_HEIGHT_PX;
+                      return (
+                        <line
+                          x1={lineProps.x1}
+                          y1={Math.min(pillBottom, chartBottom)}
+                          x2={lineProps.x2}
+                          y2={chartBottom}
+                          stroke={lineProps.stroke}
+                          strokeWidth={lineProps.strokeWidth}
+                          strokeDasharray={lineProps.strokeDasharray || "4 4"}
+                          strokeOpacity={lineProps.strokeOpacity}
+                          style={{ pointerEvents: "none" }}
+                        />
+                      );
+                    }}
+                    style={{ pointerEvents: "none" }}
+                  />
+                );
+              })}
 
-            {/* Render Scatters for Every Visible Series */}
             {curveSeriesList.map(s => {
               const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
               return (
-                <Scatter 
+                <Scatter
                   key={`series-scatter-${s.id}`}
-                  data={s.scatterData} 
-                  dataKey="y" 
-                  isAnimationActive={false} 
+                  data={s.scatterData}
+                  dataKey="y"
+                  isAnimationActive={false}
                   legendType="none"
                   tooltipType="none"
                   shape={(dotProps: ScatterDotProps) => (
-                    <CustomScatterDot 
-                      {...dotProps} 
+                    <_CustomScatterDot
+                      {...dotProps}
                       hoveredPoint={hoveredPoint}
-                      setHoveredPoint={setHoveredPoint} 
-                      tableHoveredRowId={tableHoveredRowId} 
+                      setHoveredPoint={setHoveredPoint}
+                      tableHoveredRowId={tableHoveredRowId}
                       hoveredPointId={hoveredPoint?.id}
                       seriesColor={s.color}
                       isDimmed={isDimmed}
                       isSingleCurve={curveSeriesList.length === 1}
                       isAnimating={isAnimating}
                     />
-                  )} 
+                  )}
                 />
               );
             })}
 
-            {/* 3. Render All LOD Labels on TOP of all elements */}
-            {curveSeriesList.filter(s => Number.isFinite(s.results?.lodConc) && s.results.lodConc > 0 && s.results.lodConc >= activeXDomain[0] && s.results.lodConc <= activeXDomain[1]).map(s => {
-              const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
-              const isMulti = curveSeriesList.length > 1;
-              const lodColor = isMulti ? s.color : "var(--yellow)";
-              const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
-              const offsetY = isMulti ? tier * 24 : 0;
+            {curveSeriesList
+              .filter(
+                s =>
+                  Number.isFinite(s.results?.lodConc) &&
+                  s.results.lodConc > 0 &&
+                  s.results.lodConc >= activeXDomain[0] &&
+                  s.results.lodConc <= activeXDomain[1]
+              )
+              .map(s => {
+                const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
+                const isMulti = curveSeriesList.length > 1;
+                const lodColor = isMulti ? s.color : "var(--yellow)";
+                const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
+                const offsetY = isMulti ? tier * _LOD_BADGE_TIER_HEIGHT_PX : 0;
 
-              return (
-                <ReferenceLine 
-                  key={`lod-label-${s.id}`} 
-                  x={s.results.lodConc} 
-                  stroke="none" 
-                  label={(
-                    <CustomLodLabel 
-                      labelText={isMulti ? `LOD (${s.name})` : "LOD"} 
-                      color={lodColor} 
-                      offsetY={offsetY}
-                      opacity={isDimmed ? 0.25 : 1}
-                    />
-                  )} 
-                  style={{ pointerEvents: "none" }} 
-                />
-              );
-            })}
+                return (
+                  <ReferenceLine
+                    key={`lod-label-${s.id}`}
+                    x={s.results.lodConc}
+                    stroke="none"
+                    label={
+                      <_CustomLodLabel
+                        labelText={isMulti ? `LOD (${s.name})` : "LOD"}
+                        color={lodColor}
+                        offsetY={offsetY}
+                        opacity={isDimmed ? 0.25 : 1}
+                      />
+                    }
+                    style={{ pointerEvents: "none" }}
+                  />
+                );
+              })}
 
-            {/* Zero break tick axis line */}
             {activeLeftAxisData.length > 0 && (
-              <Line data={activeLeftAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+              <Line
+                data={activeLeftAxisData}
+                dataKey="y"
+                stroke="var(--subtext1)"
+                strokeWidth={1.2}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+                style={{ pointerEvents: "none" }}
+              />
             )}
             {activeRightAxisData.length > 0 && (
-              <Line data={activeRightAxisData} dataKey="y" stroke="var(--subtext1)" strokeWidth={1.2} dot={false} activeDot={false} isAnimationActive={false} legendType="none" tooltipType="none" style={{ pointerEvents: "none" }} />
+              <Line
+                data={activeRightAxisData}
+                dataKey="y"
+                stroke="var(--subtext1)"
+                strokeWidth={1.2}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
+                legendType="none"
+                tooltipType="none"
+                style={{ pointerEvents: "none" }}
+              />
             )}
           </ComposedChart>
         </ResponsiveContainer>
-        
-        {hoveredPoint && !isDragging && !isPanning && !isAnimating && hoveredPoint.cx != null && hoveredPoint.cy != null && (() => {
-          const frameWidth = chartWidth || 700;
-          const isRight = hoveredPoint.cx > frameWidth - 190;
-          const left = isRight ? hoveredPoint.cx - 175 : hoveredPoint.cx + 15;
-          const top = Math.max(8, hoveredPoint.cy - 15);
-          return (
-            <div className="scatter-point-tooltip" style={{
-              position: "absolute",
-              left,
-              top,
-              backgroundColor: "var(--card-glass)",
-              backdropFilter: "var(--glass-blur)",
-              WebkitBackdropFilter: "var(--glass-blur)",
-              border: "1px solid var(--pink)",
-              borderRadius: "var(--radius-sm)",
-              padding: "10px 14px",
-              fontSize: "0.78rem",
-              color: "var(--text)",
-              pointerEvents: "none",
-              zIndex: 100,
-              boxShadow: "var(--shadow-md)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px"
-            }}>
-              {hoveredPoint.seriesName && (
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "3px" }}>
-                  <span style={{ color: "var(--subtext0)" }}>Curve</span>
-                  <span style={{ fontWeight: 700, color: "var(--text)" }}>{hoveredPoint.seriesName}</span>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
-                <span style={{ color: "var(--subtext0)" }}>Concentration</span>
-                <span style={{ fontWeight: 700, color: "var(--text)", fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">{hoveredPoint.conc}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
-                <span style={{ color: "var(--subtext0)" }}>Signal</span>
-                <span style={{ fontWeight: 700, color: "var(--pink)", fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="tabular-nums">{hoveredPoint.y.toFixed(4)}</span>
-              </div>
-            </div>
-          );
-        })()}
+
+        <_ScatterPointTooltip
+          hoveredPoint={hoveredPoint}
+          isInteracting={isInteracting}
+          chartWidth={chartWidth}
+        />
       </div>
     </div>
   );

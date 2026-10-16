@@ -1,30 +1,269 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import type React from "react";
 import {
   calculateAdvancedLoD,
+  computeSensitivityFoldChange,
+  computeAssayQualityChecks,
+  parseSignalNumbers,
   type StandardData,
   type AdvancedLoDResult,
-  computeSensitivityFoldChange
 } from "./utils/calculations";
 import { parseCSVData } from "./utils/csvParser";
-import { formatScientificUnicode } from "./utils/formatters";
+import {
+  computeGlobalLogXAxisLayout,
+  computeGlobalLinearYAxisLayout,
+} from "./utils/zoom";
+import {
+  buildMultiCurveCSVReport,
+  buildMultiCurveTemplateCSV,
+  buildMarkdownAuditReport,
+  downloadTextFile,
+} from "./utils/reportExporters";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
-import { ChartCard, type MultiCurvePlotSeries, type ChartScatterPoint, type HoveredPointData } from "./components/ChartCard";
-import { ResultsPanel, type SeriesLeaderboardItem } from "./components/ResultsPanel";
+import {
+  ChartCard,
+  type MultiCurvePlotSeries,
+  type ChartScatterPoint,
+  type HoveredPointData,
+} from "./components/ChartCard";
+import {
+  ResultsPanel,
+  type SeriesLeaderboardItem,
+} from "./components/ResultsPanel";
 import {
   DEMO_PRESETS,
   SERIES_COLORS,
   APP_VERSION,
-  BLANK_CV_WARNING_THRESHOLD,
-  STANDARD_CV_WARNING_THRESHOLD,
   type AssaySeries,
-  type StandardRow
+  type FitMethod,
+  type StandardRow,
 } from "./constants";
 import "./App.css";
 
-function App() {
+/** LocalStorage key used to persist the user's color theme preference. */
+const _THEME_STORAGE_KEY = "app-theme";
+
+/** Sub-theme attribute value applied when dark mode is active. */
+const _DARK_SUBTHEME = "obsidian";
+
+/** Sub-theme attribute value applied when light mode is active. */
+const _LIGHT_SUBTHEME = "porcelain";
+
+/** Default label displayed along the horizontal concentration axis. */
+const _DEFAULT_X_AXIS_LABEL = "Concentration (mM)";
+
+/** Default label displayed along the vertical signal readout axis. */
+const _DEFAULT_Y_AXIS_LABEL = "Signal Intensity";
+
+/** Default starter concentrations pre-populated when adding a new assay series. */
+const _DEFAULT_NEW_SERIES_CONCENTRATIONS = ["0.01", "0.1", "1.0"] as const;
+
+/** Minimum number of valid blank replicates required to compute Currie/Holstein LOD. */
+const _MIN_REQUIRED_BLANKS = 2;
+
+/** Minimum number of valid standard calibrator points required to fit a calibration curve. */
+const _MIN_REQUIRED_STANDARDS = 3;
+
+/** Number of log-spaced grid intervals generated across the left (zero-break) chart segment. */
+const _LEFT_SEGMENT_GRID_STEPS = 25;
+
+/** Number of log-spaced grid intervals generated across the right (calibration curve) chart segment. */
+const _RIGHT_SEGMENT_GRID_STEPS = 120;
+
+/** Evaluated regression fit and quality diagnostics for a single assay curve series. */
+interface _SeriesFitMapItem {
+  series: AssaySeries;
+  results: AdvancedLoDResult | null;
+  qualityChecks: string[];
+}
+
+/**
+ * Generates a short pseudo-random identifier prefixed with `prefix`.
+ *
+ * @param prefix - Identifier namespace prefix (e.g. `"series"` or `"row"`).
+ * @returns Unique string identifier.
+ */
+function _createUniqueId(prefix: string): string {
+  return `${prefix}-${Math.random().toString(36).substring(2, 8)}`;
+}
+
+/**
+ * Builds the Recharts plot series payloads (left/right trend grids, confidence bands,
+ * replicate scatter points, and horizontal $L_C$/$L_D$ reference segments) for all visible fitted curves.
+ *
+ * @param validVisibleSeries - Visible series items that have valid fitted `results`.
+ * @param xDomain - Global logarithmic X-axis `[zeroX, maxAxisValue]` domain.
+ * @param breakStart - Lower concentration bound of the X-axis zero-break gap.
+ * @param breakEnd - Upper concentration bound of the X-axis zero-break gap.
+ * @param highlightedSeriesId - ID of the currently active/displayed series.
+ * @returns Array of `MultiCurvePlotSeries` ready for `ChartCard`.
+ */
+function _buildMultiCurvePlotSeries(
+  validVisibleSeries: readonly _SeriesFitMapItem[],
+  xDomain: [number, number],
+  breakStart: number,
+  breakEnd: number,
+  highlightedSeriesId: string
+): MultiCurvePlotSeries[] {
+  if (validVisibleSeries.length === 0 || !breakStart || !breakEnd) {
+    return [];
+  }
+  const [zeroX, maxAxisValue] = xDomain;
+
+  // Unified X coordinate grids for left (zero break) and right (main curve).
+  // Including all standard calibrator concentrations, LOD values, and fine log-spaced intervals
+  // ensures that Recharts findEntryInArray never returns undefined at any hovered X position.
+  const leftXSet = new Set<number>();
+  const logMinLeft = Math.log10(zeroX);
+  const logMaxLeft = Math.log10(breakStart);
+  for (let i = 0; i <= _LEFT_SEGMENT_GRID_STEPS; i++) {
+    leftXSet.add(
+      Math.pow(
+        10,
+        logMinLeft + (i * (logMaxLeft - logMinLeft)) / _LEFT_SEGMENT_GRID_STEPS
+      )
+    );
+  }
+  leftXSet.add(zeroX);
+  leftXSet.add(breakStart);
+  const leftXGrid = Array.from(leftXSet).sort((a, b) => a - b);
+
+  const rightXSet = new Set<number>();
+  const logMinRight = Math.log10(breakEnd);
+  const logMaxRight = Math.log10(maxAxisValue);
+  for (let i = 0; i <= _RIGHT_SEGMENT_GRID_STEPS; i++) {
+    rightXSet.add(
+      Math.pow(
+        10,
+        logMinRight +
+          (i * (logMaxRight - logMinRight)) / _RIGHT_SEGMENT_GRID_STEPS
+      )
+    );
+  }
+  rightXSet.add(breakEnd);
+  rightXSet.add(maxAxisValue);
+
+  validVisibleSeries.forEach((item) => {
+    item.series.standardRows.forEach((row) => {
+      const concentration = parseFloat(row.conc);
+      if (
+        !Number.isNaN(concentration) &&
+        concentration >= breakEnd &&
+        concentration <= maxAxisValue
+      ) {
+        rightXSet.add(concentration);
+      }
+    });
+    const lod = item.results?.lodConc;
+    if (
+      lod !== undefined &&
+      Number.isFinite(lod) &&
+      lod >= breakEnd &&
+      lod <= maxAxisValue
+    ) {
+      rightXSet.add(lod);
+    }
+  });
+
+  const rightXGrid = Array.from(rightXSet).sort((a, b) => a - b);
+
+  return validVisibleSeries.map((item): MultiCurvePlotSeries => {
+    const results = item.results!;
+    const series = item.series;
+    const isActive = series.id === highlightedSeriesId;
+
+    const leftChartData = leftXGrid.map((xVal) => {
+      const pred = results.fit.predict(0);
+      const { low, high } = results.fit.getCI(0);
+      return { x: xVal, trend: pred, ciRange: [low, high] as [number, number] };
+    });
+
+    const rightChartData = rightXGrid.map((xVal) => {
+      const pred = results.fit.predict(xVal);
+      const { low, high } = results.fit.getCI(xVal);
+      return { x: xVal, trend: pred, ciRange: [low, high] as [number, number] };
+    });
+
+    const scatterData: ChartScatterPoint[] = [];
+    parseSignalNumbers(series.blankSignals).forEach((repValue, repIndex) => {
+      scatterData.push({
+        x: zeroX,
+        y: repValue,
+        actualX: 0,
+        id: `${series.id}-blank`,
+        pointId: `${series.id}-blank-rep-${repIndex}`,
+        rowId: "blank",
+        repIndex,
+        repValue,
+        seriesId: series.id,
+        seriesName: series.name,
+        color: series.color,
+      });
+    });
+
+    series.standardRows.forEach((row) => {
+      const concentration = parseFloat(row.conc);
+      if (Number.isNaN(concentration)) return;
+      parseSignalNumbers(row.signals).forEach((repValue, repIndex) => {
+        scatterData.push({
+          x: concentration,
+          y: repValue,
+          actualX: concentration,
+          id: row.id,
+          pointId: `${series.id}-${row.id}-rep-${repIndex}`,
+          rowId: row.id,
+          repIndex,
+          repValue,
+          seriesId: series.id,
+          seriesName: series.name,
+          color: series.color,
+        });
+      });
+    });
+
+    return {
+      id: series.id,
+      name: series.name,
+      color: series.color,
+      visible: series.visible,
+      isActive,
+      results,
+      leftChartData,
+      rightChartData,
+      scatterData,
+      lcLeftData: [
+        { x: zeroX, y: results.lc },
+        { x: breakStart, y: results.lc },
+      ],
+      lcRightData: [
+        { x: breakEnd, y: results.lc },
+        { x: maxAxisValue, y: results.lc },
+      ],
+      ldLeftData: [
+        { x: zeroX, y: results.ld },
+        { x: breakStart, y: results.ld },
+      ],
+      ldRightData: [
+        { x: breakEnd, y: results.ld },
+        { x: maxAxisValue, y: results.ld },
+      ],
+    };
+  });
+}
+
+/**
+ * Root application component coordinating multi-curve bioassay calibration state,
+ * Currie (1968) / Holstein et al. (2015) LOD regression fitting, interactive chart layout,
+ * and CSV/Markdown report exports.
+ *
+ * @returns Rendered application workspace element.
+ */
+function App(): React.ReactElement {
   const [theme, setTheme] = useState<"dark" | "light">(() => {
-    return (localStorage.getItem("app-theme") as "dark" | "light") || "light";
+    return (
+      (localStorage.getItem(_THEME_STORAGE_KEY) as "dark" | "light") || "light"
+    );
   });
 
   const [seriesList, setSeriesList] = useState<AssaySeries[]>(() => {
@@ -33,45 +272,61 @@ function App() {
   const [activeSeriesId, setActiveSeriesId] = useState<string>(() => {
     return DEMO_PRESETS[0].series[0].id;
   });
-  const [demoIndex, setDemoIndex] = useState(0);
-  const [plotTitle, setPlotTitle] = useState(DEMO_PRESETS[0].plotTitle);
-  const [xAxisLabel, setXAxisLabel] = useState("Concentration (mM)");
-  const [yAxisLabel, setYAxisLabel] = useState("Signal Intensity");
-  const [hoveredPoint, setHoveredPoint] = useState<HoveredPointData | null>(null);
-  const [tableHoveredRowId, setTableHoveredRowId] = useState<string | null>(null);
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(0);
+  const [plotTitle, setPlotTitle] = useState<string>(DEMO_PRESETS[0].plotTitle);
+  const [xAxisLabel, setXAxisLabel] = useState<string>(_DEFAULT_X_AXIS_LABEL);
+  const [yAxisLabel, setYAxisLabel] = useState<string>(_DEFAULT_Y_AXIS_LABEL);
+  const [hoveredPoint, setHoveredPoint] = useState<HoveredPointData | null>(
+    null
+  );
+  const [tableHoveredRowId, setTableHoveredRowId] = useState<string | null>(
+    null
+  );
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const dragCounter = useRef(0);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
+  const dragCounter = useRef<number>(0);
 
-  useEffect(() => {
+  useEffect((): void => {
     document.documentElement.setAttribute("data-theme", theme);
-    document.documentElement.setAttribute("data-subtheme", theme === "dark" ? "obsidian" : "porcelain");
-    localStorage.setItem("app-theme", theme);
+    document.documentElement.setAttribute(
+      "data-subtheme",
+      theme === "dark" ? _DARK_SUBTHEME : _LIGHT_SUBTHEME
+    );
+    localStorage.setItem(_THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  const handleSelectSeries = (id: string) => {
+  const handleSelectSeries = (id: string): void => {
     setActiveSeriesId(id);
     setHoveredPoint(null);
     setTableHoveredRowId(null);
   };
 
-  const toggleTheme = () => {
-    setTheme(prev => (prev === "dark" ? "light" : "dark"));
+  const toggleTheme = (): void => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
-  const activeSeries = useMemo(() => {
-    return seriesList.find(s => s.id === activeSeriesId) || seriesList[0];
+  const activeSeries = useMemo((): AssaySeries => {
+    return (
+      seriesList.find((series) => series.id === activeSeriesId) || seriesList[0]
+    );
   }, [seriesList, activeSeriesId]);
 
-  const updateActiveSeriesField = <K extends keyof AssaySeries>(field: K, value: AssaySeries[K]) => {
-    setSeriesList(prev => prev.map(s => s.id === activeSeries.id ? { ...s, [field]: value } : s));
+  const updateActiveSeriesField = <K extends keyof AssaySeries>(
+    field: K,
+    value: AssaySeries[K]
+  ): void => {
+    setSeriesList((prev) =>
+      prev.map((series) =>
+        series.id === activeSeries.id ? { ...series, [field]: value } : series
+      )
+    );
   };
 
-  const handleAddSeries = () => {
+  const handleAddSeries = (): void => {
     const nextIdx = seriesList.length;
     const newColor = SERIES_COLORS[nextIdx % SERIES_COLORS.length];
-    const newId = "series-" + Math.random().toString(36).substring(2, 7);
+    const newId = _createUniqueId("series");
     const newName = seriesList.length === 0 ? "Ref" : `Sample ${nextIdx}`;
     const newSeries: AssaySeries = {
       id: newId,
@@ -80,490 +335,278 @@ function App() {
       visible: true,
       fitMethod: "auto",
       blankSignals: activeSeries.blankSignals,
-      standardRows: [
-        { id: Math.random().toString(36), conc: "0.01", signals: "" },
-        { id: Math.random().toString(36), conc: "0.1", signals: "" },
-        { id: Math.random().toString(36), conc: "1.0", signals: "" },
-      ]
+      standardRows: _DEFAULT_NEW_SERIES_CONCENTRATIONS.map(
+        (concentration): StandardRow => ({
+          id: _createUniqueId("row"),
+          conc: concentration,
+          signals: "",
+        })
+      ),
     };
-    setSeriesList(prev => [...prev, newSeries]);
+    setSeriesList((prev) => [...prev, newSeries]);
     handleSelectSeries(newId);
   };
 
-  const handleRemoveSeries = (id: string) => {
+  const handleRemoveSeries = (id: string): void => {
     if (seriesList.length <= 1) return;
-    const nextList = seriesList.filter(s => s.id !== id);
+    const nextList = seriesList.filter((series) => series.id !== id);
     setSeriesList(nextList);
     if (activeSeriesId === id) {
       handleSelectSeries(nextList[0].id);
     }
   };
 
-  const handleToggleSeriesVisibility = (id: string) => {
-    setSeriesList(prev => prev.map(s => s.id === id ? { ...s, visible: !s.visible } : s));
+  const handleToggleSeriesVisibility = (id: string): void => {
+    setSeriesList((prev) =>
+      prev.map((series) =>
+        series.id === id ? { ...series, visible: !series.visible } : series
+      )
+    );
   };
 
-  const handleUpdateSeriesName = (id: string, name: string) => {
-    setSeriesList(prev => prev.map(s => s.id === id ? { ...s, name } : s));
+  const handleUpdateSeriesName = (id: string, name: string): void => {
+    setSeriesList((prev) =>
+      prev.map((series) => (series.id === id ? { ...series, name } : series))
+    );
   };
 
-  // Quality Checks computation
-  const computeQualityChecks = (results: AdvancedLoDResult | null, standardRows: StandardRow[], blankSignals?: string): string[] => {
-    if (!results) return [];
-    const warnings: string[] = [];
-    if (results.fit.metrics.r2 < 0.95) {
-      warnings.push(`Poor fit quality (R² = ${results.fit.metrics.r2.toFixed(4)}). Consider manual model selection.`);
-    }
-    if (blankSignals) {
-      const bSigs = blankSignals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-      if (bSigs.length > 1) {
-        const mean = bSigs.reduce((a, b) => a + b, 0) / bSigs.length;
-        if (Math.abs(mean) > 1e-9) {
-          const sd = Math.sqrt(bSigs.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (bSigs.length - 1));
-          const cvPercent = (sd / Math.abs(mean)) * 100;
-          if (cvPercent > BLANK_CV_WARNING_THRESHOLD) {
-            warnings.push(`High blank replicate variance (CV = ${cvPercent.toFixed(1)}%). Check blank baseline purity.`);
-          }
-        }
-      }
-    }
-    standardRows.forEach((row) => {
-      const c = parseFloat(row.conc);
-      if (isNaN(c) || c <= 0) return;
-      const sigs = row.signals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-      if (sigs.length > 1) {
-        const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
-        if (Math.abs(mean) > 1e-9) {
-          const sd = Math.sqrt(sigs.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (sigs.length - 1));
-          const cvPercent = (sd / Math.abs(mean)) * 100;
-          if (cvPercent > STANDARD_CV_WARNING_THRESHOLD) {
-            warnings.push(`High replicate variance at concentration ${c} (CV = ${cvPercent.toFixed(1)}%). Check for pipetting errors.`);
-          }
-        }
-      }
-    });
-    const sortedStandards = [...standardRows]
-      .map(row => {
-        const c = parseFloat(row.conc);
-        const sigs = row.signals.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-        if (isNaN(c) || c <= 0 || sigs.length === 0) return null;
-        const mean = sigs.reduce((a, b) => a + b, 0) / sigs.length;
-        return { conc: c, mean };
-      })
-      .filter((item): item is { conc: number; mean: number } => item !== null)
-      .sort((a, b) => a.conc - b.conc);
-    if (sortedStandards.length > 2) {
-      const means = sortedStandards.map(s => s.mean);
-      const signalSpan = Math.max(...means) - Math.min(...means);
-      const threshold = Math.max(1e-9, signalSpan * 0.05);
-      let increases = 0;
-      let decreases = 0;
-      for (let i = 1; i < sortedStandards.length; i++) {
-        const diff = sortedStandards[i].mean - sortedStandards[i - 1].mean;
-        if (diff > threshold) increases++;
-        else if (diff < -threshold) decreases++;
-      }
-      if (increases > 0 && decreases > 0) {
-        warnings.push("Non-monotonic response detected (Hook Effect / signal drop at high concentration).");
-      }
-    }
-    return warnings;
-  };
-
-  // Fit calculations for each series in seriesList
-  interface SeriesFitMapItem {
-    series: AssaySeries;
-    results: AdvancedLoDResult | null;
-    qualityChecks: string[];
-  }
-
-  const seriesFitMap = useMemo((): SeriesFitMapItem[] => {
-    return seriesList.map(s => {
+  const seriesFitMap = useMemo((): _SeriesFitMapItem[] => {
+    return seriesList.map((series): _SeriesFitMapItem => {
       try {
-        const blanks = s.blankSignals.split(",").map(str => parseFloat(str.trim())).filter(n => !isNaN(n));
+        const blanks = parseSignalNumbers(series.blankSignals);
         const standards: StandardData[] = [];
-        s.standardRows.forEach(row => {
-          const c = parseFloat(row.conc);
-          if (isNaN(c) || c <= 0) return;
-          row.signals.split(",").forEach(sig => {
-            const val = parseFloat(sig.trim());
-            if (!isNaN(val)) standards.push({ concentration: c, readout: val });
+        series.standardRows.forEach((row) => {
+          const concentration = parseFloat(row.conc);
+          if (Number.isNaN(concentration) || concentration <= 0) return;
+          parseSignalNumbers(row.signals).forEach((readout) => {
+            standards.push({ concentration, readout });
           });
         });
-        if (blanks.length < 2 || standards.length < 3) {
-          return { series: s, results: null, qualityChecks: [] };
+        if (
+          blanks.length < _MIN_REQUIRED_BLANKS ||
+          standards.length < _MIN_REQUIRED_STANDARDS
+        ) {
+          return { series, results: null, qualityChecks: [] };
         }
-        const res = calculateAdvancedLoD(blanks, standards, s.fitMethod);
-        const qc = computeQualityChecks(res, s.standardRows, s.blankSignals);
-        return { series: s, results: res, qualityChecks: qc };
+        const results = calculateAdvancedLoD(
+          blanks,
+          standards,
+          series.fitMethod
+        );
+        const qualityChecks = computeAssayQualityChecks(
+          results,
+          series.standardRows,
+          series.blankSignals
+        );
+        return { series, results, qualityChecks };
       } catch {
-        return { series: s, results: null, qualityChecks: [] };
+        return { series, results: null, qualityChecks: [] };
       }
     });
   }, [seriesList]);
 
-  const activeFitItem = useMemo(() => {
-    return seriesFitMap.find(item => item.series.id === activeSeries.id) || seriesFitMap[0];
+  const activeFitItem = useMemo((): _SeriesFitMapItem | undefined => {
+    return (
+      seriesFitMap.find((item) => item.series.id === activeSeries.id) ||
+      seriesFitMap[0]
+    );
   }, [seriesFitMap, activeSeries.id]);
 
   const activeResults = activeFitItem?.results || null;
   const activeQualityChecks = activeFitItem?.qualityChecks || [];
 
-  const validVisibleSeries = useMemo(() => {
-    return seriesFitMap.filter(item => item.series.visible && item.results !== null);
+  const validVisibleSeries = useMemo((): _SeriesFitMapItem[] => {
+    return seriesFitMap.filter(
+      (item) => item.series.visible && item.results !== null
+    );
   }, [seriesFitMap]);
 
   // When adding a new curve that has no data yet, fallback to the first valid series for display
-  const displayFitItem = useMemo(() => {
+  const displayFitItem = useMemo((): _SeriesFitMapItem | undefined => {
     if (activeResults) return activeFitItem;
     return validVisibleSeries[0] || activeFitItem;
   }, [activeResults, activeFitItem, validVisibleSeries]);
 
   const displayResults = displayFitItem?.results || null;
   const displaySeries = displayFitItem?.series || activeSeries;
+  const highlightedSeriesId = activeResults
+    ? activeSeries.id
+    : displaySeries.id;
 
-  // Unified global logarithmic X domain
-  const { xTicks, xDomain, breakStart, breakEnd } = useMemo(() => {
-    if (validVisibleSeries.length === 0) {
-      return { xTicks: [], xDomain: [0, 0] as [number, number], breakStart: 0, breakEnd: 0 };
-    }
-    const allPositiveStandards = validVisibleSeries.flatMap(item => item.results!.fit.actualX.filter(x => x > 0));
-    if (allPositiveStandards.length === 0) return { xTicks: [], xDomain: [0, 0] as [number, number], breakStart: 0, breakEnd: 0 };
+  const { xTicks, xDomain, breakStart, breakEnd } = useMemo(
+    () =>
+      computeGlobalLogXAxisLayout(
+        validVisibleSeries.map((item) => ({
+          actualX: item.results!.fit.actualX,
+          lodConc: item.results!.lodConc,
+          lodCILow: item.results!.lodCI.low,
+        }))
+      ),
+    [validVisibleSeries]
+  );
 
-    const validLODs = validVisibleSeries
-      .map(item => item.results!.lodConc)
-      .filter(lod => Number.isFinite(lod) && lod > 0);
-    const validCILows = validVisibleSeries
-      .map(item => item.results!.lodCI.low)
-      .filter(low => Number.isFinite(low) && low > 0);
+  const { yDomain, yTicks, yMajorTicks } = useMemo(
+    () =>
+      computeGlobalLinearYAxisLayout(
+        validVisibleSeries.map((item) => ({
+          actualY: item.results!.fit.actualY,
+          lc: item.results!.lc,
+          ld: item.results!.ld,
+        }))
+      ),
+    [validVisibleSeries]
+  );
 
-    const minPositiveCandidate = Math.min(...allPositiveStandards, ...validLODs, ...validCILows);
-    const maxPositiveCandidate = Math.max(...allPositiveStandards, ...validLODs);
-
-    const zeroX = minPositiveCandidate / 10;
-    const maxAxisValue = maxPositiveCandidate * 1.5;
-    const logZero = Math.log10(zeroX);
-    const logMinPositive = Math.log10(minPositiveCandidate);
-    const breakCenterLog = (logZero + logMinPositive) / 2;
-    // Balanced break gap (0.26 decades wide) extending axes inward from both sides
-    const breakHalfWidth = 0.13;
-    const breakStart = Math.pow(10, breakCenterLog - breakHalfWidth);
-    const breakEnd = Math.pow(10, breakCenterLog + breakHalfWidth);
-    const logMin = Math.floor(Math.log10(zeroX));
-    const logMax = Math.ceil(Math.log10(maxAxisValue));
-    const ticks = [zeroX, breakStart, breakEnd];
-    for (let i = logMin; i <= logMax; i++) {
-      const majorVal = Math.pow(10, i);
-      if (majorVal <= maxAxisValue && majorVal >= minPositiveCandidate - 1e-10) {
-        if (majorVal < breakStart || majorVal > breakEnd) ticks.push(majorVal);
-      }
-      if (i < logMax) {
-        for (let j = 2; j <= 9; j++) {
-          const minorVal = j * Math.pow(10, i);
-          // Strictly only include minor ticks for calibrator standard concentrations & LOD range (>= minPositiveCandidate)
-          if (minorVal <= maxAxisValue && minorVal >= minPositiveCandidate - 1e-10) {
-            if (minorVal < breakStart || minorVal > breakEnd) ticks.push(minorVal);
-          }
-        }
-      }
-    }
-    return { xTicks: ticks, xDomain: [zeroX, maxAxisValue] as [number, number], breakStart, breakEnd };
-  }, [validVisibleSeries]);
-
-  // Unified global Y domain
-  const { yDomain, yTicks, yMajorTicks } = useMemo(() => {
-    if (validVisibleSeries.length === 0) {
-      return { yDomain: [0, 1] as [number, number], yTicks: undefined, yMajorTicks: [] as number[] };
-    }
-    const allSignals = validVisibleSeries.flatMap(item => item.results!.fit.actualY.filter(v => isFinite(v)));
-    const allKeyValues = [...allSignals];
-    validVisibleSeries.forEach(item => {
-      if (isFinite(item.results!.lc)) allKeyValues.push(item.results!.lc);
-      if (isFinite(item.results!.ld)) allKeyValues.push(item.results!.ld);
-    });
-
-    const minData = allKeyValues.length > 0 ? Math.min(...allKeyValues) : 0;
-    const maxData = allKeyValues.length > 0 ? Math.max(...allKeyValues) : 1;
-
-    const span = maxData > minData ? maxData - minData : (Math.abs(maxData) || 1);
-    const targetMin = minData < 0 ? minData - span * 0.05 : Math.max(0, minData - span * 0.05);
-    const targetMax = maxData + span * 0.08;
-    const roughSpan = Math.max(1e-9, targetMax - targetMin);
-
-    const rawStep = roughSpan / 5;
-    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-    const normalizedStep = rawStep / magnitude;
-
-    let multiplier = 1;
-    if (normalizedStep >= 1.5 && normalizedStep < 3.5) multiplier = 2;
-    else if (normalizedStep >= 3.5 && normalizedStep < 7.5) multiplier = 5;
-    else if (normalizedStep >= 7.5) multiplier = 10;
-
-    const niceStep = multiplier * magnitude;
-    const niceMin = Math.floor(targetMin / niceStep) * niceStep;
-    const niceMax = Math.ceil(targetMax / niceStep) * niceStep;
-
-    const numMajor = Math.max(1, Math.round((niceMax - niceMin) / niceStep));
-    const majorTicks: number[] = [];
-    for (let i = 0; i <= numMajor; i++) {
-      majorTicks.push(Number((niceMin + i * niceStep).toPrecision(10)));
-    }
-
-    const subDiv = multiplier === 2 ? 2 : 5;
-    const subStep = niceStep / subDiv;
-    const numMinor = Math.round((niceMax - niceMin) / subStep);
-    const allTicks: number[] = [];
-    if (numMinor <= 40) {
-      for (let i = 0; i <= numMinor; i++) {
-        allTicks.push(Number((niceMin + i * subStep).toPrecision(10)));
-      }
-    } else {
-      allTicks.push(...majorTicks);
-    }
-
-    return { yDomain: [niceMin, niceMax] as [number, number], yTicks: allTicks, yMajorTicks: majorTicks };
-  }, [validVisibleSeries]);
-
-  const leftAxisData = useMemo(() => {
+  const leftAxisData = useMemo((): Array<{ x: number; y: number }> => {
     if (validVisibleSeries.length === 0 || !breakStart) return [];
-    return [{ x: xDomain[0], y: yDomain[0] }, { x: breakStart, y: yDomain[0] }];
+    return [
+      { x: xDomain[0], y: yDomain[0] },
+      { x: breakStart, y: yDomain[0] },
+    ];
   }, [validVisibleSeries, xDomain, breakStart, yDomain]);
 
-  const rightAxisData = useMemo(() => {
+  const rightAxisData = useMemo((): Array<{ x: number; y: number }> => {
     if (validVisibleSeries.length === 0 || !breakEnd) return [];
-    return [{ x: breakEnd, y: yDomain[0] }, { x: xDomain[1], y: yDomain[0] }];
+    return [
+      { x: breakEnd, y: yDomain[0] },
+      { x: xDomain[1], y: yDomain[0] },
+    ];
   }, [validVisibleSeries, xDomain, breakEnd, yDomain]);
 
-  // Generate chart data for all visible curves
-  const curveSeriesList = useMemo((): MultiCurvePlotSeries[] => {
-    if (validVisibleSeries.length === 0 || !breakStart || !breakEnd) return [];
-    const zeroX = xDomain[0];
-    const maxAxisValue = xDomain[1];
+  const curveSeriesList = useMemo(
+    (): MultiCurvePlotSeries[] =>
+      _buildMultiCurvePlotSeries(
+        validVisibleSeries,
+        xDomain,
+        breakStart,
+        breakEnd,
+        highlightedSeriesId
+      ),
+    [validVisibleSeries, xDomain, breakStart, breakEnd, highlightedSeriesId]
+  );
 
-    // Unified X coordinate grids for left (zero break) and right (main curve)
-    // By including all standard calibrator concentrations, LOD values, and fine log-spaced intervals,
-    // we ensure that Recharts findEntryInArray never returns undefined at any hovered X position.
-    const leftXSet = new Set<number>();
-    const leftSteps = 25;
-    const logMinLeft = Math.log10(zeroX);
-    const logMaxLeft = Math.log10(breakStart);
-    for (let i = 0; i <= leftSteps; i++) {
-      leftXSet.add(Math.pow(10, logMinLeft + i * (logMaxLeft - logMinLeft) / leftSteps));
-    }
-    leftXSet.add(zeroX);
-    leftXSet.add(breakStart);
-    const leftXGrid = Array.from(leftXSet).sort((a, b) => a - b);
-
-    const rightXSet = new Set<number>();
-    const rightSteps = 120;
-    const logMinRight = Math.log10(breakEnd);
-    const logMaxRight = Math.log10(maxAxisValue);
-    for (let i = 0; i <= rightSteps; i++) {
-      rightXSet.add(Math.pow(10, logMinRight + i * (logMaxRight - logMinRight) / rightSteps));
-    }
-    rightXSet.add(breakEnd);
-    rightXSet.add(maxAxisValue);
-
-    // Include all calibrator standard concentrations and LOD concentrations from all visible series
-    validVisibleSeries.forEach(item => {
-      item.series.standardRows.forEach(r => {
-        const c = parseFloat(r.conc);
-        if (!isNaN(c) && c >= breakEnd && c <= maxAxisValue) {
-          rightXSet.add(c);
-        }
-      });
-      const lod = item.results?.lodConc;
-      if (Number.isFinite(lod) && lod! >= breakEnd && lod! <= maxAxisValue) {
-        rightXSet.add(lod!);
-      }
-    });
-
-    const rightXGrid = Array.from(rightXSet).sort((a, b) => a - b);
-
-    return validVisibleSeries.map(item => {
-      const res = item.results!;
-      const s = item.series;
-      const isActive = s.id === (activeResults ? activeSeries.id : displaySeries.id);
-
-      // Left chart data (zero break)
-      const leftData = leftXGrid.map(xVal => {
-        const pred = res.fit.predict(0);
-        const { low, high } = res.fit.getCI(0);
-        return { x: xVal, trend: pred, ciRange: [low, high] as [number, number] };
-      });
-
-      // Right chart data (main curve)
-      const rightData = rightXGrid.map(xVal => {
-        const pred = res.fit.predict(xVal);
-        const { low, high } = res.fit.getCI(xVal);
-        return { x: xVal, trend: pred, ciRange: [low, high] as [number, number] };
-      });
-
-      // Scatter points
-      const scatter: ChartScatterPoint[] = [];
-      // Blanks
-      let blankRepCount = 0;
-      s.blankSignals.split(",").forEach(sig => {
-        const val = parseFloat(sig.trim());
-        if (!isNaN(val)) {
-          const repIdx = blankRepCount++;
-          scatter.push({
-            x: zeroX,
-            y: val,
-            actualX: 0,
-            id: `${s.id}-blank`,
-            pointId: `${s.id}-blank-rep-${repIdx}`,
-            rowId: "blank",
-            repIndex: repIdx,
-            repValue: val,
-            seriesId: s.id,
-            seriesName: s.name,
-            color: s.color
-          });
-        }
-      });
-      // Standards
-      s.standardRows.forEach(row => {
-        const c = parseFloat(row.conc);
-        if (isNaN(c)) return;
-        let stdRepCount = 0;
-        row.signals.split(",").forEach(sig => {
-          const val = parseFloat(sig.trim());
-          if (!isNaN(val)) {
-            const repIdx = stdRepCount++;
-            scatter.push({
-              x: c,
-              y: val,
-              actualX: c,
-              id: row.id,
-              pointId: `${s.id}-${row.id}-rep-${repIdx}`,
-              rowId: row.id,
-              repIndex: repIdx,
-              repValue: val,
-              seriesId: s.id,
-              seriesName: s.name,
-              color: s.color
-            });
-          }
-        });
-      });
-
-      const lcLeft = [{ x: zeroX, y: res.lc }, { x: breakStart, y: res.lc }];
-      const lcRight = [{ x: breakEnd, y: res.lc }, { x: maxAxisValue, y: res.lc }];
-      const ldLeft = [{ x: zeroX, y: res.ld }, { x: breakStart, y: res.ld }];
-      const ldRight = [{ x: breakEnd, y: res.ld }, { x: maxAxisValue, y: res.ld }];
-
-      return {
-        id: s.id,
-        name: s.name,
-        color: s.color,
-        visible: s.visible,
-        isActive,
-        results: res,
-        leftChartData: leftData,
-        rightChartData: rightData,
-        scatterData: scatter,
-        lcLeftData: lcLeft,
-        lcRightData: lcRight,
-        ldLeftData: ldLeft,
-        ldRightData: ldRight
-      };
-    });
-  }, [validVisibleSeries, breakStart, breakEnd, xDomain, activeSeries.id, activeResults, displaySeries.id]);
-
-  // Comparative Leaderboard Items
   const leaderboardItems = useMemo((): SeriesLeaderboardItem[] => {
-    const refItem = validVisibleSeries.find(item => Number.isFinite(item.results?.lodConc) && item.results!.lodConc > 0) || validVisibleSeries[0];
-    const refLod = (refItem && Number.isFinite(refItem.results?.lodConc)) ? refItem.results!.lodConc : 0;
+    const refItem =
+      validVisibleSeries.find(
+        (item) =>
+          Number.isFinite(item.results?.lodConc) && item.results!.lodConc > 0
+      ) || validVisibleSeries[0];
+    const refLod =
+      refItem && Number.isFinite(refItem.results?.lodConc)
+        ? refItem.results!.lodConc
+        : 0;
 
-    return validVisibleSeries.map(item => {
-      const s = item.series;
-      const res = item.results!;
-      const isRef = s.id === refItem?.series.id;
-      const fold = computeSensitivityFoldChange(res.lodConc, refLod, isRef);
+    return validVisibleSeries.map((item): SeriesLeaderboardItem => {
+      const series = item.series;
+      const results = item.results!;
+      const isRef = series.id === refItem?.series.id;
+      const foldChangeVsRef = computeSensitivityFoldChange(
+        results.lodConc,
+        refLod,
+        isRef
+      );
       return {
-        id: s.id,
-        name: s.name,
-        color: s.color,
-        isActive: s.id === (activeResults ? activeSeries.id : displaySeries.id),
-        results: res,
-        foldChangeVsRef: fold
+        id: series.id,
+        name: series.name,
+        color: series.color,
+        isActive: series.id === highlightedSeriesId,
+        results,
+        foldChangeVsRef,
       };
     });
-  }, [validVisibleSeries, activeSeries.id, activeResults, displaySeries.id]);
+  }, [validVisibleSeries, highlightedSeriesId]);
 
-  // Handlers for active series data editing
-  const updateRow = (id: string, field: "conc" | "signals", value: string) => {
-    const newRows = activeSeries.standardRows.map(r => r.id === id ? { ...r, [field]: value } : r);
+  const updateRow = (
+    id: string,
+    field: "conc" | "signals",
+    value: string
+  ): void => {
+    const newRows = activeSeries.standardRows.map((row) =>
+      row.id === id ? { ...row, [field]: value } : row
+    );
     updateActiveSeriesField("standardRows", newRows);
   };
 
-  const handleClearData = () => {
+  const handleClearData = (): void => {
     updateActiveSeriesField("blankSignals", "");
-    updateActiveSeriesField("standardRows", [{ id: "1", conc: "", signals: "" }]);
+    updateActiveSeriesField("standardRows", [
+      { id: "1", conc: "", signals: "" },
+    ]);
     setHoveredPoint(null);
     setTableHoveredRowId(null);
     setHoveredSeriesId(null);
   };
 
-  const handleSelectPreset = (index: number) => {
+  const handleSelectPreset = (index: number): void => {
     if (index < 0 || index >= DEMO_PRESETS.length) return;
     const preset = DEMO_PRESETS[index];
     setSeriesList(structuredClone(preset.series));
     handleSelectSeries(preset.series[0].id);
     setPlotTitle(preset.plotTitle);
-    setDemoIndex(index);
+    setSelectedPresetIndex(index);
     setHoveredPoint(null);
     setTableHoveredRowId(null);
     setHoveredSeriesId(null);
   };
 
-  const handleProcessFile = (file: File) => {
+  const handleProcessFile = (file: File): void => {
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = (event: ProgressEvent<FileReader>): void => {
       const text = event.target?.result as string;
       if (!text) return;
       const parsed = parseCSVData(text);
       if (parsed.multiSeries && parsed.multiSeries.length > 1) {
         setSeriesList(parsed.multiSeries);
         handleSelectSeries(parsed.multiSeries[0].id);
-        alert(`Successfully imported ${parsed.multiSeries.length} curves from file!`);
+        alert(
+          `Successfully imported ${parsed.multiSeries.length} curves from file!`
+        );
       } else if (parsed.blankSignals || parsed.standards.length > 0) {
-        if (parsed.seriesName) updateActiveSeriesField("name", parsed.seriesName);
-        if (parsed.blankSignals) updateActiveSeriesField("blankSignals", parsed.blankSignals);
-        if (parsed.standards.length > 0) updateActiveSeriesField("standardRows", parsed.standards);
+        if (parsed.seriesName) {
+          updateActiveSeriesField("name", parsed.seriesName);
+        }
+        if (parsed.blankSignals) {
+          updateActiveSeriesField("blankSignals", parsed.blankSignals);
+        }
+        if (parsed.standards.length > 0) {
+          updateActiveSeriesField("standardRows", parsed.standards);
+        }
         alert("Data imported successfully into current curve!");
       } else {
-        alert("Could not find any valid concentration-signal data in the uploaded file.");
+        alert(
+          "Could not find any valid concentration-signal data in the uploaded file."
+        );
       }
     };
     reader.readAsText(file);
   };
 
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImportCSV = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void => {
+    const file = event.target.files?.[0];
     if (!file) return;
     handleProcessFile(file);
-    e.target.value = "";
+    event.target.value = "";
   };
 
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDragEnter = (event: React.DragEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
     dragCounter.current += 1;
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+    if (event.dataTransfer.items && event.dataTransfer.items.length > 0) {
       setIsDraggingOver(true);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
     dragCounter.current -= 1;
     if (dragCounter.current <= 0) {
       dragCounter.current = 0;
@@ -571,150 +614,47 @@ function App() {
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
     dragCounter.current = 0;
     setIsDraggingOver(false);
-    const file = e.dataTransfer.files?.[0];
+    const file = event.dataTransfer.files?.[0];
     if (file) {
       handleProcessFile(file);
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = (): void => {
     if (!displayResults) return;
-    const csvRows: string[] = [];
-    csvRows.push("# ===================================================");
-    csvRows.push(`# BIOASSAY LOD FITTER - MULTI-CURVE AUDIT REPORT (v${APP_VERSION})`);
-    csvRows.push("# ===================================================");
-    csvRows.push(`App Version,v${APP_VERSION}`);
-    csvRows.push(`Total Curves,${seriesList.length}`);
-    csvRows.push("");
-
-    if (leaderboardItems.length > 1) {
-      csvRows.push("# ===================================================");
-      csvRows.push("# COMPARATIVE SENSITIVITY LEADERBOARD");
-      csvRows.push("# ===================================================");
-      csvRows.push("Curve Name,Fitted Model,LOD (Conc),LOD 95% CI Low,LOD 95% CI High,R2,AICc,Sensitivity vs Ref");
-      leaderboardItems.forEach(item => {
-        csvRows.push(`"${item.name}",${item.results.fit.method.toUpperCase()},${item.results.lodConc.toExponential(6)},${item.results.lodCI.low.toExponential(6)},${item.results.lodCI.high.toExponential(6)},${item.results.fit.metrics.r2.toFixed(6)},${item.results.fit.metrics.aicc.toFixed(2)},"${item.foldChangeVsRef}"`);
-      });
-      csvRows.push("");
-    }
-
-    seriesList.forEach((s) => {
-      csvRows.push("# ===================================================");
-      csvRows.push(`# SERIES: ${s.name}`);
-      csvRows.push("# ===================================================");
-      csvRows.push("Concentration,Signals");
-      if (s.blankSignals) csvRows.push(`0,${s.blankSignals}`);
-      s.standardRows.forEach(row => {
-        if (row.conc && row.signals) csvRows.push(`${row.conc},${row.signals}`);
-      });
-      csvRows.push("");
-    });
-
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `bioassay_multi_curve_report_v${APP_VERSION}_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const csvContent = buildMultiCurveCSVReport(
+      seriesList,
+      leaderboardItems,
+      APP_VERSION
+    );
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    downloadTextFile(
+      csvContent,
+      `bioassay_multi_curve_report_v${APP_VERSION}_${dateStamp}.csv`
+    );
   };
 
-  const handleDownloadTemplate = () => {
-    const csvRows = [
-      "# ===================================================",
-      "# BIOASSAY LOD FITTER - MULTI-CURVE IMPORT TEMPLATE",
-      "# ===================================================",
-      "# Series: Synthetic Ref (Construct A)",
-      "Concentration,Replicate1,Replicate2,Replicate3",
-      "0,0.06,0.09,0.07",
-      "0.001,0.08,0.09,0.08",
-      "0.01,0.19,0.22,0.18",
-      "0.1,0.85,0.92,0.81",
-      "1,3.20,3.42,3.10",
-      "10,4.75,4.90,4.68",
-      "",
-      "# Series: Synthetic Construct B (Low Potency)",
-      "Concentration,Replicate1,Replicate2,Replicate3",
-      "0,0.07,0.10,0.08",
-      "0.003,0.09,0.10,0.09",
-      "0.03,0.18,0.20,0.17",
-      "0.3,0.82,0.89,0.78",
-      "3,3.05,3.25,2.95",
-      "30,4.70,4.85,4.62"
-    ];
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "bioassay_multi_curve_template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleDownloadTemplate = (): void => {
+    const templateContent = buildMultiCurveTemplateCSV();
+    downloadTextFile(templateContent, "bioassay_multi_curve_template.csv");
   };
 
-  const handleCopyMetrics = () => {
+  const handleCopyMetrics = (): void => {
     if (!displayResults) return;
-
     const targetResults = activeResults || displayResults;
     const targetSeries = activeResults ? activeSeries : displaySeries;
-
-    let leaderboardMarkdown = "";
-    if (leaderboardItems.length > 1) {
-      leaderboardMarkdown = `#### 🏆 Multi-Curve Sensitivity Comparison
-| Curve | Model | LOD (Concentration) | 95% CI | R² | vs Ref |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-`;
-      leaderboardItems.forEach(item => {
-        leaderboardMarkdown += `| **${item.name}** | ${item.results.fit.method.toUpperCase()} | **${formatScientificUnicode(item.results.lodConc, 3)}** | [${formatScientificUnicode(item.results.lodCI.low, 3)}, ${formatScientificUnicode(item.results.lodCI.high, 3)}] | ${item.results.fit.metrics.r2.toFixed(4)} | ${item.foldChangeVsRef} |
-`;
-      });
-      leaderboardMarkdown += "\n";
-    }
-
-    let fitParamsText = "";
-    Object.entries(targetResults.fit.parameters).forEach(([p, val]) => {
-      const formattedVal = Math.abs(val) >= 1000 || (Math.abs(val) > 0 && Math.abs(val) < 0.01)
-        ? formatScientificUnicode(val, 3)
-        : val.toFixed(4);
-      fitParamsText += `| **${p}** | ${formattedVal} |
-`;
-    });
-
-    const report = `### 🔬 Bioassay LOD Fitter Multi-Curve Report (v${APP_VERSION})
-Generated: ${new Date().toLocaleDateString()}
-
-${leaderboardMarkdown}#### 📈 Active Curve: ${targetSeries.name}
-| Parameter | Value |
-| :--- | :--- |
-| **Limit of Detection (LOD)** | **${formatScientificUnicode(targetResults.lodConc, 4)}** |
-| **95% Confidence Interval** | [${formatScientificUnicode(targetResults.lodCI.low, 4)}, ${formatScientificUnicode(targetResults.lodCI.high, 4)}] |
-| **Model Fitted** | ${targetResults.fit.method.toUpperCase()} |
-| **R² (Coefficient of Determination)** | ${targetResults.fit.metrics.r2.toFixed(5)} |
-| **AICc Score** | ${targetResults.fit.metrics.aicc.toFixed(2)} |
-
-#### 🧪 Statistical Limits (Currie 1968 / Holstein et al. 2015)
-| Parameter | Value | Description |
-| :--- | :--- | :--- |
-| **Blank Mean** | ${targetResults.meanBlank.toFixed(4)} | Average background signal |
-| **Blank SD** | ${targetResults.sdBlank.toFixed(4)} | Background standard deviation |
-| **Pooled SD** | ${targetResults.sdPooled.toFixed(4)} | Standards pooled standard deviation |
-| **L_C (Decision Limit)** | ${targetResults.lc.toFixed(4)} | Critical signal threshold (α=0.05) |
-| **L_D (Detection Limit)** | ${targetResults.ld.toFixed(4)} | Minimal detectable signal level (β=0.05) |
-
-#### ⚙️ Fitted Parameters (${targetSeries.name})
-| Parameter | Value |
-| :--- | :--- |
-${fitParamsText}`;
-
-    navigator.clipboard.writeText(report);
+    const report = buildMarkdownAuditReport(
+      targetSeries,
+      targetResults,
+      leaderboardItems,
+      APP_VERSION
+    );
+    void navigator.clipboard.writeText(report);
     alert("Comparative Multi-Curve Report copied to clipboard as Markdown!");
   };
 
@@ -727,11 +667,15 @@ ${fitParamsText}`;
       onDrop={handleDrop}
     >
       {isDraggingOver && (
-        <div className="drag-drop-overlay" onDragLeave={() => setIsDraggingOver(false)}>
+        <div className="drag-drop-overlay">
           <div className="drag-drop-modal">
             <span style={{ fontSize: "3rem" }}>📂</span>
-            <h2 style={{ margin: "0.5rem 0", color: "var(--text)" }}>Drop CSV / TSV File Here</h2>
-            <p style={{ margin: 0, color: "var(--subtext1)", fontSize: "0.9rem" }}>
+            <h2 style={{ margin: "0.5rem 0", color: "var(--text)" }}>
+              Drop CSV / TSV File Here
+            </h2>
+            <p
+              style={{ margin: 0, color: "var(--subtext1)", fontSize: "0.9rem" }}
+            >
               Instant multi-curve & replicate data import
             </p>
           </div>
@@ -742,7 +686,7 @@ ${fitParamsText}`;
         toggleTheme={toggleTheme}
         handleClearData={handleClearData}
         presets={DEMO_PRESETS}
-        selectedPresetIndex={demoIndex}
+        selectedPresetIndex={selectedPresetIndex}
         onSelectPreset={handleSelectPreset}
         handleImportCSV={handleImportCSV}
         handleDownloadTemplate={handleDownloadTemplate}
@@ -750,9 +694,11 @@ ${fitParamsText}`;
       <main className="main-container">
         <button
           className={`sidebar-toggle-btn ${isSidebarCollapsed ? "collapsed" : ""}`}
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onClick={(): void => setIsSidebarCollapsed(!isSidebarCollapsed)}
           title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={
+            isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+          }
         >
           {isSidebarCollapsed ? "▶" : "◀"}
         </button>
@@ -765,31 +711,43 @@ ${fitParamsText}`;
           onRemoveSeries={handleRemoveSeries}
           onToggleSeriesVisibility={handleToggleSeriesVisibility}
           onUpdateSeriesName={handleUpdateSeriesName}
-
           plotTitle={plotTitle}
           setPlotTitle={setPlotTitle}
           xAxisLabel={xAxisLabel}
           setXAxisLabel={setXAxisLabel}
           yAxisLabel={yAxisLabel}
           setYAxisLabel={setYAxisLabel}
-
           blankSignals={activeSeries.blankSignals}
-          setBlankSignals={val => updateActiveSeriesField("blankSignals", val)}
+          setBlankSignals={(value: string): void =>
+            updateActiveSeriesField("blankSignals", value)
+          }
           standardRows={activeSeries.standardRows}
-          setStandardRows={updater => {
+          setStandardRows={(updater): void => {
             if (typeof updater === "function") {
-              updateActiveSeriesField("standardRows", updater(activeSeries.standardRows));
+              updateActiveSeriesField(
+                "standardRows",
+                updater(activeSeries.standardRows)
+              );
             } else {
               updateActiveSeriesField("standardRows", updater);
             }
           }}
           updateRow={updateRow}
-          onAddRow={() => {
-            const newRow = { id: Math.random().toString(36), conc: "", signals: "" };
-            updateActiveSeriesField("standardRows", [...activeSeries.standardRows, newRow]);
+          onAddRow={(): void => {
+            const newRow: StandardRow = {
+              id: _createUniqueId("row"),
+              conc: "",
+              signals: "",
+            };
+            updateActiveSeriesField("standardRows", [
+              ...activeSeries.standardRows,
+              newRow,
+            ]);
           }}
-          onRemoveRow={id => {
-            const newRows = activeSeries.standardRows.filter(r => r.id !== id);
+          onRemoveRow={(id: string): void => {
+            const newRows = activeSeries.standardRows.filter(
+              (row) => row.id !== id
+            );
             updateActiveSeriesField("standardRows", newRows);
           }}
           hoveredPoint={hoveredPoint}
@@ -827,16 +785,26 @@ ${fitParamsText}`;
               <ResultsPanel
                 activeSeries={displaySeries}
                 activeResults={displayResults}
-                pendingSeriesName={!activeResults && seriesList.length > 1 ? activeSeries.name : undefined}
+                pendingSeriesName={
+                  !activeResults && seriesList.length > 1
+                    ? activeSeries.name
+                    : undefined
+                }
                 leaderboardItems={leaderboardItems}
                 onSelectSeries={handleSelectSeries}
                 xAxisLabel={xAxisLabel}
                 fitMethod={displaySeries.fitMethod}
-                setFitMethod={method => {
+                setFitMethod={(method: FitMethod): void => {
                   if (activeResults) {
                     updateActiveSeriesField("fitMethod", method);
                   } else {
-                    setSeriesList(prev => prev.map(s => s.id === displaySeries.id ? { ...s, fitMethod: method } : s));
+                    setSeriesList((prev) =>
+                      prev.map((series) =>
+                        series.id === displaySeries.id
+                          ? { ...series, fitMethod: method }
+                          : series
+                      )
+                    );
                   }
                 }}
                 handleCopyMetrics={handleCopyMetrics}
@@ -845,7 +813,11 @@ ${fitParamsText}`;
             </div>
           ) : (
             <div className="empty-prompt">
-              <p>Please provide at least 2 blank replicates and 3 concentration standards to calculate the Limit of Detection (LOD).</p>
+              <p>
+                Please provide at least {_MIN_REQUIRED_BLANKS} blank replicates
+                and {_MIN_REQUIRED_STANDARDS} concentration standards to
+                calculate the Limit of Detection (LOD).
+              </p>
             </div>
           )}
         </section>

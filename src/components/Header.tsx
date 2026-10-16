@@ -1,17 +1,165 @@
 import React, { useRef, useState, useEffect } from "react";
 import { type DemoPreset, APP_VERSION } from "../constants";
 
-interface HeaderProps {
+const _ACCEPTED_IMPORT_EXTENSIONS = ".csv,.tsv,.txt";
+const _ESCAPE_KEY = "Escape";
+
+/** Props for the application top navigation and action toolbar header. */
+export interface HeaderProps {
   theme: "dark" | "light";
   toggleTheme: () => void;
   handleClearData: () => void;
-  presets: DemoPreset[];
+  presets: readonly DemoPreset[];
   selectedPresetIndex: number;
   onSelectPreset: (index: number) => void;
-  handleImportCSV: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleImportCSV: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleDownloadTemplate: () => void;
 }
 
+interface _ImportHelpPopoverProps {
+  onClose: () => void;
+  onDownloadTemplate: () => void;
+}
+
+/** Popover card displaying spreadsheet paste and CSV/TSV formatting instructions. */
+const _ImportHelpPopover: React.FC<_ImportHelpPopoverProps> = ({
+  onClose,
+  onDownloadTemplate,
+}): React.ReactElement => (
+  <div className="help-popover-card" role="tooltip">
+    <div className="help-popover-header">
+      <span className="help-popover-title">Data Input & Import Guide</span>
+      <button
+        type="button"
+        className="help-popover-close"
+        onClick={onClose}
+        aria-label="Close guide"
+      >
+        ×
+      </button>
+    </div>
+    <div className="help-popover-body">
+      <div className="help-rule-item">
+        <span className="rule-badge">Paste</span>
+        <div>
+          <strong>Excel / Google Sheets:</strong> Copy cells directly from your spreadsheet and paste (<code>Ctrl+V</code> / <code>Cmd+V</code>) anywhere into the table.
+        </div>
+      </div>
+      <div className="help-rule-item">
+        <span className="rule-badge">Col 1</span>
+        <div>
+          <strong>Concentrations:</strong> Standard concentrations (numeric). For blanks, use <code>0</code>, <code>blank</code>, or <code>blanks</code>.
+        </div>
+      </div>
+      <div className="help-rule-item">
+        <span className="rule-badge">Col 2+</span>
+        <div>
+          <strong>Signals:</strong> Direct detector readings per row (separated by commas or tabs).
+        </div>
+      </div>
+      <div className="help-rule-item">
+        <span className="rule-badge">Multi</span>
+        <div>
+          <strong>Multi-Series:</strong> Columns like <code>Series1_Rep1</code>, <code>Series2_Rep1</code> or stacked rows with a <code>Series</code> column are parsed automatically.
+        </div>
+      </div>
+      <div className="help-rule-item">
+        <span className="rule-badge">Tip</span>
+        <div>
+          <strong>Drag & Drop:</strong> You can drop any <code>.csv</code> or <code>.tsv</code> file anywhere onto the page!
+        </div>
+      </div>
+    </div>
+    <div className="help-popover-footer">
+      <span>Need a reference template?</span>
+      <button
+        type="button"
+        className="help-popover-action"
+        onClick={() => {
+          onDownloadTemplate();
+          onClose();
+        }}
+      >
+        Download Template
+      </button>
+    </div>
+  </div>
+);
+
+interface _ClearDataConfirmModalProps {
+  onCancel: () => void;
+  onConfirmClear: () => void;
+}
+
+/** Confirmation modal dialog protecting against accidental deletion of active curve data. */
+const _ClearDataConfirmModal: React.FC<_ClearDataConfirmModalProps> = ({
+  onCancel,
+  onConfirmClear,
+}): React.ReactElement => (
+  <div className="modal-overlay" onClick={onCancel}>
+    <div
+      className="modal-dialog"
+      onClick={(event: React.MouseEvent<HTMLDivElement>): void => event.stopPropagation()}
+      style={{ maxWidth: "380px" }}
+    >
+      <div className="modal-header">
+        <h3 style={{ color: "var(--red)", display: "flex", alignItems: "center", gap: "8px" }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "26px",
+              height: "26px",
+              borderRadius: "var(--radius-pill)",
+              backgroundColor: "color-mix(in srgb, var(--red) 14%, transparent)",
+            }}
+          >
+            ⚠️
+          </span>
+          Clear Assay Data?
+        </h3>
+        <button className="modal-close-btn" onClick={onCancel}>
+          ×
+        </button>
+      </div>
+      <div className="modal-body">
+        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--subtext0)", lineHeight: 1.55 }}>
+          Are you sure you want to clear the blanks and standards for the active curve? Any unsaved entries will be lost.
+        </p>
+      </div>
+      <div className="modal-footer">
+        <button
+          className="action-btn-pill"
+          onClick={onCancel}
+          style={{ padding: "8px 16px", borderRadius: "var(--radius-pill)" }}
+        >
+          Cancel
+        </button>
+        <button
+          className="action-btn-pill"
+          onClick={onConfirmClear}
+          style={{
+            backgroundColor: "var(--red)",
+            color: "#ffffff",
+            borderColor: "transparent",
+            padding: "8px 18px",
+            borderRadius: "var(--radius-pill)",
+            fontWeight: 700,
+            boxShadow: "0 2px 10px rgba(244, 63, 94, 0.3)",
+          }}
+        >
+          Clear Data
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+/**
+ * Top application header containing branding, preset selector, CSV import/template actions,
+ * and theme switcher.
+ */
 export const Header: React.FC<HeaderProps> = ({
   theme,
   toggleTheme,
@@ -21,29 +169,34 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectPreset,
   handleImportCSV,
   handleDownloadTemplate,
-}) => {
+}): React.ReactElement => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [showImportHelp, setShowImportHelp] = useState(false);
   const helpContainerRef = useRef<HTMLDivElement>(null);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState<boolean>(false);
+  const [isImportHelpOpen, setIsImportHelpOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!showImportHelp) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (helpContainerRef.current && !helpContainerRef.current.contains(e.target as Node)) {
-        setShowImportHelp(false);
+    if (!isImportHelpOpen) return;
+
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (helpContainerRef.current && !helpContainerRef.current.contains(event.target as Node)) {
+        setIsImportHelpOpen(false);
       }
     };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowImportHelp(false);
+
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === _ESCAPE_KEY) {
+        setIsImportHelpOpen(false);
+      }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
+    return (): void => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [showImportHelp]);
+  }, [isImportHelpOpen]);
 
   return (
     <>
@@ -72,9 +225,8 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="header-version-pill">v{APP_VERSION}</span>
           </div>
         </div>
-        
+
         <div className="toolbar-container">
-          {/* GROUP 1: PRESETS & CLEAR */}
           <div className="toolbar-pill-group">
             <div style={{ display: "flex", alignItems: "center", paddingLeft: "8px", color: "var(--subtext0)" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -85,19 +237,21 @@ export const Header: React.FC<HeaderProps> = ({
             <select
               className="toolbar-select-pill"
               value={selectedPresetIndex}
-              onChange={(e) => onSelectPreset(Number(e.target.value))}
+              onChange={(event: React.ChangeEvent<HTMLSelectElement>): void =>
+                onSelectPreset(Number(event.target.value))
+              }
               title="Select a preconfigured standard curve or multi-curve panel"
               style={{ maxWidth: "210px", textOverflow: "ellipsis" }}
             >
-              {presets.map((preset, idx) => (
-                <option key={idx} value={idx}>
+              {presets.map((preset, presetIndex) => (
+                <option key={preset.name} value={presetIndex}>
                   {preset.name}
                 </option>
               ))}
             </select>
-            <button 
-              className="toolbar-btn-pill danger" 
-              onClick={() => setShowClearConfirm(true)} 
+            <button
+              className="toolbar-btn-pill danger"
+              onClick={(): void => setIsClearConfirmOpen(true)}
               title="Clear all input standard and blank data"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -108,18 +262,17 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* GROUP 2: CSV ACTIONS */}
           <div className="toolbar-pill-group">
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleImportCSV}
               style={{ display: "none" }}
-              accept=".csv,.tsv,.txt"
+              accept={_ACCEPTED_IMPORT_EXTENSIONS}
             />
-            <button 
-              className="toolbar-btn-pill" 
-              onClick={handleDownloadTemplate} 
+            <button
+              className="toolbar-btn-pill"
+              onClick={handleDownloadTemplate}
               title="Download a pre-formatted CSV template with demo data"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -129,9 +282,9 @@ export const Header: React.FC<HeaderProps> = ({
               </svg>
               <span>Template</span>
             </button>
-            <button 
-              className="toolbar-btn-pill" 
-              onClick={() => fileInputRef.current?.click()} 
+            <button
+              className="toolbar-btn-pill"
+              onClick={(): void => fileInputRef.current?.click()}
               title="Import standards and blanks from CSV or TSV file"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -144,8 +297,8 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="help-button-container" ref={helpContainerRef}>
               <button
                 type="button"
-                className={`help-info-btn ${showImportHelp ? "active" : ""}`}
-                onClick={() => setShowImportHelp(prev => !prev)}
+                className={`help-info-btn ${isImportHelpOpen ? "active" : ""}`}
+                onClick={(): void => setIsImportHelpOpen((prev) => !prev)}
                 aria-label="Data input and CSV/TSV import instructions and formatting guide"
                 title="Data Input & Import Guide"
               >
@@ -156,61 +309,20 @@ export const Header: React.FC<HeaderProps> = ({
                 </svg>
               </button>
 
-              {showImportHelp && (
-                <div className="help-popover-card" role="tooltip">
-                  <div className="help-popover-header">
-                    <span className="help-popover-title">Data Input & Import Guide</span>
-                    <button 
-                      type="button" 
-                      className="help-popover-close" 
-                      onClick={() => setShowImportHelp(false)}
-                      aria-label="Close guide"
-                    >
-                      ×
-                    </button>
-                  </div>
-                  <div className="help-popover-body">
-                    <div className="help-rule-item">
-                      <span className="rule-badge">Paste</span>
-                      <div><strong>Excel / Google Sheets:</strong> Copy cells directly from your spreadsheet and paste (<code>Ctrl+V</code> / <code>Cmd+V</code>) anywhere into the table.</div>
-                    </div>
-                    <div className="help-rule-item">
-                      <span className="rule-badge">Col 1</span>
-                      <div><strong>Concentrations:</strong> Standard concentrations (numeric). For blanks, use <code>0</code>, <code>blank</code>, or <code>blanks</code>.</div>
-                    </div>
-                    <div className="help-rule-item">
-                      <span className="rule-badge">Col 2+</span>
-                      <div><strong>Signals:</strong> Direct detector readings per row (separated by commas or tabs).</div>
-                    </div>
-                    <div className="help-rule-item">
-                      <span className="rule-badge">Multi</span>
-                      <div><strong>Multi-Series:</strong> Columns like <code>Series1_Rep1</code>, <code>Series2_Rep1</code> or stacked rows with a <code>Series</code> column are parsed automatically.</div>
-                    </div>
-                    <div className="help-rule-item">
-                      <span className="rule-badge">Tip</span>
-                      <div><strong>Drag & Drop:</strong> You can drop any <code>.csv</code> or <code>.tsv</code> file anywhere onto the page!</div>
-                    </div>
-                  </div>
-                  <div className="help-popover-footer">
-                    <span>Need a reference template?</span>
-                    <button
-                      type="button"
-                      className="help-popover-action"
-                      onClick={() => {
-                        handleDownloadTemplate();
-                        setShowImportHelp(false);
-                      }}
-                    >
-                      Download Template
-                    </button>
-                  </div>
-                </div>
+              {isImportHelpOpen && (
+                <_ImportHelpPopover
+                  onClose={(): void => setIsImportHelpOpen(false)}
+                  onDownloadTemplate={handleDownloadTemplate}
+                />
               )}
             </div>
           </div>
 
-          {/* GROUP 3: THEME TOGGLE */}
-          <div className="theme-toggle-pill" onClick={toggleTheme} title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}>
+          <div
+            className="theme-toggle-pill"
+            onClick={toggleTheme}
+            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+          >
             <span className={`toggle-track ${theme}`}>
               <span className="toggle-thumb">
                 {theme === "dark" ? "🌙" : "☀️"}
@@ -220,61 +332,14 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </header>
 
-      {/* CONFIRMATION MODAL FOR CLEAR DATA */}
-      {showClearConfirm && (
-        <div className="modal-overlay" onClick={() => setShowClearConfirm(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "380px" }}>
-            <div className="modal-header">
-              <h3 style={{ color: "var(--red)", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ 
-                  display: "inline-flex", 
-                  alignItems: "center", 
-                  justifyContent: "center", 
-                  width: "26px", 
-                  height: "26px", 
-                  borderRadius: "var(--radius-pill)", 
-                  backgroundColor: "color-mix(in srgb, var(--red) 14%, transparent)" 
-                }}>
-                  ⚠️
-                </span> 
-                Clear Assay Data?
-              </h3>
-              <button className="modal-close-btn" onClick={() => setShowClearConfirm(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--subtext0)", lineHeight: 1.55 }}>
-                Are you sure you want to clear the blanks and standards for the active curve? Any unsaved entries will be lost.
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="action-btn-pill" 
-                onClick={() => setShowClearConfirm(false)}
-                style={{ padding: "8px 16px", borderRadius: "var(--radius-pill)" }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="action-btn-pill" 
-                onClick={() => {
-                  handleClearData();
-                  setShowClearConfirm(false);
-                }}
-                style={{
-                  backgroundColor: "var(--red)",
-                  color: "#ffffff",
-                  borderColor: "transparent",
-                  padding: "8px 18px",
-                  borderRadius: "var(--radius-pill)",
-                  fontWeight: 700,
-                  boxShadow: "0 2px 10px rgba(244, 63, 94, 0.3)"
-                }}
-              >
-                Clear Data
-              </button>
-            </div>
-          </div>
-        </div>
+      {isClearConfirmOpen && (
+        <_ClearDataConfirmModal
+          onCancel={(): void => setIsClearConfirmOpen(false)}
+          onConfirmClear={(): void => {
+            handleClearData();
+            setIsClearConfirmOpen(false);
+          }}
+        />
       )}
     </>
   );

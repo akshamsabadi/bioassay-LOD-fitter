@@ -1,26 +1,44 @@
-export const APP_VERSION = "0.8.5";
+/** Current application semantic version string. */
+export const APP_VERSION = "0.8.6";
 
-// Replicate variation thresholds (%) for bioassay quality checks
-export const BLANK_CV_WARNING_THRESHOLD = 50; // Background blank signals naturally exhibit higher relative variance
-export const STANDARD_CV_WARNING_THRESHOLD = 20; // Bioanalytical acceptance limit for standard calibrators (FDA/EMA LBA guidance)
+/**
+ * Replicate coefficient of variation (CV%) warning threshold for blank controls.
+ * Background blank signals naturally exhibit higher relative variance near zero.
+ */
+export const BLANK_CV_WARNING_THRESHOLD = 50;
+
+/**
+ * Replicate coefficient of variation (CV%) warning threshold for standard calibrators,
+ * aligned with FDA/EMA ligand-binding assay (LBA) bioanalytical acceptance guidance.
+ */
+export const STANDARD_CV_WARNING_THRESHOLD = 20;
+
+/** Supported mathematical regression model identifiers. */
+export type FitModelName = "linear" | "langmuir" | "4pl" | "5pl";
+
+/** Curve-fitting selection mode, supporting explicit models or AICc-driven automatic selection. */
+export type FitMethod = FitModelName | "auto";
+
+/** Represents a single standard calibrator concentration row and its comma-separated signal replicates. */
 export interface StandardRow {
   id: string;
   conc: string;
   signals: string;
 }
 
+/** Represents a complete bioassay dose-response curve series and its display configuration. */
 export interface AssaySeries {
   id: string;
   name: string;
   color: string;
   visible: boolean;
-  fitMethod: "linear" | "langmuir" | "4pl" | "5pl" | "auto";
+  fitMethod: FitMethod;
   blankSignals: string;
   standardRows: StandardRow[];
 }
 
-// Official Observable10 categorical color palette (d3.schemeObservable10)
-export const OBSERVABLE10_COLORS = [
+/** Official Observable10 categorical color palette (d3.schemeObservable10). */
+export const OBSERVABLE10_COLORS: readonly string[] = [
   "#4269d0", // 0. Blue (Primary)
   "#efb118", // 1. Amber / Orange
   "#ff725c", // 2. Coral / Red
@@ -33,15 +51,18 @@ export const OBSERVABLE10_COLORS = [
   "#9498a0", // 9. Gray
 ];
 
-export const SERIES_COLORS = OBSERVABLE10_COLORS;
+/** Default categorical color palette assigned to overlaid curve series. */
+export const SERIES_COLORS: readonly string[] = OBSERVABLE10_COLORS;
 
+/** Preconfigured demonstration dataset preset for single- or multi-curve bioassay analysis. */
 export interface DemoPreset {
   name: string;
   series: AssaySeries[];
   plotTitle: string;
 }
 
-export const DEMO_PRESETS: DemoPreset[] = [
+/** Built-in demonstration presets covering 4PL, multi-construct panels, linear, and asymmetric 5PL assays. */
+export const DEMO_PRESETS: readonly DemoPreset[] = [
   {
     name: "Standard Sigmoidal (4PL)",
     plotTitle: "Dose-Response (Standard 4PL)",
@@ -204,6 +225,3 @@ export const DEMO_PRESETS: DemoPreset[] = [
     ]
   }
 ];
-
-export const DEFAULT_STANDARDS = DEMO_PRESETS[1].series[0].standardRows;
-export const DEFAULT_BLANKS = DEMO_PRESETS[1].series[0].blankSignals;
