@@ -1,5 +1,5 @@
 /** Current application semantic version string. */
-export const APP_VERSION = "0.8.8";
+export const APP_VERSION = "0.9.0";
 
 /**
  * Replicate coefficient of variation (CV%) warning threshold for blank controls.
