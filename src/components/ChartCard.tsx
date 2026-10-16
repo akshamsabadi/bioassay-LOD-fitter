@@ -1105,7 +1105,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartWidth, setChartWidth] = useState(_DEFAULT_CHART_WIDTH_PX);
-  const [chartHeight, setChartHeight] = useState(_DEFAULT_CHART_HEIGHT_PX);
+  const chartDimensionsRef = useRef<{ width: number; height: number }>({
+    width: _DEFAULT_CHART_WIDTH_PX,
+    height: _DEFAULT_CHART_HEIGHT_PX,
+  });
   const activeSeries = curveSeriesList.find(s => s.isActive) || curveSeriesList[0];
 
   const baseDomainKey = `${xDomain[0]},${xDomain[1]},${yDomain[0]},${yDomain[1]}`;
@@ -1156,23 +1159,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   }, [baseDomainKey]);
 
   const [dragBox, setDragBox] = useState<DragBoxOverlayState | null>(null);
-  const [, setPlotArea] = useState<PlotArea | null>(null);
   const plotAreaRef = useRef<PlotArea | null>(null);
 
   const handlePlotArea = useCallback((area: PlotArea): void => {
     plotAreaRef.current = area;
-    setPlotArea(prev => {
-      if (
-        prev &&
-        prev.x === area.x &&
-        prev.y === area.y &&
-        prev.width === area.width &&
-        prev.height === area.height
-      ) {
-        return prev;
-      }
-      return area;
-    });
   }, []);
 
   const getEffectivePlotArea = useCallback((): PlotArea => {
@@ -1211,34 +1201,54 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         }
       }
     }
+    const { width: fallbackWidth, height: fallbackHeight } = chartDimensionsRef.current;
     return {
       x: _FALLBACK_PLOT_LEFT_PX,
       y: _FALLBACK_PLOT_TOP_PX,
       width: Math.max(
         _MIN_PLOT_DIMENSION_PX,
-        chartWidth - _FALLBACK_PLOT_LEFT_PX - _FALLBACK_PLOT_RIGHT_MARGIN_PX
+        fallbackWidth - _FALLBACK_PLOT_LEFT_PX - _FALLBACK_PLOT_RIGHT_MARGIN_PX
       ),
       height: Math.max(
         _MIN_PLOT_DIMENSION_PX,
-        chartHeight - _FALLBACK_PLOT_TOP_PX - _FALLBACK_PLOT_BOTTOM_MARGIN_PX
+        fallbackHeight - _FALLBACK_PLOT_TOP_PX - _FALLBACK_PLOT_BOTTOM_MARGIN_PX
       ),
     };
-  }, [chartWidth, chartHeight]);
+  }, []);
 
   useEffect(() => {
     if (!chartRef.current) return;
+    let resizeRafId: number | null = null;
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
-        if (entry.contentRect.width) {
-          setChartWidth(entry.contentRect.width);
+        const nextWidth = entry.contentRect.width;
+        const nextHeight = entry.contentRect.height;
+        if (nextWidth > 0) {
+          chartDimensionsRef.current.width = nextWidth;
         }
-        if (entry.contentRect.height) {
-          setChartHeight(entry.contentRect.height);
+        if (nextHeight > 0) {
+          chartDimensionsRef.current.height = nextHeight;
+        }
+        if (nextWidth > 0) {
+          if (resizeRafId !== null) {
+            cancelAnimationFrame(resizeRafId);
+          }
+          resizeRafId = requestAnimationFrame((): void => {
+            resizeRafId = null;
+            setChartWidth(prevWidth =>
+              Math.abs(prevWidth - nextWidth) >= 1 ? nextWidth : prevWidth
+            );
+          });
         }
       }
     });
     observer.observe(chartRef.current);
-    return () => observer.disconnect();
+    return () => {
+      if (resizeRafId !== null) {
+        cancelAnimationFrame(resizeRafId);
+      }
+      observer.disconnect();
+    };
   }, []);
 
   const activeXDomain = useMemo<[number, number]>(() => {

@@ -516,6 +516,8 @@ body,
 
 .sidebar {
   width: 328px;
+  min-width: 328px;
+  margin-left: 0;
   background-color: var(--card-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -525,29 +527,35 @@ body,
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
   scrollbar-color: var(--surface2) transparent;
-  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), 
-              padding 0.28s cubic-bezier(0.4, 0, 0.2, 1), 
-              opacity 0.22s ease;
+  transform: translate3d(0, 0, 0);
+  will-change: margin-left, transform, opacity;
+  contain: layout style;
+  transition: margin-left 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.22s ease;
   flex-shrink: 0;
   z-index: 20;
 }
 
 .sidebar.collapsed {
-  width: 0 !important;
-  min-width: 0 !important;
-  padding: 0 !important;
-  border-right: none !important;
-  overflow: hidden !important;
+  margin-left: -328px;
+  transform: translate3d(-12px, 0, 0);
+  border-right-color: transparent;
   opacity: 0;
   pointer-events: none;
+  user-select: none;
 }
 
 .sidebar-toggle-btn {
   position: absolute;
   top: 14px;
-  left: 328px;
+  left: 0;
+  transform: translate3d(328px, 0, 0);
+  will-change: transform;
   z-index: 90;
   width: 22px;
   height: 36px;
@@ -560,15 +568,28 @@ body,
   justify-content: center;
   color: var(--subtext0);
   cursor: pointer;
-  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 0.2s ease,
+              color 0.2s ease,
+              border-color 0.2s ease;
   box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .sidebar-toggle-btn.collapsed {
-  left: 0;
+  transform: translate3d(0, 0, 0);
   border-left: 1px solid var(--border-subtle);
   background: var(--surface2);
   color: var(--blue);
+}
+
+.sidebar-toggle-icon {
+  display: inline-flex;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: rotate(0deg);
+}
+
+.sidebar-toggle-btn.collapsed .sidebar-toggle-icon {
+  transform: rotate(180deg);
 }
 
 .sidebar-toggle-btn:hover {
