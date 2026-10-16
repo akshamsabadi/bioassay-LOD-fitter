@@ -113,6 +113,24 @@ export function shouldUseScientificNotation(
 }
 
 /**
+ * Computes the effective number of decimal places for standard (non-exponential) formatting
+ * so that sub-unit numbers in `(0, 1)` retain `clampedPrecision` significant figures after
+ * any leading fractional zeros (e.g., `0.0198` and `0.066` vs `0.069`).
+ *
+ * @param value - Finite non-zero numeric value being formatted in standard decimal notation.
+ * @param clampedPrecision - Non-negative integer precision requested by the caller.
+ * @returns Total fractional decimal places to pass to `Number.prototype.toFixed`.
+ */
+function _computeStandardDecimalPlaces(value: number, clampedPrecision: number): number {
+  const absValue = Math.abs(value);
+  if (absValue > 0 && absValue < 1) {
+    const leadingZeroOffset = Math.max(0, -Math.floor(Math.log10(absValue)));
+    return clampedPrecision + leadingZeroOffset;
+  }
+  return clampedPrecision;
+}
+
+/**
  * Decomposes any numeric value into structured scientific notation or decimal display parts.
  *
  * @param value - Numeric value to decompose.
@@ -151,7 +169,8 @@ export function getScientificParts(
     return { mantissa, exponent, decimalEquivalent, plainText };
   }
 
-  const decimalStr = parseFloat(value.toFixed(clampedPrecision)).toString();
+  const decimalPlaces = _computeStandardDecimalPlaces(value, clampedPrecision);
+  const decimalStr = parseFloat(value.toFixed(decimalPlaces)).toString();
   return { mantissa: decimalStr, decimalEquivalent: decimalStr, plainText: decimalStr };
 }
 

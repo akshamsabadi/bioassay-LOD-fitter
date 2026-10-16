@@ -648,8 +648,26 @@ body,
   flex-direction: column;
   gap: 6px;
   overflow-y: auto;
+  padding-bottom: 6px;
   scrollbar-width: thin;
   scrollbar-color: var(--surface2) transparent;
+}
+
+.rows-container::-webkit-scrollbar {
+  width: 5px;
+}
+
+.rows-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rows-container::-webkit-scrollbar-thumb {
+  background: var(--surface2);
+  border-radius: var(--radius-pill);
+}
+
+.rows-container::-webkit-scrollbar-thumb:hover {
+  background: var(--overlay1);
 }
 
 .data-row {
@@ -805,7 +823,7 @@ body,
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 345px;
+  grid-template-columns: 1fr 365px;
   gap: 16px;
   height: 100%;
   max-width: 100%;
@@ -1074,7 +1092,7 @@ svg.recharts-surface:focus-visible {
   scrollbar-width: thin;
   scrollbar-color: var(--surface2) transparent;
   padding-right: 6px;
-  padding-bottom: 32px;
+  padding-bottom: 4px;
 }
 
 .results-side-panel::-webkit-scrollbar {
@@ -1092,6 +1110,20 @@ svg.recharts-surface:focus-visible {
 
 .results-side-panel::-webkit-scrollbar-thumb:hover {
   background: var(--overlay1);
+}
+
+.results-actions-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  padding: 10px 0 6px 0;
+  background: linear-gradient(to bottom, transparent 0%, var(--mantle) 28%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  flex-shrink: 0;
 }
 
 .stats-card {
@@ -1160,13 +1192,13 @@ svg.recharts-surface:focus-visible {
 .num-exp {
   display: inline-flex;
   align-items: baseline;
-  margin-left: 2px;
+  margin-left: 0;
 }
 
 .num-times {
   font-weight: 400;
   opacity: 0.8;
-  margin: 0 1.5px;
+  margin: 0 2.5px;
 }
 
 .num-base {
@@ -1271,7 +1303,7 @@ svg.recharts-surface:focus-visible {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 0.73rem;
 }
 
 .comparison-table th {
@@ -1280,12 +1312,12 @@ svg.recharts-surface:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--subtext0);
-  padding: 8px 10px;
+  padding: 7px 6px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .comparison-table td {
-  padding: 7px 10px;
+  padding: 7px 6px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--subtext1);
 }

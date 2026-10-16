@@ -979,6 +979,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   : "Calibration Data"}
               </span>
             </div>
+            <span
+              className="curve-badge"
+              title="Total standard concentration points (excluding blank)"
+            >
+              {standardRows.length} pts
+            </span>
           </div>
 
           {/* Table Column Headers */}

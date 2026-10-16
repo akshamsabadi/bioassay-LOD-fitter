@@ -777,7 +777,6 @@ function App(): React.ReactElement {
                 hoveredPoint={hoveredPoint}
                 setHoveredPoint={setHoveredPoint}
                 tableHoveredRowId={tableHoveredRowId}
-                handleExportCSV={handleExportCSV}
                 hoveredSeriesId={hoveredSeriesId}
                 setHoveredSeriesId={setHoveredSeriesId}
                 onSelectSeries={handleSelectSeries}

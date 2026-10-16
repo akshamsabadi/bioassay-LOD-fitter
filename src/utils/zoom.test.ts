@@ -259,15 +259,17 @@ export function testLodBadgeTiersAndGlobalAxisLayouts(): void {
   // Single curve returns empty tier map
   assert(computeLodBadgeTiers([{ id: "s1", lodConc: 0.05 }]).size === 0, "Expected empty map for single curve");
 
-  // Multi-curve overlapping LODs (< 1 decade apart) get staggered tiers, well-separated reuse tier 0
+  // Multi-curve overlapping LODs (< 1 decade apart) get staggered tier offsets, well-separated reuse tier 0
   const tiers = computeLodBadgeTiers([
     { id: "a", lodConc: 0.01 },
-    { id: "b", lodConc: 0.02 }, // within 1 decade of 0.01 -> tier 1
-    { id: "c", lodConc: 0.5 },  // > 1 decade from 0.01 -> reuses tier 0
+    { id: "b", lodConc: 0.02 }, // within 1 decade of 0.01 -> tier 1 (18px)
+    { id: "c", lodConc: 0.05 }, // within 1 decade of 0.01 and 0.02 -> tier 2 (34px)
+    { id: "d", lodConc: 0.5 },  // > 1 decade from 0.01 -> reuses tier 0 (2px)
   ]);
-  assert(tiers.get("a") === 0, "Expected tier 0 for 'a'");
-  assert(tiers.get("b") === 1, "Expected tier 1 for 'b'");
-  assert(tiers.get("c") === 0, "Expected tier 0 reused for 'c'");
+  assert(tiers.get("a") === 2, "Expected tier 0 offset (2px) for 'a'");
+  assert(tiers.get("b") === 18, "Expected tier 1 offset (18px) for 'b'");
+  assert(tiers.get("c") === 34, "Expected tier 2 offset (34px) for 'c'");
+  assert(tiers.get("d") === 2, "Expected tier 0 offset (2px) reused for 'd'");
 
   // Global X and Y layout normal & empty cases
   const emptyX = computeGlobalLogXAxisLayout([]);

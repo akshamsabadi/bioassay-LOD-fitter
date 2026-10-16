@@ -195,9 +195,9 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                       cursor: "pointer",
                       userSelect: "none",
                     }}
-                    title="Sort by R²"
+                    title="Sort by R² goodness-of-fit"
                   >
-                    R² Fit {sortField === "r2" && (isSortAscending ? "▲" : "▼")}
+                    R² {sortField === "r2" && (isSortAscending ? "▲" : "▼")}
                   </th>
                   <th
                     onClick={(): void => handleSort("fold")}
@@ -206,9 +206,9 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                       cursor: "pointer",
                       userSelect: "none",
                     }}
-                    title="Sort by Sensitivity"
+                    title="Sort by relative sensitivity vs Reference"
                   >
-                    vs Reference{" "}
+                    vs Ref{" "}
                     {sortField === "fold" && (isSortAscending ? "▲" : "▼")}
                   </th>
                 </tr>
@@ -229,7 +229,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                       <td
                         style={{
                           fontWeight: 700,
-                          padding: "8px 12px",
+                          padding: "7px 8px",
                           whiteSpace: "nowrap",
                         }}
                       >
@@ -257,7 +257,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                               whiteSpace: "nowrap",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
-                              maxWidth: "105px",
+                              maxWidth: "90px",
                             }}
                             title={item.name}
                           >
@@ -311,6 +311,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                       <td
                         style={{
                           whiteSpace: "nowrap",
+                          fontSize: "0.72rem",
                           fontWeight: 600,
                           color: item.foldChangeVsRef.includes("higher")
                             ? "var(--green)"
@@ -994,11 +995,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
       {/* SECTION 4: UNIFIED MODERN ACTION BUTTONS */}
       <div
+        className="results-actions-footer"
         style={{
           display: "flex",
           gap: "10px",
-          marginTop: "2px",
-          paddingBottom: "12px",
           flexShrink: 0,
         }}
       >

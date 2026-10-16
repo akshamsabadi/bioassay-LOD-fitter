@@ -41,7 +41,7 @@ const _DEFAULT_CHART_HEIGHT_PX = 500;
 const _FALLBACK_PLOT_LEFT_PX = 88;
 
 /** Fallback top Y coordinate of the plot area when SVG clipRect is unavailable. */
-const _FALLBACK_PLOT_TOP_PX = 15;
+const _FALLBACK_PLOT_TOP_PX = 24;
 
 /** Fallback right margin subtracted from container width when estimating plot area. */
 const _FALLBACK_PLOT_RIGHT_MARGIN_PX = 35;
@@ -67,14 +67,11 @@ const _PLOT_HIT_PADDING_PX = 4;
 /** Minimum pointer displacement (in pixels) before a left-click drag starts a zoom box. */
 const _DRAG_START_THRESHOLD_PX = 5;
 
-/** Vertical spacing (in pixels) between staggered LOD badge tiers in multi-curve mode. */
-const _LOD_BADGE_TIER_HEIGHT_PX = 24;
-
 /** Height (in pixels) of the pill badge rendered at the top of each LOD reference line. */
 const _LOD_PILL_HEIGHT_PX = 20;
 
-/** Top offset (in pixels) of the LOD pill badge from the top of the plot area. */
-const _LOD_PILL_TOP_OFFSET_PX = 2;
+/** Top offset (in pixels) of the LOD pill badge relative to the top of the plot area. */
+const _LOD_PILL_TOP_OFFSET_PX = -12;
 
 /** Minimum width or height (in pixels) required before rendering the visual drag-zoom box. */
 const _MIN_ZOOM_BOX_RENDER_PX = 2;
@@ -665,7 +662,6 @@ export interface ChartCardProps {
   hoveredPoint: HoveredPointData | null;
   setHoveredPoint: (point: HoveredPointData | null) => void;
   tableHoveredRowId: string | null;
-  handleExportCSV: () => void;
   hoveredSeriesId: string | null;
   setHoveredSeriesId: (id: string | null) => void;
   onSelectSeries?: (id: string) => void;
@@ -1103,7 +1099,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   hoveredPoint,
   setHoveredPoint,
   tableHoveredRowId,
-  handleExportCSV,
   hoveredSeriesId,
   setHoveredSeriesId,
   onSelectSeries,
@@ -1648,28 +1643,32 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         </div>
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <button
-            className="action-btn-pill"
-            onClick={handleExportCSV}
-            title="Download Full Multi-Curve Analytical Report as CSV"
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {zoomDomain !== null && (
+            <button
+              className="action-btn-pill"
+              onClick={() => animateToDomain(null)}
+              title="Reset zoom to full view (or double-click chart)"
+              style={{
+                borderColor: "color-mix(in srgb, var(--blue) 45%, transparent)",
+                color: "var(--blue)",
+              }}
             >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-            </svg>
-            <span>CSV</span>
-          </button>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              <span>Reset Zoom</span>
+            </button>
+          )}
           <button
             className="action-btn-pill"
             onClick={handleDownloadPlot}
@@ -1736,7 +1735,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         <_ZoomSelectionBox dragBox={dragBox} />
 
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart accessibilityLayer={false} margin={{ top: 15, right: 35, left: 28, bottom: 35 }}>
+          <ComposedChart accessibilityLayer={false} margin={{ top: 24, right: 35, left: 28, bottom: 35 }}>
             <PlotAreaWatcher onPlotArea={handlePlotArea} />
 
             {showGrid && (
@@ -2093,8 +2092,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                 const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
                 const isMulti = curveSeriesList.length > 1;
                 const lodColor = isMulti ? s.color : "var(--yellow)";
-                const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
-                const offsetY = isMulti ? tier * _LOD_BADGE_TIER_HEIGHT_PX : 0;
+                const offsetY = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
 
                 return (
                   <ReferenceLine
@@ -2183,8 +2181,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                 const isDimmed = hoveredSeriesId !== null && hoveredSeriesId !== s.id;
                 const isMulti = curveSeriesList.length > 1;
                 const lodColor = isMulti ? s.color : "var(--yellow)";
-                const tier = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
-                const offsetY = isMulti ? tier * _LOD_BADGE_TIER_HEIGHT_PX : 0;
+                const offsetY = isMulti ? (lodTierMap.get(s.id) ?? 0) : 0;
 
                 return (
                   <ReferenceLine

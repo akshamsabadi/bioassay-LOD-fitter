@@ -60,15 +60,15 @@ export const ScientificDisplay: React.FC<ScientificDisplayProps> = ({
   return (
     <span
       className={`scientific-num ${className}`}
-      style={{ display: "inline-flex", alignItems: "baseline", gap: "2px" }}
+      style={{ display: "inline-flex", alignItems: "baseline" }}
     >
       <span className="num-mantissa">{parts.mantissa}</span>
       {parts.exponent !== undefined && (
         <span
           className="num-exp"
-          style={{ display: "inline-flex", alignItems: "baseline", marginLeft: "2px", opacity: 0.9 }}
+          style={{ display: "inline-flex", alignItems: "baseline", opacity: 0.9 }}
         >
-          <span className="num-times" style={{ margin: "0 2px", fontWeight: 400 }}>
+          <span className="num-times" style={{ margin: "0 2.5px", fontWeight: 400 }}>
             ×
           </span>
           <span className="num-base" style={{ fontWeight: 600 }}>

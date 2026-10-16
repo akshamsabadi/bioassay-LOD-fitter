@@ -76,6 +76,23 @@ function _testGetScientificParts(): void {
     plainText: "1.235",
   });
 
+  // Sub-unit decimal range [0.01, 1) preserving significant figures
+  assert.deepEqual(getScientificParts(0.0198, 3), {
+    mantissa: "0.0198",
+    decimalEquivalent: "0.0198",
+    plainText: "0.0198",
+  });
+  assert.deepEqual(getScientificParts(0.0198, 2), {
+    mantissa: "0.0198",
+    decimalEquivalent: "0.0198",
+    plainText: "0.0198",
+  });
+  assert.equal(getScientificParts(0.066, 2).mantissa, "0.066");
+  assert.equal(getScientificParts(0.069, 2).mantissa, "0.069");
+  assert.notEqual(getScientificParts(0.066, 2).mantissa, getScientificParts(0.069, 2).mantissa);
+  assert.equal(getScientificParts(0.125, 2).mantissa, "0.125");
+  assert.equal(getScientificParts(-0.0198, 2).mantissa, "-0.0198");
+
   // Normal small scientific number with subtext decimalEquivalent (-4 <= exp < 0)
   const smallParts = getScientificParts(0.004611, 3);
   assert.deepEqual(smallParts, {
@@ -130,6 +147,11 @@ function _testFormatScientificUnicode(): void {
   assert.equal(formatScientificUnicode(0.00461, 2), "4.61 × 10⁻³");
   assert.equal(formatScientificUnicode(0.00461, 2, "mM"), "4.61 × 10⁻³ mM");
   assert.equal(formatScientificUnicode(2.5, 2, "ng/mL"), "2.5 ng/mL");
+  assert.equal(formatScientificUnicode(0.0198, 2), "0.0198");
+  assert.equal(formatScientificUnicode(0.066, 2, "mM"), "0.066 mM");
+  assert.equal(formatScientificUnicode(0.069, 2, "mM"), "0.069 mM");
+  assert.equal(formatScientificUnicode(0.125, 2), "0.125");
+  assert.equal(formatScientificUnicode(-0.0198, 2), "-0.0198");
 
   // Edge cases
   assert.equal(formatScientificUnicode(0, 2), "0");
@@ -154,6 +176,8 @@ function _testFormatCIRange(): void {
     "[3.682 × 10⁻³, 5.551 × 10⁻³]"
   );
   assert.equal(formatCIRange(1.2, 3.4, 2), "[1.2, 3.4]");
+  assert.equal(formatCIRange(0.015, 0.025, 2), "[0.015, 0.025]");
+  assert.equal(formatCIRange(0.066, 0.069, 2), "[0.066, 0.069]");
 
   // Edge cases
   assert.equal(formatCIRange(0, 0, 2), "[0, 0]");

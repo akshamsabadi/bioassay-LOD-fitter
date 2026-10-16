@@ -46,6 +46,12 @@ const _ZOOMED_TICK_PRECISION = 8;
 /** Minimum separation in log10 decades between LOD badges on the same vertical tier. */
 const _MIN_LOD_BADGE_LOG_SEPARATION = 1.0;
 
+/** Base top offset (in pixels) for tier-0 multi-curve LOD badges. */
+const _LOD_TIER_BASE_OFFSET_PX = 2;
+
+/** Vertical step offset (in pixels) between adjacent multi-curve LOD badge tiers. */
+const _LOD_TIER_STEP_OFFSET_PX = 16;
+
 /** Divisor applied to minimum positive concentration to position the synthetic zero tick. */
 const _ZERO_X_DIVISOR = 10;
 
@@ -472,11 +478,11 @@ export function computeAxisBreakSegments(
 }
 
 /**
- * Assigns collision-free vertical tier indices (`0, 1, 2, ...`) to multi-curve LOD badges
+ * Assigns collision-free vertical pixel offsets (`2, 18, 34, ...`) to multi-curve LOD badges
  * so badges within 1.0 log10 decade of each other are staggered vertically.
  *
  * @param seriesEntries - List of series identifiers and their estimated LOD concentrations.
- * @returns Map from series ID to its assigned vertical tier index.
+ * @returns Map from series ID to its assigned vertical pixel offset.
  */
 export function computeLodBadgeTiers(
   seriesEntries: ReadonlyArray<{ id: string; lodConc: number }>
@@ -506,7 +512,7 @@ export function computeLodBadgeTiers(
       tierLastLogX.push(logX);
     }
 
-    map.set(s.id, assignedTier);
+    map.set(s.id, _LOD_TIER_BASE_OFFSET_PX + assignedTier * _LOD_TIER_STEP_OFFSET_PX);
   }
 
   return map;
